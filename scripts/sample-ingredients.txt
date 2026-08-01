@@ -1,0 +1,23 @@
+# Sample ingredient lines across a few "recipes" — the cream cheese case is
+# the headline: 8 oz + 4 oz => 12 oz => buy 2 x 8 oz packages.
+
+# Recipe A: cheesecake
+1 (8 oz) package cream cheese, softened
+1 cup all-purpose flour
+3 large eggs
+1/2 cup granulated sugar
+Salt to taste
+
+# Recipe B: dip
+4 oz cream cheese
+2 tablespoons all-purpose flour
+1 clove garlic, minced
+
+# Recipe C: burgers
+1.375 lb ground beef
+1 head garlic
+Freshly ground black pepper, to taste
+
+# Recipe D: an unresolved case (no density known for peanut butter here)
+12 oz peanut butter
+1 cup peanut butter

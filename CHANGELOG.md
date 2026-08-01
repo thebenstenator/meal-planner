@@ -5,6 +5,26 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Slice 2 — Ingredient Engine
+
+- New pure module `src/lib/ingredients/` (no React, no Supabase) — the product's
+  core. Pipeline: parse → normalize → convert → consolidate → round.
+- Fixed `Unit` enum (mass/volume/count/vague), conversion metadata, and an
+  exhaustive alias table (`tablespoon`/`Tbs`/`T` → `tbsp`, container words, etc.).
+- Deterministic parser: unicode + mixed fractions, ranges (upper bound),
+  parentheticals before/after the unit ("1 (8 oz) package" and "1 package
+  (16 oz)"), container multiply-out, "+" compounds, "a/an", optional flags, and
+  "to taste"/"as needed" no-quantity lines.
+- Converters: same-dimension (always), volume↔mass via density, count↔mass via
+  count_to_gram. Unconvertible pairs return a reason rather than guessing.
+- Consolidation groups by canonical id, scales by servings, sums into a common
+  unit, and flags `unresolved` with per-unit subtotals when it can't merge
+  cleanly. Purchase rounding rounds up to whole packages.
+- 215 real fixture lines, snapshot-tested; explicit tests for every unresolved
+  case. 53 engine unit tests total.
+- Scratch CLI `npm run consolidate -- scripts/sample-ingredients.txt` prints a
+  consolidated list (8 oz + 4 oz cream cheese → 12 oz → buy 2 × 8 oz).
+
 ### Slice 1 — Auth & Household
 
 - Migration: `household`, `household_member`, `household_invite` with a shared
