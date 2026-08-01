@@ -1,5 +1,7 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
+import { AppHeader } from '@/app/app-header';
+
 /**
  * Protected-route wrapper. Any route placed under `_authenticated/` requires a
  * session; unauthenticated users are redirected to `/login` with a `redirect`
@@ -24,5 +26,10 @@ export const Route = createFileRoute('/_authenticated')({
 });
 
 function AuthenticatedLayout() {
-  return <Outlet />;
+  return (
+    <div className="min-h-dvh">
+      <AppHeader />
+      <Outlet />
+    </div>
+  );
 }

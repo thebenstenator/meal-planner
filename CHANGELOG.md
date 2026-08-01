@@ -5,6 +5,25 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Slice 1 — Auth & Household
+
+- Migration: `household`, `household_member`, `household_invite` with a shared
+  `updated_at` trigger and RLS on all three (membership-scoped via
+  `is_household_member` / `is_household_owner` SECURITY DEFINER helpers).
+- `handle_new_user()` trigger auto-creates a household and owner membership on
+  signup. Invite create/accept and member listing via SECURITY DEFINER RPCs.
+- Email/password auth (`AuthProvider` + `useAuth`), session-driven protected
+  routes, login/signup screen. Google OAuth deferred behind a config flag
+  (`GOOGLE_OAUTH_ENABLED`) — see docs/decisions/0002.
+- `useHousehold()` hook (the household id every later query depends on) and
+  household mutations (rename, create invite, accept invite).
+- Household settings page: rename (owner-only), members list, invite-code
+  generation, and join-by-code.
+- Shared Zod schemas for credentials, invite codes, and household settings.
+- Tests: unit tests for auth schemas; two-context e2e (owner invites, partner
+  joins, sees the shared household) plus the auto-household e2e.
+- shadcn primitives: `Input`, `Label`, `Card`.
+
 ### Slice 0 — Foundation
 
 - Vite + React 19 + TypeScript (strict, `noUncheckedIndexedAccess`) with `@/*`

@@ -15,13 +15,12 @@ const boolFromString = z
   .transform((v) => v === 'true' || v === '1');
 
 /**
- * The Supabase CLI's well-known local-dev anon key (issuer `supabase-demo`). It
- * is public, identical on every machine, and only ever valid against a local
- * stack — safe as a default so `npm run dev` and CI boot without a real `.env`.
- * Staging/production override it via env.
+ * The Supabase CLI's well-known local-dev publishable key. It is public,
+ * identical across local installs on this CLI version, and only ever valid
+ * against a local stack — safe as a default so `npm run dev` and CI boot without
+ * a real `.env`. Staging/production override it via env with their own key.
  */
-const LOCAL_DEV_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTYwMH0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+const LOCAL_DEV_ANON_KEY = 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 
 const envSchema = z.object({
   VITE_SUPABASE_URL: z.string().url().default('http://127.0.0.1:54321'),

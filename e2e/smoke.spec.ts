@@ -14,5 +14,5 @@ test('health route reports ok', async ({ page }) => {
 test('protected route redirects to login when signed out', async ({ page }) => {
   await page.goto('/app');
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 });
