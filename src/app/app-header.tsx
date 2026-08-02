@@ -17,6 +17,9 @@ export function AppHeader() {
         </Link>
         <nav className="flex items-center gap-1">
           <Button asChild variant="ghost" size="sm">
+            <Link to="/ingredients">Ingredients</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
             <Link to="/household/settings">Household</Link>
           </Button>
           <Button

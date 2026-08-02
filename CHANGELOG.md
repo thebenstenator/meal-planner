@@ -5,6 +5,26 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Slice 3 — Canonical Ingredients
+
+- Migration: `canonical_ingredient` (global seed rows + household rows) with
+  `pg_trgm` GIN indexes, soft-merge via `merged_into_id`, and RLS (read global +
+  own; write own household rows only). Plus `household_ingredient_map` for
+  learned raw-name → canonical mappings.
+- `match_canonical_ingredient` RPC: ordered exact → alias → household-learned →
+  trigram, with a similarity threshold and a runner-up gap so ambiguous matches
+  return nothing rather than guessing. `resolve_canonical` follows merge chains.
+- Seeded 172 global canonical ingredients with aliases, categories, default
+  units, densities (baking staples), count_to_gram (eggs/garlic/etc.), and
+  package sizes. A starter set meant to grow toward ~500.
+- Matching service + hooks: match, search/browse, create/edit household rows,
+  merge, and learn-mapping. `toCanonicalInfo` maps rows into the engine's shape.
+- Ingredients admin UI: a "test the matcher" panel (philly cream cheese →
+  cream cheese), search/browse with global/yours badges, add/edit household
+  ingredients, and merge.
+- Tests: unit test for the row→engine mapping; e2e verifying match ordering and
+  threshold (exact/alias/trigram/no-match) through the real database.
+
 ### Slice 2 — Ingredient Engine
 
 - New pure module `src/lib/ingredients/` (no React, no Supabase) — the product's

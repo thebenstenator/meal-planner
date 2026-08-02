@@ -34,6 +34,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      canonical_ingredient: {
+        Row: {
+          aliases: string[]
+          category: string | null
+          count_to_gram: number | null
+          created_at: string
+          default_unit: string | null
+          density_g_per_ml: number | null
+          household_id: string | null
+          id: string
+          merged_into_id: string | null
+          name: string
+          unit_size_quantity: number | null
+          unit_size_unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          aliases?: string[]
+          category?: string | null
+          count_to_gram?: number | null
+          created_at?: string
+          default_unit?: string | null
+          density_g_per_ml?: number | null
+          household_id?: string | null
+          id?: string
+          merged_into_id?: string | null
+          name: string
+          unit_size_quantity?: number | null
+          unit_size_unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aliases?: string[]
+          category?: string | null
+          count_to_gram?: number | null
+          created_at?: string
+          default_unit?: string | null
+          density_g_per_ml?: number | null
+          household_id?: string | null
+          id?: string
+          merged_into_id?: string | null
+          name?: string
+          unit_size_quantity?: number | null
+          unit_size_unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canonical_ingredient_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_ingredient_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household: {
         Row: {
           created_at: string
@@ -60,6 +123,48 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      household_ingredient_map: {
+        Row: {
+          canonical_ingredient_id: string
+          created_at: string
+          household_id: string
+          id: string
+          raw_name: string
+          updated_at: string
+        }
+        Insert: {
+          canonical_ingredient_id: string
+          created_at?: string
+          household_id: string
+          id?: string
+          raw_name: string
+          updated_at?: string
+        }
+        Update: {
+          canonical_ingredient_id?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          raw_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_ingredient_map_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_ingredient_map_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       household_invite: {
         Row: {
@@ -187,6 +292,16 @@ export type Database = {
         Returns: boolean
       }
       is_household_owner: { Args: { p_household_id: string }; Returns: boolean }
+      match_canonical_ingredient: {
+        Args: { p_household_id: string; p_raw: string; p_threshold?: number }
+        Returns: {
+          canonical_ingredient_id: string
+          method: string
+          name: string
+          score: number
+        }[]
+      }
+      resolve_canonical: { Args: { p_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

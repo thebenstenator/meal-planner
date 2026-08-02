@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
+import { Route as AuthenticatedIngredientsRouteImport } from './routes/_authenticated/ingredients'
 import { Route as AuthenticatedHouseholdSettingsRouteImport } from './routes/_authenticated/household.settings'
 
 const IndexRoute = IndexRouteImport.update({
@@ -40,6 +41,12 @@ const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
   path: '/app',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedIngredientsRoute =
+  AuthenticatedIngredientsRouteImport.update({
+    id: '/ingredients',
+    path: '/ingredients',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedHouseholdSettingsRoute =
   AuthenticatedHouseholdSettingsRouteImport.update({
     id: '/household/settings',
@@ -52,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRoute
+  '/ingredients': typeof AuthenticatedIngredientsRoute
   '/household/settings': typeof AuthenticatedHouseholdSettingsRoute
 }
 export interface FileRoutesByTo {
@@ -59,6 +67,7 @@ export interface FileRoutesByTo {
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRoute
+  '/ingredients': typeof AuthenticatedIngredientsRoute
   '/household/settings': typeof AuthenticatedHouseholdSettingsRoute
 }
 export interface FileRoutesById {
@@ -68,13 +77,16 @@ export interface FileRoutesById {
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
   '/_authenticated/app': typeof AuthenticatedAppRoute
+  '/_authenticated/ingredients': typeof AuthenticatedIngredientsRoute
   '/_authenticated/household/settings': typeof AuthenticatedHouseholdSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/health' | '/login' | '/app' | '/household/settings'
+  fullPaths:
+    '/' | '/health' | '/login' | '/app' | '/ingredients' | '/household/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/health' | '/login' | '/app' | '/household/settings'
+  to:
+    '/' | '/health' | '/login' | '/app' | '/ingredients' | '/household/settings'
   id:
     | '__root__'
     | '/'
@@ -82,6 +94,7 @@ export interface FileRouteTypes {
     | '/health'
     | '/login'
     | '/_authenticated/app'
+    | '/_authenticated/ingredients'
     | '/_authenticated/household/settings'
   fileRoutesById: FileRoutesById
 }
@@ -129,6 +142,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/ingredients': {
+      id: '/_authenticated/ingredients'
+      path: '/ingredients'
+      fullPath: '/ingredients'
+      preLoaderRoute: typeof AuthenticatedIngredientsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/household/settings': {
       id: '/_authenticated/household/settings'
       path: '/household/settings'
@@ -141,11 +161,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAppRoute: typeof AuthenticatedAppRoute
+  AuthenticatedIngredientsRoute: typeof AuthenticatedIngredientsRoute
   AuthenticatedHouseholdSettingsRoute: typeof AuthenticatedHouseholdSettingsRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppRoute: AuthenticatedAppRoute,
+  AuthenticatedIngredientsRoute: AuthenticatedIngredientsRoute,
   AuthenticatedHouseholdSettingsRoute: AuthenticatedHouseholdSettingsRoute,
 }
 
