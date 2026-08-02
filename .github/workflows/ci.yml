@@ -55,7 +55,9 @@ jobs:
       # The app's default local anon key matches this stack (see lib/config/env).
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pin to the version validated locally; newer CLIs change local-stack
+          # defaults (e.g. auth) and broke the household trigger flow in CI.
+          version: 2.104.0
 
       - name: Start Supabase
         run: supabase start
