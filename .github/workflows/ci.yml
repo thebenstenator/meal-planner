@@ -50,11 +50,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The e2e suite talks to a real Supabase (auth signup, matcher RPC), so
+      # boot the local stack. Migrations + seed are applied by `supabase start`.
+      # The app's default local anon key matches this stack (see lib/config/env).
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase
+        run: supabase start
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
         run: npm run test:e2e
+
+      - name: Stop Supabase
+        if: ${{ always() }}
+        run: supabase stop || true
 
       - name: Upload report
         if: ${{ !cancelled() }}
