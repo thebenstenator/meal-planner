@@ -458,6 +458,180 @@ export type Database = {
           },
         ]
       }
+      shopping_list: {
+        Row: {
+          created_at: string
+          date_range_end: string | null
+          date_range_start: string | null
+          generated_at: string
+          household_id: string
+          id: string
+          name: string
+          status: string
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          generated_at?: string
+          household_id: string
+          id?: string
+          name: string
+          status?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          generated_at?: string
+          household_id?: string
+          id?: string
+          name?: string
+          status?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_list_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_list_item: {
+        Row: {
+          ad_hoc_name: string | null
+          canonical_ingredient_id: string | null
+          category: string | null
+          created_at: string
+          display_name: string
+          estimated_price_cents: number | null
+          id: string
+          is_checked: boolean
+          no_quantity_count: number
+          position: number
+          price_is_stale: boolean
+          purchase: Json | null
+          shopping_list_id: string
+          sub_totals: Json | null
+          total_quantity: number | null
+          unit: string | null
+          unresolved: boolean
+          updated_at: string
+        }
+        Insert: {
+          ad_hoc_name?: string | null
+          canonical_ingredient_id?: string | null
+          category?: string | null
+          created_at?: string
+          display_name: string
+          estimated_price_cents?: number | null
+          id?: string
+          is_checked?: boolean
+          no_quantity_count?: number
+          position?: number
+          price_is_stale?: boolean
+          purchase?: Json | null
+          shopping_list_id: string
+          sub_totals?: Json | null
+          total_quantity?: number | null
+          unit?: string | null
+          unresolved?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ad_hoc_name?: string | null
+          canonical_ingredient_id?: string | null
+          category?: string | null
+          created_at?: string
+          display_name?: string
+          estimated_price_cents?: number | null
+          id?: string
+          is_checked?: boolean
+          no_quantity_count?: number
+          position?: number
+          price_is_stale?: boolean
+          purchase?: Json | null
+          shopping_list_id?: string
+          sub_totals?: Json | null
+          total_quantity?: number | null
+          unit?: string | null
+          unresolved?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_list_item_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_list_item_shopping_list_id_fkey"
+            columns: ["shopping_list_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_list"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_list_item_source: {
+        Row: {
+          contributed_quantity: number | null
+          created_at: string
+          id: string
+          plan_entry_id: string | null
+          recipe_ingredient_id: string | null
+          shopping_list_item_id: string
+        }
+        Insert: {
+          contributed_quantity?: number | null
+          created_at?: string
+          id?: string
+          plan_entry_id?: string | null
+          recipe_ingredient_id?: string | null
+          shopping_list_item_id: string
+        }
+        Update: {
+          contributed_quantity?: number | null
+          created_at?: string
+          id?: string
+          plan_entry_id?: string | null
+          recipe_ingredient_id?: string | null
+          shopping_list_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_list_item_source_plan_entry_id_fkey"
+            columns: ["plan_entry_id"]
+            isOneToOne: false
+            referencedRelation: "plan_entry"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_list_item_source_recipe_ingredient_id_fkey"
+            columns: ["recipe_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_list_item_source_shopping_list_item_id_fkey"
+            columns: ["shopping_list_item_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_list_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -485,6 +659,17 @@ export type Database = {
         }
       }
       gen_invite_code: { Args: never; Returns: string }
+      generate_shopping_list: {
+        Args: {
+          p_end: string
+          p_household_id: string
+          p_items: Json
+          p_list_id?: string
+          p_name: string
+          p_start: string
+        }
+        Returns: string
+      }
       get_household_members: {
         Args: { p_household_id: string }
         Returns: {
