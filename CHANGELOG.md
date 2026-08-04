@@ -19,6 +19,16 @@ All notable changes to this project are documented here. One entry per slice
   each ingredient matched to a canonical one and low-confidence / unmatched rows
   highlighted; nothing saves until the user confirms.
 - Graceful failure: a parse error or hit limit falls back to manual entry.
+- **PDF import**: the same `parse-recipe` function accepts a PDF as a Claude
+  document block (branching on `media_type`), so a recipe can be imported from a
+  PDF as well as photos. The import UI accepts `application/pdf`.
+- **Website import**: a new `parse-recipe-url` Edge Function fetches the page
+  server-side (bypassing browser CORS). The fast path reads schema.org/Recipe
+  JSON-LD with **no AI call** (free); pages without usable JSON-LD fall back to
+  Claude on the page text (consumes a credit). Either way it returns raw
+  ingredient lines, which the client runs through the same Slice 2 engine parser
+  + Slice 3 matcher as paste-to-parse, into the same mandatory review screen.
+  The import page now leads with a URL field.
 
 ### Slice 8 — Offline & PWA
 

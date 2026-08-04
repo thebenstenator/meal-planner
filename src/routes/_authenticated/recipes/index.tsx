@@ -31,7 +31,7 @@ function RecipeLibrary() {
         <h1 className="text-2xl font-semibold">Recipes</h1>
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link to="/recipes/import">Import from photo</Link>
+            <Link to="/recipes/import">Import</Link>
           </Button>
           <Button asChild>
             <Link to="/recipes/new">New recipe</Link>
