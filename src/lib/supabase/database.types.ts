@@ -34,6 +34,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage_counter: {
+        Row: {
+          count: number
+          created_at: string
+          household_id: string
+          id: string
+          period: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          household_id: string
+          id?: string
+          period: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          household_id?: string
+          id?: string
+          period?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_counter_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       canonical_ingredient: {
         Row: {
           aliases: string[]
@@ -745,6 +780,10 @@ export type Database = {
     }
     Functions: {
       accept_household_invite: { Args: { p_code: string }; Returns: string }
+      consume_ai_credit: {
+        Args: { p_household_id: string; p_limit: number }
+        Returns: number
+      }
       create_household_invite: {
         Args: { p_household_id: string }
         Returns: {

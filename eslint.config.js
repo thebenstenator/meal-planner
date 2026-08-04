@@ -6,7 +6,13 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'src/routeTree.gen.ts', 'src/lib/supabase/database.types.ts'],
+    ignores: [
+      'dist',
+      'src/routeTree.gen.ts',
+      'src/lib/supabase/database.types.ts',
+      // Deno Edge Functions — different runtime/globals, not part of the Vite app.
+      'supabase/functions/**',
+    ],
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
