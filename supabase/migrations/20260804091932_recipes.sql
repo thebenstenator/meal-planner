@@ -29,7 +29,7 @@ create table public.recipe (
 
 create index recipe_household_idx on public.recipe (household_id);
 create index recipe_deleted_at_idx on public.recipe (deleted_at);
-create index recipe_title_trgm_idx on public.recipe using gin (title gin_trgm_ops);
+create index recipe_title_trgm_idx on public.recipe using gin (title extensions.gin_trgm_ops);
 
 create trigger recipe_set_updated_at
   before update on public.recipe

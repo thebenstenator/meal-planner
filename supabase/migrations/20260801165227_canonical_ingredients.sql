@@ -32,7 +32,7 @@ create trigger canonical_ingredient_set_updated_at
 -- Fuzzy-match indexes (specs/05 step 3). GIN over trigrams of the name, plus a
 -- GIN over the aliases array for exact alias membership.
 create index canonical_ingredient_name_trgm_idx
-  on public.canonical_ingredient using gin (name gin_trgm_ops);
+  on public.canonical_ingredient using gin (name extensions.gin_trgm_ops);
 create index canonical_ingredient_aliases_idx
   on public.canonical_ingredient using gin (aliases);
 create index canonical_ingredient_household_idx
@@ -190,8 +190,8 @@ begin
     select
       c.id as cid,
       greatest(
-        similarity(lower(c.name), v_raw),
-        coalesce((select max(similarity(lower(a), v_raw)) from unnest(c.aliases) a), 0)
+        extensions.similarity(lower(c.name), v_raw),
+        coalesce((select max(extensions.similarity(lower(a), v_raw)) from unnest(c.aliases) a), 0)
       ) as sim
     from public.canonical_ingredient c
     where c.merged_into_id is null
