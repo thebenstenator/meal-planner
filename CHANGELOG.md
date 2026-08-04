@@ -5,6 +5,24 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Slice 6 — Shopping List Generation (the payoff)
+
+- Migration: `shopping_list`, `shopping_list_item` (the money table),
+  `shopping_list_item_source` (provenance), with RLS. `generate_shopping_list`
+  RPC persists engine-consolidated items atomically, preserves `is_checked` on
+  regenerate, and keeps manually-added items (`is_manual`) across regeneration.
+- Generation reuses the pure Slice 2 engine client-side: a date range → plan
+  entries (recipe kind only; leftovers/eating_out/note excluded) → recipe
+  ingredients → consolidate → persisted list. Unmatched ingredients consolidate
+  too via synthetic keys and are flagged.
+- List UI: generate flow (date range), aisle/category grouping, purchase
+  rounding, expandable provenance ("why?"), optimistic check-off, regenerate.
+- Unresolved-merge review: [Set conversion] (writes a density back to the
+  canonical ingredient, then regenerates to merge) / [Keep separate].
+- Ad-hoc items (survive regeneration), manual quantity override, and item delete.
+- e2e: two recipes (8 oz + 4 oz cream cheese) → one 12 oz line → buy 2 × 8 oz,
+  with provenance; an ad-hoc item persists across regenerate.
+
 ### Slice 5 — Planner
 
 - Migration: `plan_entry` (day + slot + kind: recipe/leftovers/eating_out/note)

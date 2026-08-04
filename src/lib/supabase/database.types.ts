@@ -515,6 +515,7 @@ export type Database = {
           estimated_price_cents: number | null
           id: string
           is_checked: boolean
+          is_manual: boolean
           no_quantity_count: number
           position: number
           price_is_stale: boolean
@@ -535,6 +536,7 @@ export type Database = {
           estimated_price_cents?: number | null
           id?: string
           is_checked?: boolean
+          is_manual?: boolean
           no_quantity_count?: number
           position?: number
           price_is_stale?: boolean
@@ -555,6 +557,7 @@ export type Database = {
           estimated_price_cents?: number | null
           id?: string
           is_checked?: boolean
+          is_manual?: boolean
           no_quantity_count?: number
           position?: number
           price_is_stale?: boolean

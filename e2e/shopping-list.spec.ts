@@ -60,4 +60,13 @@ test('generates one consolidated, rounded line from two recipes', async ({ page 
   await page.getByRole('button', { name: /why\?/ }).first().click();
   await expect(page.getByText(/Cheese Dip A/)).toBeVisible();
   await expect(page.getByText(/Cheese Dip B/)).toBeVisible();
+
+  // A manually added item survives regeneration.
+  await page.getByLabel('Add item name').fill('paper towels');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByText('paper towels')).toBeVisible();
+  await page.getByRole('button', { name: 'Regenerate' }).click();
+  await expect(page.getByText('paper towels')).toBeVisible();
+  // The consolidated line is still correct after regenerating.
+  await expect(page.getByText('12 oz')).toBeVisible();
 });

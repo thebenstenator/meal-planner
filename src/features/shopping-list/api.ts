@@ -42,6 +42,7 @@ export interface ShoppingItem {
   purchase: ItemPurchase | null;
   noQuantityCount: number;
   isChecked: boolean;
+  isManual: boolean;
   position: number;
   sources: ItemSource[];
 }
@@ -89,6 +90,7 @@ export async function getShoppingList(
     purchase: (i.purchase as ItemPurchase | null) ?? null,
     noQuantityCount: i.no_quantity_count,
     isChecked: i.is_checked,
+    isManual: i.is_manual,
     position: i.position,
     sources: (i.shopping_list_item_source ?? []).map((s) => ({
       recipeTitle: s.recipe_ingredient?.recipe?.title ?? null,
@@ -136,5 +138,59 @@ export async function setItemChecked(itemId: string, checked: boolean): Promise<
 
 export async function deleteShoppingList(listId: string): Promise<void> {
   const { error } = await supabase.from('shopping_list').delete().eq('id', listId);
+  if (error) throw error;
+}
+
+/** Add a manual item ("paper towels") that survives regeneration. */
+export async function addAdHocItem(
+  listId: string,
+  input: { name: string; quantity: number | null; unit: string | null },
+): Promise<void> {
+  const { error } = await supabase.from('shopping_list_item').insert({
+    shopping_list_id: listId,
+    ad_hoc_name: input.name,
+    display_name: input.name,
+    total_quantity: input.quantity,
+    unit: input.unit,
+    category: 'other',
+    is_manual: true,
+  });
+  if (error) throw error;
+}
+
+/** Manual override of an item's quantity/unit (lasts until regeneration). */
+export async function updateItemQuantity(
+  itemId: string,
+  patch: { totalQuantity: number | null; unit: string | null },
+): Promise<void> {
+  const { error } = await supabase
+    .from('shopping_list_item')
+    .update({ total_quantity: patch.totalQuantity, unit: patch.unit })
+    .eq('id', itemId);
+  if (error) throw error;
+}
+
+export async function deleteItem(itemId: string): Promise<void> {
+  const { error } = await supabase.from('shopping_list_item').delete().eq('id', itemId);
+  if (error) throw error;
+}
+
+/**
+ * Write a conversion fact back to the canonical ingredient so future
+ * consolidations merge (specs/05: "the system gets smarter with use"). Only
+ * household-owned canonical rows are writable (RLS); global rows already ship
+ * with densities.
+ */
+export async function setCanonicalConversion(
+  canonicalId: string,
+  patch: { densityGPerMl?: number; countToGram?: number },
+): Promise<void> {
+  const update: { density_g_per_ml?: number; count_to_gram?: number } = {};
+  if (patch.densityGPerMl != null) update.density_g_per_ml = patch.densityGPerMl;
+  if (patch.countToGram != null) update.count_to_gram = patch.countToGram;
+  const { error } = await supabase
+    .from('canonical_ingredient')
+    .update(update)
+    .eq('id', canonicalId);
   if (error) throw error;
 }

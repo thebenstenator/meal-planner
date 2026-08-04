@@ -2,12 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useHousehold } from '@/features/household/use-household';
 import {
+  addAdHocItem,
+  deleteItem,
   deleteShoppingList,
   generateList,
   getShoppingList,
   listKeys,
   listShoppingLists,
+  setCanonicalConversion,
   setItemChecked,
+  updateItemQuantity,
 } from '@/features/shopping-list/api';
 
 export function useShoppingLists() {
@@ -77,5 +81,43 @@ export function useDeleteShoppingList() {
   return useMutation<void, Error, string>({
     mutationFn: (id) => deleteShoppingList(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: listKeys.all(householdId ?? 'none') }),
+  });
+}
+
+/** Item-level edits on a list: add ad-hoc, override quantity, delete. */
+export function useItemEdits(listId: string) {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
+
+  const addItem = useMutation<void, Error, { name: string; quantity: number | null; unit: string | null }>({
+    mutationFn: (input) => addAdHocItem(listId, input),
+    onSuccess: invalidate,
+  });
+  const overrideQuantity = useMutation<
+    void,
+    Error,
+    { itemId: string; totalQuantity: number | null; unit: string | null }
+  >({
+    mutationFn: ({ itemId, totalQuantity, unit }) =>
+      updateItemQuantity(itemId, { totalQuantity, unit }),
+    onSuccess: invalidate,
+  });
+  const removeItem = useMutation<void, Error, string>({
+    mutationFn: (itemId) => deleteItem(itemId),
+    onSuccess: invalidate,
+  });
+
+  return { addItem, overrideQuantity, removeItem };
+}
+
+/** Save a conversion to a canonical ingredient, then regenerate to merge. */
+export function useSetConversion() {
+  return useMutation<
+    void,
+    Error,
+    { canonicalId: string; densityGPerMl?: number; countToGram?: number }
+  >({
+    mutationFn: ({ canonicalId, densityGPerMl, countToGram }) =>
+      setCanonicalConversion(canonicalId, { densityGPerMl, countToGram }),
   });
 }
