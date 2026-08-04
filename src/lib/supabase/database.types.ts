@@ -104,6 +104,7 @@ export type Database = {
           id: string
           monthly_budget_cents: number | null
           name: string
+          price_stale_days: number
           updated_at: string
         }
         Insert: {
@@ -112,6 +113,7 @@ export type Database = {
           id?: string
           monthly_budget_cents?: number | null
           name: string
+          price_stale_days?: number
           updated_at?: string
         }
         Update: {
@@ -120,9 +122,18 @@ export type Database = {
           id?: string
           monthly_budget_cents?: number | null
           name?: string
+          price_stale_days?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "household_default_store_fk"
+            columns: ["default_store_id"]
+            isOneToOne: false
+            referencedRelation: "store"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       household_ingredient_map: {
         Row: {
@@ -314,6 +325,67 @@ export type Database = {
             columns: ["recipe_id"]
             isOneToOne: false
             referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_record: {
+        Row: {
+          canonical_ingredient_id: string
+          created_at: string
+          household_id: string
+          id: string
+          observed_on: string
+          package_quantity: number
+          package_unit: string
+          price_cents: number
+          source: string
+          store_id: string
+        }
+        Insert: {
+          canonical_ingredient_id: string
+          created_at?: string
+          household_id: string
+          id?: string
+          observed_on?: string
+          package_quantity: number
+          package_unit: string
+          price_cents: number
+          source?: string
+          store_id: string
+        }
+        Update: {
+          canonical_ingredient_id?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          observed_on?: string
+          package_quantity?: number
+          package_unit?: string
+          price_cents?: number
+          source?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_record_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_record_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_record_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store"
             referencedColumns: ["id"]
           },
         ]
@@ -635,6 +707,38 @@ export type Database = {
           },
         ]
       }
+      store: {
+        Row: {
+          created_at: string
+          household_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          household_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -672,6 +776,16 @@ export type Database = {
           p_start: string
         }
         Returns: string
+      }
+      get_current_prices: {
+        Args: { p_store_id: string }
+        Returns: {
+          canonical_ingredient_id: string
+          observed_on: string
+          package_quantity: number
+          package_unit: string
+          price_cents: number
+        }[]
       }
       get_household_members: {
         Args: { p_household_id: string }

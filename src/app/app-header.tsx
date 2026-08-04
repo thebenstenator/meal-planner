@@ -11,16 +11,19 @@ export function AppHeader() {
 
   return (
     <header className="border-b">
-      <div className="mx-auto flex h-14 max-w-2xl items-center justify-between gap-2 px-4">
+      <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-2 px-4 py-2">
         <Link to="/app" className="font-semibold">
           {household?.name ?? 'Mealplan'}
         </Link>
-        <nav className="flex items-center gap-1">
+        <nav className="flex flex-wrap items-center justify-end gap-1">
           <Button asChild variant="ghost" size="sm">
             <Link to="/planner">Plan</Link>
           </Button>
           <Button asChild variant="ghost" size="sm">
             <Link to="/shopping-list">List</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/stores">Stores</Link>
           </Button>
           <Button asChild variant="ghost" size="sm">
             <Link to="/recipes">Recipes</Link>

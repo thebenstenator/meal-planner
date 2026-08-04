@@ -1,0 +1,118 @@
+import { supabase } from '@/lib/supabase/client';
+
+export const pricingKeys = {
+  stores: (householdId: string) => ['stores', householdId] as const,
+  settings: (householdId: string) => ['pricing-settings', householdId] as const,
+  currentPrices: (storeId: string) => ['current-prices', storeId] as const,
+};
+
+export interface Store {
+  id: string;
+  name: string;
+}
+
+export interface PricingSettings {
+  defaultStoreId: string | null;
+  priceStaleDays: number;
+}
+
+export interface CurrentPrice {
+  canonicalId: string;
+  priceCents: number;
+  packageQuantity: number;
+  packageUnit: string;
+  observedOn: string;
+}
+
+export async function listStores(householdId: string): Promise<Store[]> {
+  const { data, error } = await supabase
+    .from('store')
+    .select('id, name')
+    .eq('household_id', householdId)
+    .order('name', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getPricingSettings(householdId: string): Promise<PricingSettings> {
+  const { data, error } = await supabase
+    .from('household')
+    .select('default_store_id, price_stale_days')
+    .eq('id', householdId)
+    .single();
+  if (error) throw error;
+  return { defaultStoreId: data.default_store_id, priceStaleDays: data.price_stale_days };
+}
+
+export async function createStore(householdId: string, name: string): Promise<string> {
+  const { data, error } = await supabase
+    .from('store')
+    .insert({ household_id: householdId, name })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function renameStore(id: string, name: string): Promise<void> {
+  const { error } = await supabase.from('store').update({ name }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteStore(id: string): Promise<void> {
+  const { error } = await supabase.from('store').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function setDefaultStore(
+  householdId: string,
+  storeId: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from('household')
+    .update({ default_store_id: storeId })
+    .eq('id', householdId);
+  if (error) throw error;
+}
+
+export async function setPriceStaleDays(householdId: string, days: number): Promise<void> {
+  const { error } = await supabase
+    .from('household')
+    .update({ price_stale_days: days })
+    .eq('id', householdId);
+  if (error) throw error;
+}
+
+/** Append a new price observation. price_record is append-only. */
+export async function addPriceRecord(
+  householdId: string,
+  input: {
+    canonicalId: string;
+    storeId: string;
+    priceCents: number;
+    packageQuantity: number;
+    packageUnit: string;
+  },
+): Promise<void> {
+  const { error } = await supabase.from('price_record').insert({
+    household_id: householdId,
+    canonical_ingredient_id: input.canonicalId,
+    store_id: input.storeId,
+    price_cents: input.priceCents,
+    package_quantity: input.packageQuantity,
+    package_unit: input.packageUnit,
+  });
+  if (error) throw error;
+}
+
+export async function getCurrentPrices(storeId: string): Promise<CurrentPrice[]> {
+  const { data, error } = await supabase.rpc('get_current_prices', { p_store_id: storeId });
+  if (error) throw error;
+  return (data ?? []).map((p) => ({
+    canonicalId: p.canonical_ingredient_id,
+    priceCents: p.price_cents,
+    packageQuantity: p.package_quantity,
+    packageUnit: p.package_unit,
+    observedOn: p.observed_on,
+  }));
+}
