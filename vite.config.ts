@@ -36,9 +36,17 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
+        icons: [
+          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
+        cleanupOutdatedCaches: true,
+        // Serve the SPA shell for offline route navigations (deep links).
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/auth\//, /supabase/],
       },
       devOptions: {
         enabled: false,

@@ -51,9 +51,10 @@ export function useToggleItem(listId: string) {
   const qc = useQueryClient();
   return useMutation<void, Error, { itemId: string; checked: boolean }>({
     mutationFn: ({ itemId, checked }) => setItemChecked(itemId, checked),
-    // Optimistic: flip the checkbox immediately (high-frequency interaction).
-    onMutate: async ({ itemId, checked }) => {
-      await qc.cancelQueries({ queryKey: listKeys.detail(listId) });
+    // Optimistic: flip the checkbox immediately (high-frequency interaction, and
+    // it must survive an offline queue). Apply the cache update synchronously —
+    // before any await — so a controlled checkbox never flickers back.
+    onMutate: ({ itemId, checked }) => {
       const prev = qc.getQueryData(listKeys.detail(listId));
       qc.setQueryData(listKeys.detail(listId), (old: unknown) => {
         const data = old as { summary: unknown; items: Array<{ id: string; isChecked: boolean }> } | undefined;

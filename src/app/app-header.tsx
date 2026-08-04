@@ -1,5 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 
+import { InstallPrompt } from '@/app/install-prompt';
+import { SyncStatus } from '@/app/sync-status';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/use-auth';
 import { useHousehold } from '@/features/household/use-household';
@@ -12,10 +14,14 @@ export function AppHeader() {
   return (
     <header className="border-b">
       <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-2 px-4 py-2">
-        <Link to="/app" className="font-semibold">
-          {household?.name ?? 'Mealplan'}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/app" className="font-semibold">
+            {household?.name ?? 'Mealplan'}
+          </Link>
+          <SyncStatus />
+        </div>
         <nav className="flex flex-wrap items-center justify-end gap-1">
+          <InstallPrompt />
           <Button asChild variant="ghost" size="sm">
             <Link to="/planner">Plan</Link>
           </Button>

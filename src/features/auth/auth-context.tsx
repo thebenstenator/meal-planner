@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { queryClient } from '@/lib/query/client';
+import { queryPersister } from '@/lib/query/persister';
 import { router } from '@/app/router';
 import { supabase } from '@/lib/supabase/client';
 import { AuthContext, type AuthContextValue } from '@/features/auth/context';
@@ -23,10 +24,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       supabase.realtime.setAuth(nextSession?.access_token ?? null);
       setLoading(false);
+      // On sign-out, drop the persisted cache so no household data lingers in
+      // storage on a shared device.
+      if (event === 'SIGNED_OUT') {
+        void queryPersister.removeClient();
+        queryClient.clear();
+      }
       // Re-run route guards and drop cached household data on identity change.
       void queryClient.invalidateQueries();
       void router.invalidate();

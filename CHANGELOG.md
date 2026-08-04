@@ -5,6 +5,23 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Slice 8 — Offline & PWA
+
+- Offline-first via TanStack Query's built-in machinery instead of a hand-rolled
+  Dexie store: the query cache is persisted to localStorage
+  (`PersistQueryClientProvider`), so the active shopping list, recipes, and plan
+  are readable offline and survive a reload. Persisted cache is cleared on
+  sign-out.
+- Offline writes: mutations made while offline are queued (paused) and replay
+  automatically on reconnect. Check-off is optimistic and applied synchronously
+  so it never flickers, and it survives the offline queue.
+- Visible sync status in the header (Offline · N queued / Syncing…) and an
+  install prompt (`beforeinstallprompt`).
+- PWA: manifest icons, `navigateFallback` to the SPA shell for offline deep
+  links, and outdated-cache cleanup.
+- e2e: go offline, check off an item, reconnect → it replays and persists
+  (verified by reload).
+
 ### Slice 7 — Stores & Pricing
 
 - Migration: `store` and append-only `price_record` (never update a price —
