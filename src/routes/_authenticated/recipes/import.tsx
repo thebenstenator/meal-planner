@@ -69,9 +69,10 @@ function ImportRecipePage() {
   return (
     <main className="mx-auto max-w-2xl space-y-5 px-4 py-8">
       <div>
-        <h1 className="text-2xl font-semibold">Import from photo</h1>
+        <h1 className="text-2xl font-semibold">Import from photo or PDF</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Snap the recipe — multiple pages are fine. We’ll read it and let you review.
+          Snap the recipe or upload a PDF — multiple pages are fine. We’ll read it and let
+          you review.
         </p>
       </div>
 
@@ -80,23 +81,33 @@ function ImportRecipePage() {
           <label className="border-input hover:bg-accent block cursor-pointer rounded-lg border border-dashed p-6 text-center text-sm">
             <input
               type="file"
-              accept="image/*"
-              capture="environment"
+              accept="image/*,application/pdf"
               multiple
               className="hidden"
               onChange={(e) => addFiles(e.target.files)}
             />
-            Add photos ({images.length}/6)
+            Add photos or a PDF ({images.length}/6)
           </label>
 
           {images.length > 0 && (
             <ul className="grid grid-cols-3 gap-2">
               {images.map((img, i) => (
                 <li key={i} className="relative">
-                  <img src={img.preview} alt={`Page ${i + 1}`} className="h-28 w-full rounded object-cover" />
+                  {img.media_type === 'application/pdf' ? (
+                    <div className="bg-muted text-muted-foreground flex h-28 w-full flex-col items-center justify-center rounded text-xs">
+                      <span className="text-lg">📄</span>
+                      PDF
+                    </div>
+                  ) : (
+                    <img
+                      src={img.preview}
+                      alt={`Page ${i + 1}`}
+                      className="h-28 w-full rounded object-cover"
+                    />
+                  )}
                   <button
                     type="button"
-                    aria-label={`Remove page ${i + 1}`}
+                    aria-label={`Remove item ${i + 1}`}
                     className="bg-background absolute right-1 top-1 rounded-full border px-1.5 text-xs"
                     onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
                   >

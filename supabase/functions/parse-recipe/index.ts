@@ -67,7 +67,7 @@ const RECIPE_JSON_SCHEMA = {
   required: ['title', 'servings', 'prep_minutes', 'cook_minutes', 'instructions', 'ingredients'],
 };
 
-const SYSTEM_PROMPT = `You extract a single recipe from one or more photos (a recipe may span multiple pages).
+const SYSTEM_PROMPT = `You extract a single recipe from one or more photos or a PDF (a recipe may span multiple pages).
 Rules:
 - Combine all images into ONE recipe.
 - For each ingredient line, put the ORIGINAL text verbatim in raw_text.
@@ -88,10 +88,17 @@ interface ImageInput {
 
 async function callClaude(images: ImageInput[]): Promise<unknown> {
   const content = [
-    ...images.map((img) => ({
-      type: 'image',
-      source: { type: 'base64', media_type: img.media_type, data: img.data },
-    })),
+    ...images.map((img) =>
+      img.media_type === 'application/pdf'
+        ? {
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: img.data },
+          }
+        : {
+            type: 'image',
+            source: { type: 'base64', media_type: img.media_type, data: img.data },
+          },
+    ),
     { type: 'text', text: 'Extract this recipe as structured JSON.' },
   ];
 
