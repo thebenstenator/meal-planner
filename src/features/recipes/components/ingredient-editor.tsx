@@ -136,7 +136,17 @@ export function IngredientEditor({ householdId, value, onChange }: Props) {
                 />
                 Optional
               </label>
-              {!row.canonicalId && <Badge variant="outline">needs match</Badge>}
+              {!row.canonicalId ? (
+                <Badge variant="outline" className="text-amber-600">
+                  needs match
+                </Badge>
+              ) : (
+                row.needsReview && (
+                  <Badge variant="outline" className="text-amber-600">
+                    review
+                  </Badge>
+                )
+              )}
             </div>
           </li>
         ))}

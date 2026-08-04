@@ -29,9 +29,14 @@ function RecipeLibrary() {
     <main className="mx-auto max-w-2xl space-y-5 px-4 py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Recipes</h1>
-        <Button asChild>
-          <Link to="/recipes/new">New recipe</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link to="/recipes/import">Import from photo</Link>
+          </Button>
+          <Button asChild>
+            <Link to="/recipes/new">New recipe</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3">

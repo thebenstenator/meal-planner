@@ -19,6 +19,7 @@ import { Route as AuthenticatedPlannerRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedStoresRouteImport } from './routes/_authenticated/stores'
 import { Route as AuthenticatedHouseholdSettingsRouteImport } from './routes/_authenticated/household.settings'
 import { Route as AuthenticatedRecipesIndexRouteImport } from './routes/_authenticated/recipes/index'
+import { Route as AuthenticatedRecipesImportRouteImport } from './routes/_authenticated/recipes/import'
 import { Route as AuthenticatedRecipesNewRouteImport } from './routes/_authenticated/recipes/new'
 import { Route as AuthenticatedShoppingListIndexRouteImport } from './routes/_authenticated/shopping-list/index'
 import { Route as AuthenticatedShoppingListListIdRouteImport } from './routes/_authenticated/shopping-list/$listId'
@@ -77,6 +78,12 @@ const AuthenticatedRecipesIndexRoute =
     path: '/recipes/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedRecipesImportRoute =
+  AuthenticatedRecipesImportRouteImport.update({
+    id: '/recipes/import',
+    path: '/recipes/import',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedRecipesNewRoute = AuthenticatedRecipesNewRouteImport.update({
   id: '/recipes/new',
   path: '/recipes/new',
@@ -116,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/planner': typeof AuthenticatedPlannerRoute
   '/stores': typeof AuthenticatedStoresRoute
   '/household/settings': typeof AuthenticatedHouseholdSettingsRoute
+  '/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/recipes/new': typeof AuthenticatedRecipesNewRoute
   '/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
   '/recipes/': typeof AuthenticatedRecipesIndexRoute
@@ -132,6 +140,7 @@ export interface FileRoutesByTo {
   '/planner': typeof AuthenticatedPlannerRoute
   '/stores': typeof AuthenticatedStoresRoute
   '/household/settings': typeof AuthenticatedHouseholdSettingsRoute
+  '/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/recipes/new': typeof AuthenticatedRecipesNewRoute
   '/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
   '/recipes': typeof AuthenticatedRecipesIndexRoute
@@ -150,6 +159,7 @@ export interface FileRoutesById {
   '/_authenticated/planner': typeof AuthenticatedPlannerRoute
   '/_authenticated/stores': typeof AuthenticatedStoresRoute
   '/_authenticated/household/settings': typeof AuthenticatedHouseholdSettingsRoute
+  '/_authenticated/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/_authenticated/recipes/new': typeof AuthenticatedRecipesNewRoute
   '/_authenticated/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
   '/_authenticated/recipes/': typeof AuthenticatedRecipesIndexRoute
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/planner'
     | '/stores'
     | '/household/settings'
+    | '/recipes/import'
     | '/recipes/new'
     | '/shopping-list/$listId'
     | '/recipes/'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/planner'
     | '/stores'
     | '/household/settings'
+    | '/recipes/import'
     | '/recipes/new'
     | '/shopping-list/$listId'
     | '/recipes'
@@ -201,6 +213,7 @@ export interface FileRouteTypes {
     | '/_authenticated/planner'
     | '/_authenticated/stores'
     | '/_authenticated/household/settings'
+    | '/_authenticated/recipes/import'
     | '/_authenticated/recipes/new'
     | '/_authenticated/shopping-list/$listId'
     | '/_authenticated/recipes/'
@@ -288,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRecipesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/recipes/import': {
+      id: '/_authenticated/recipes/import'
+      path: '/recipes/import'
+      fullPath: '/recipes/import'
+      preLoaderRoute: typeof AuthenticatedRecipesImportRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/recipes/new': {
       id: '/_authenticated/recipes/new'
       path: '/recipes/new'
@@ -332,6 +352,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPlannerRoute: typeof AuthenticatedPlannerRoute
   AuthenticatedStoresRoute: typeof AuthenticatedStoresRoute
   AuthenticatedHouseholdSettingsRoute: typeof AuthenticatedHouseholdSettingsRoute
+  AuthenticatedRecipesImportRoute: typeof AuthenticatedRecipesImportRoute
   AuthenticatedRecipesNewRoute: typeof AuthenticatedRecipesNewRoute
   AuthenticatedShoppingListListIdRoute: typeof AuthenticatedShoppingListListIdRoute
   AuthenticatedRecipesIndexRoute: typeof AuthenticatedRecipesIndexRoute
@@ -346,6 +367,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPlannerRoute: AuthenticatedPlannerRoute,
   AuthenticatedStoresRoute: AuthenticatedStoresRoute,
   AuthenticatedHouseholdSettingsRoute: AuthenticatedHouseholdSettingsRoute,
+  AuthenticatedRecipesImportRoute: AuthenticatedRecipesImportRoute,
   AuthenticatedRecipesNewRoute: AuthenticatedRecipesNewRoute,
   AuthenticatedShoppingListListIdRoute: AuthenticatedShoppingListListIdRoute,
   AuthenticatedRecipesIndexRoute: AuthenticatedRecipesIndexRoute,

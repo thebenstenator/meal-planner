@@ -5,6 +5,21 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Slice 9 — AI Recipe Import
+
+- Supabase Edge Function `parse-recipe` (Deno): sends recipe photos (one recipe,
+  multi-page) to Claude vision and returns strict JSON constrained by a JSON
+  schema (`output_config.format`), validated with Zod and retried once. The
+  Anthropic API key never leaves the server. Model is env-configurable
+  (`RECIPE_PARSE_MODEL`, default `claude-haiku-4-5`).
+- Per-household monthly rate limiting: `ai_usage_counter` + `consume_ai_credit`
+  RPC, enforced in the function via the caller's JWT (cost control).
+- Import UI: multi-image capture (add page 1, page 2, …), parse, then a
+  **mandatory review screen** — the parsed recipe opens in the recipe form with
+  each ingredient matched to a canonical one and low-confidence / unmatched rows
+  highlighted; nothing saves until the user confirms.
+- Graceful failure: a parse error or hit limit falls back to manual entry.
+
 ### Slice 8 — Offline & PWA
 
 - Offline-first via TanStack Query's built-in machinery instead of a hand-rolled
