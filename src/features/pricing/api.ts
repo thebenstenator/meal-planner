@@ -105,6 +105,40 @@ export async function addPriceRecord(
   if (error) throw error;
 }
 
+export interface ConversionRow {
+  densityGPerMl: number | null;
+  countToGram: number | null;
+}
+
+/** Fetch density/count facts for a set of canonical ingredients (for pricing conversions). */
+export async function fetchConversionInfos(
+  ids: string[],
+): Promise<Map<string, ConversionRow>> {
+  const map = new Map<string, ConversionRow>();
+  if (ids.length === 0) return map;
+  const { data, error } = await supabase
+    .from('canonical_ingredient')
+    .select('id, density_g_per_ml, count_to_gram')
+    .in('id', ids);
+  if (error) throw error;
+  for (const c of data ?? []) {
+    map.set(c.id, { densityGPerMl: c.density_g_per_ml, countToGram: c.count_to_gram });
+  }
+  return map;
+}
+
+export async function fetchCanonicalNames(ids: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ids.length === 0) return map;
+  const { data, error } = await supabase
+    .from('canonical_ingredient')
+    .select('id, name')
+    .in('id', ids);
+  if (error) throw error;
+  for (const c of data ?? []) map.set(c.id, c.name);
+  return map;
+}
+
 export async function getCurrentPrices(storeId: string): Promise<CurrentPrice[]> {
   const { data, error } = await supabase.rpc('get_current_prices', { p_store_id: storeId });
   if (error) throw error;

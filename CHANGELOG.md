@@ -5,6 +5,22 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Slice 7 — Stores & Pricing
+
+- Migration: `store` and append-only `price_record` (never update a price —
+  insert a new record) with RLS (price records are insert+read only). Wires the
+  `household.default_store_id` FK and adds a configurable `price_stale_days`.
+  `get_current_prices` RPC returns the most recent record per canonical per store.
+- Stores page: add/delete stores, set the default, set the staleness threshold,
+  and a "prices at your default store" review list with stale flags.
+- Pricing math (pure, unit-tested): cost is charged on the **purchased** quantity
+  — rounded up to whole store packages — and converts units via the engine
+  before pricing.
+- Shopping list: a **projected total** with an explicit unpriced count and stale
+  count, per-item estimated cost, an inline "no price yet — add one" / "update
+  price" flow (package price + size, not unit price), and stale badges.
+- e2e: add a store, price 12 oz cream cheese at $2.50 / 8 oz → projected $5.00.
+
 ### Slice 6 — Shopping List Generation (the payoff)
 
 - Migration: `shopping_list`, `shopping_list_item` (the money table),

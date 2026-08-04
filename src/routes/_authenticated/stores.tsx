@@ -1,4 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import { differenceInCalendarDays } from 'date-fns';
 import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -6,11 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { fetchCanonicalNames } from '@/features/pricing/api';
 import {
+  useCurrentPrices,
   usePricingSettings,
   useStoreMutations,
   useStores,
 } from '@/features/pricing/use-pricing';
+import { formatCurrency } from '@/lib/utils/format-currency';
 
 export const Route = createFileRoute('/_authenticated/stores')({
   component: StoresPage,
@@ -112,6 +117,65 @@ function StoresPage() {
           </div>
         </CardContent>
       </Card>
+
+      <PricesReview
+        storeId={settings?.defaultStoreId ?? null}
+        staleDays={settings?.priceStaleDays ?? 30}
+      />
     </main>
+  );
+}
+
+function PricesReview({ storeId, staleDays }: { storeId: string | null; staleDays: number }) {
+  const { data: prices } = useCurrentPrices(storeId);
+  const ids = (prices ?? []).map((p) => p.canonicalId);
+  const { data: names } = useQuery({
+    queryKey: ['canonical-names', ids],
+    queryFn: () => fetchCanonicalNames(ids),
+    enabled: ids.length > 0,
+  });
+
+  if (!storeId) return null;
+
+  const rows = (prices ?? []).map((p) => ({
+    ...p,
+    name: names?.get(p.canonicalId) ?? p.canonicalId,
+    stale: differenceInCalendarDays(new Date(), new Date(p.observedOn)) > staleDays,
+  }));
+  rows.sort((a, b) => Number(b.stale) - Number(a.stale));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Prices at your default store</CardTitle>
+        <CardDescription>
+          Stale prices are flagged — update them from a shopping list.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No prices recorded yet.</p>
+        ) : (
+          <ul className="divide-y">
+            {rows.map((r) => (
+              <li key={r.canonicalId} className="flex items-center justify-between gap-2 py-2 text-sm">
+                <span className="flex items-center gap-2">
+                  {r.name}
+                  {r.stale && (
+                    <Badge variant="outline" className="text-amber-600">
+                      stale
+                    </Badge>
+                  )}
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  {formatCurrency(r.priceCents)} / {r.packageQuantity} {r.packageUnit} ·{' '}
+                  {r.observedOn}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }

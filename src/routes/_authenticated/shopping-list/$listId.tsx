@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAddPrice } from '@/features/pricing/use-pricing';
+import { useListPricing, type ItemPricing } from '@/features/pricing/use-list-pricing';
 import type { ShoppingItem } from '@/features/shopping-list/api';
 import {
   useGenerateList,
@@ -13,6 +15,7 @@ import {
   useToggleItem,
 } from '@/features/shopping-list/use-shopping-list';
 import { cn } from '@/lib/utils/cn';
+import { formatCurrency } from '@/lib/utils/format-currency';
 
 export const Route = createFileRoute('/_authenticated/shopping-list/$listId')({
   component: ShoppingListDetail,
@@ -29,6 +32,8 @@ function ShoppingListDetail() {
   const edits = useItemEdits(listId);
   const setConv = useSetConversion();
   const regenerate = useGenerateList();
+  const addPrice = useAddPrice();
+  const pricing = useListPricing(data?.items ?? []);
 
   if (isLoading) return <Centered>Loading…</Centered>;
   if (isError || !data) return <Centered>Couldn’t load this list.</Centered>;
@@ -71,6 +76,24 @@ function ShoppingListDetail() {
         </Button>
       </div>
 
+      <div className="bg-muted/40 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            Projected total
+          </div>
+          <div className="text-xl font-semibold" data-testid="projected-total">
+            {formatCurrency(pricing.projectedTotalCents)}
+          </div>
+        </div>
+        <div className="text-muted-foreground text-right text-xs">
+          {!pricing.storeId && <div>Set a default store to price items.</div>}
+          {pricing.storeId && pricing.unpricedCount > 0 && (
+            <div>{pricing.unpricedCount} item(s) unpriced</div>
+          )}
+          {pricing.staleCount > 0 && <div>{pricing.staleCount} stale price(s)</div>}
+        </div>
+      </div>
+
       {items.length === 0 && (
         <p className="text-muted-foreground text-sm">
           Nothing to buy — plan some recipes in this range first.
@@ -87,6 +110,19 @@ function ShoppingListDetail() {
               <ItemRow
                 key={item.id}
                 item={item}
+                pricing={pricing.byItemId.get(item.id)}
+                canAddPrice={!!pricing.storeId && !!item.canonicalId}
+                onAddPrice={(priceCents, packageQuantity, packageUnit) =>
+                  pricing.storeId && item.canonicalId
+                    ? addPrice.mutate({
+                        canonicalId: item.canonicalId,
+                        storeId: pricing.storeId,
+                        priceCents,
+                        packageQuantity,
+                        packageUnit,
+                      })
+                    : undefined
+                }
                 onToggle={(checked) => toggle.mutate({ itemId: item.id, checked })}
                 onOverride={(q, u) =>
                   edits.overrideQuantity.mutate({ itemId: item.id, totalQuantity: q, unit: u })
@@ -108,12 +144,18 @@ function ShoppingListDetail() {
 
 function ItemRow({
   item,
+  pricing,
+  canAddPrice,
+  onAddPrice,
   onToggle,
   onOverride,
   onDelete,
   onSetConversion,
 }: {
   item: ShoppingItem;
+  pricing: ItemPricing | undefined;
+  canAddPrice: boolean;
+  onAddPrice: (priceCents: number, packageQuantity: number, packageUnit: string) => void;
   onToggle: (checked: boolean) => void;
   onOverride: (quantity: number | null, unit: string | null) => void;
   onDelete: () => void;
@@ -125,6 +167,7 @@ function ItemRow({
   const [unit, setUnit] = useState(item.unit ?? '');
   const [dismissed, setDismissed] = useState(false);
   const [density, setDensity] = useState('');
+  const [pricingOpen, setPricingOpen] = useState(false);
 
   const quantityText = item.unresolved
     ? (item.subTotals ?? []).map((s) => `${trim(s.quantity)} ${s.unit}`).join(' + ')
@@ -166,6 +209,40 @@ function ItemRow({
           )}
           {item.noQuantityCount > 0 && (
             <div className="text-muted-foreground text-xs">+{item.noQuantityCount} “to taste”</div>
+          )}
+
+          {/* Price */}
+          {pricing?.estimatedCents != null && (
+            <div className="text-sm font-medium">
+              {formatCurrency(pricing.estimatedCents)}
+              {pricing.stale && (
+                <Badge variant="outline" className="ml-2 text-amber-600">
+                  stale
+                </Badge>
+              )}
+            </div>
+          )}
+          {canAddPrice && (!pricing?.hasPrice || pricing?.stale) && (
+            <>
+              {!pricingOpen ? (
+                <button
+                  type="button"
+                  className="text-primary mt-1 text-xs underline"
+                  onClick={() => setPricingOpen(true)}
+                >
+                  {pricing?.hasPrice ? 'update price' : 'no price yet — add one'}
+                </button>
+              ) : (
+                <AddPriceInline
+                  defaultUnit={item.unit}
+                  onSubmit={(c, q, u) => {
+                    onAddPrice(c, q, u);
+                    setPricingOpen(false);
+                  }}
+                  onCancel={() => setPricingOpen(false)}
+                />
+              )}
+            </>
           )}
 
           {/* Unresolved-merge review */}
@@ -256,6 +333,67 @@ function ItemRow({
         </div>
       </div>
     </li>
+  );
+}
+
+function AddPriceInline({
+  defaultUnit,
+  onSubmit,
+  onCancel,
+}: {
+  defaultUnit: string | null;
+  onSubmit: (priceCents: number, packageQuantity: number, packageUnit: string) => void;
+  onCancel: () => void;
+}) {
+  const [price, setPrice] = useState('');
+  const [pkgQty, setPkgQty] = useState('');
+  const [pkgUnit, setPkgUnit] = useState(defaultUnit ?? '');
+
+  return (
+    <div className="bg-muted/40 mt-2 flex flex-wrap items-center gap-2 rounded border p-2 text-xs">
+      <span>$</span>
+      <Input
+        aria-label="Package price"
+        inputMode="decimal"
+        placeholder="2.50"
+        className="h-8 w-20"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+      />
+      <span>for</span>
+      <Input
+        aria-label="Package quantity"
+        inputMode="decimal"
+        placeholder="8"
+        className="h-8 w-16"
+        value={pkgQty}
+        onChange={(e) => setPkgQty(e.target.value)}
+      />
+      <Input
+        aria-label="Package unit"
+        placeholder="oz"
+        className="h-8 w-16"
+        value={pkgUnit}
+        onChange={(e) => setPkgUnit(e.target.value)}
+      />
+      <Button
+        size="sm"
+        className="h-8"
+        disabled={price.trim() === '' || pkgQty.trim() === '' || pkgUnit.trim() === ''}
+        onClick={() => {
+          const cents = Math.round(Number(price) * 100);
+          const q = Number(pkgQty);
+          if (Number.isFinite(cents) && Number.isFinite(q) && q > 0) {
+            onSubmit(cents, q, pkgUnit.trim());
+          }
+        }}
+      >
+        Save price
+      </Button>
+      <Button size="sm" variant="ghost" className="h-8" onClick={onCancel}>
+        Cancel
+      </Button>
+    </div>
   );
 }
 
