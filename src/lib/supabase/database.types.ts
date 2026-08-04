@@ -251,6 +251,146 @@ export type Database = {
           },
         ]
       }
+      recipe: {
+        Row: {
+          cook_minutes: number | null
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          household_id: string
+          id: string
+          image_path: string | null
+          import_status: string
+          instructions: string | null
+          last_cooked_on: string | null
+          meal_types: string[]
+          notes: string | null
+          prep_minutes: number | null
+          rating: number | null
+          servings: number
+          source: string | null
+          tags: string[]
+          times_cooked: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cook_minutes?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          household_id: string
+          id?: string
+          image_path?: string | null
+          import_status?: string
+          instructions?: string | null
+          last_cooked_on?: string | null
+          meal_types?: string[]
+          notes?: string | null
+          prep_minutes?: number | null
+          rating?: number | null
+          servings?: number
+          source?: string | null
+          tags?: string[]
+          times_cooked?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cook_minutes?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          household_id?: string
+          id?: string
+          image_path?: string | null
+          import_status?: string
+          instructions?: string | null
+          last_cooked_on?: string | null
+          meal_types?: string[]
+          notes?: string | null
+          prep_minutes?: number | null
+          rating?: number | null
+          servings?: number
+          source?: string | null
+          tags?: string[]
+          times_cooked?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_ingredient: {
+        Row: {
+          canonical_ingredient_id: string | null
+          created_at: string
+          descriptor: string | null
+          id: string
+          is_optional: boolean
+          needs_review: boolean
+          parse_confidence: number | null
+          position: number
+          quantity: number | null
+          raw_text: string
+          recipe_id: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          canonical_ingredient_id?: string | null
+          created_at?: string
+          descriptor?: string | null
+          id?: string
+          is_optional?: boolean
+          needs_review?: boolean
+          parse_confidence?: number | null
+          position?: number
+          quantity?: number | null
+          raw_text: string
+          recipe_id: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canonical_ingredient_id?: string | null
+          created_at?: string
+          descriptor?: string | null
+          id?: string
+          is_optional?: boolean
+          needs_review?: boolean
+          parse_confidence?: number | null
+          position?: number
+          quantity?: number | null
+          raw_text?: string
+          recipe_id?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredient_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredient_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -302,6 +442,10 @@ export type Database = {
         }[]
       }
       resolve_canonical: { Args: { p_id: string }; Returns: string }
+      save_recipe: {
+        Args: { p_ingredients: Json; p_recipe: Json; p_recipe_id?: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

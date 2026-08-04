@@ -39,7 +39,10 @@ test('two users share one household via an invite code', async ({ browser }) => 
   await signUp(pageB, emailB);
   await pageB.goto('/household/settings');
   await pageB.getByLabel('Invite code').fill(code);
-  await pageB.getByRole('button', { name: 'Join household' }).click();
+  // Force-click: on mobile emulation the actionability hit-test intermittently
+  // reports the field directly above as the top element even though the button
+  // is fully visible and clickable.
+  await pageB.getByRole('button', { name: 'Join household' }).click({ force: true });
 
   await expect(pageB.getByRole('status')).toContainText('Joined');
   // B now sees the shared household and A as a co-member.

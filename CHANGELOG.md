@@ -5,6 +5,25 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Slice 4 — Recipes (manual entry)
+
+- Migration: `recipe` + `recipe_ingredient` with RLS, soft-delete (`deleted_at`,
+  30-day recovery — never hard-delete), and `raw_text` kept verbatim. A
+  `save_recipe` RPC upserts a recipe and replaces its ingredient rows in one
+  transaction so a partial write can't lose a recipe.
+- Recipe library: grid, title search, meal-type filter, empty/loading/error
+  states, and a "recently deleted" section with restore.
+- Recipe create/edit form (title, meal types, servings, prep/cook, description,
+  instructions, source, tags) with an ingredient editor.
+- Ingredient editor: **paste a block of text → runs the Slice 2 parser → matches
+  each line via the Slice 3 matcher → prefilled rows for review**, plus manual
+  rows, per-row canonical autocomplete (with create-on-the-fly), quantity/unit
+  edits, optional flag, and needs-review flags for unmatched/low-confidence.
+- Recipe detail view; soft-delete with confirmation.
+- New primitives: `Textarea` and a `CanonicalCombobox` autocomplete.
+- Tests: recipe-form schema unit tests; e2e creating a recipe via paste (cream
+  cheese matched), seeing it in the library, soft-deleting, and restoring.
+
 ### Slice 3 — Canonical Ingredients
 
 - Migration: `canonical_ingredient` (global seed rows + household rows) with
