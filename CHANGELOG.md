@@ -5,6 +5,23 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Slice 5 — Planner
+
+- Migration: `plan_entry` (day + slot + kind: recipe/leftovers/eating_out/note)
+  with RLS, a check that recipe entries point at a recipe (and others don't),
+  added to the `supabase_realtime` publication with `REPLICA IDENTITY FULL` so
+  filtered DELETE events reach subscribers.
+- Planner UI: week view (7 day cards × 4 slots) and a month overview grid, with a
+  Week/Month toggle, prev/next navigation, and Today. Tapping a month day opens
+  that week.
+- Add any entry kind to a slot (recipe via search, leftovers, eating out, note),
+  multiple per slot, move an entry to another day/slot (tap-to-move), and remove.
+- **Realtime sync**: a `plan_entry` subscription invalidates the plan queries so a
+  partner's edits appear live. Realtime auth is set from the session so RLS
+  filters what each client receives.
+- Pure date helpers (month-grid/week ranges) with unit tests; two-session e2e
+  verifying an entry added on one device appears and is removed on the other live.
+
 ### Slice 4 — Recipes (manual entry)
 
 - Migration: `recipe` + `recipe_ingredient` with RLS, soft-delete (`deleted_at`,

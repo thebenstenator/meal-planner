@@ -251,6 +251,73 @@ export type Database = {
           },
         ]
       }
+      plan_entry: {
+        Row: {
+          created_at: string
+          date: string
+          household_id: string
+          id: string
+          kind: string
+          leftovers_from_entry_id: string | null
+          note: string | null
+          position: number
+          recipe_id: string | null
+          servings_override: number | null
+          slot: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          household_id: string
+          id?: string
+          kind?: string
+          leftovers_from_entry_id?: string | null
+          note?: string | null
+          position?: number
+          recipe_id?: string | null
+          servings_override?: number | null
+          slot: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          household_id?: string
+          id?: string
+          kind?: string
+          leftovers_from_entry_id?: string | null
+          note?: string | null
+          position?: number
+          recipe_id?: string | null
+          servings_override?: number | null
+          slot?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_entry_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_entry_leftovers_from_entry_id_fkey"
+            columns: ["leftovers_from_entry_id"]
+            isOneToOne: false
+            referencedRelation: "plan_entry"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_entry_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipe: {
         Row: {
           cook_minutes: number | null

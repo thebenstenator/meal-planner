@@ -16,6 +16,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
       setSession(data.session);
+      // Authorize Realtime so RLS-filtered postgres_changes reach this client.
+      supabase.realtime.setAuth(data.session?.access_token ?? null);
       setLoading(false);
     });
 
@@ -23,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
+      supabase.realtime.setAuth(nextSession?.access_token ?? null);
       setLoading(false);
       // Re-run route guards and drop cached household data on identity change.
       void queryClient.invalidateQueries();
