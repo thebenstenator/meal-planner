@@ -186,7 +186,7 @@ function ImportRecipePage() {
           <p className="text-muted-foreground text-sm">
             {error.limitReached
               ? 'You’ve used this month’s AI imports. You can still add recipes by hand.'
-              : `${error.message}. You can retry, or enter it manually.`}
+              : error.message}
           </p>
           <div className="flex gap-2">
             {!error.limitReached && (

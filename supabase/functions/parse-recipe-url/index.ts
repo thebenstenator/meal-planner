@@ -210,21 +210,44 @@ Deno.serve(async (req) => {
       return json({ error: 'A valid http(s) url and household_id are required' }, 400);
     }
 
-    // Fetch the page server-side.
+    // Fetch the page server-side, presenting as a real browser. This gets past
+    // sites that filter on User-Agent/headers; it does NOT beat sites that
+    // fingerprint the TLS/HTTP client (e.g. allrecipes) — those are unfetchable
+    // from a server and surface as a "blocked" status below.
     let html: string;
     try {
       const page = await fetch(url, {
         headers: {
           'User-Agent':
-            'Mozilla/5.0 (compatible; MealPlannerBot/1.0; +https://meal-planner.app)',
-          Accept: 'text/html,application/xhtml+xml',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Upgrade-Insecure-Requests': '1',
         },
         redirect: 'follow',
       });
-      if (!page.ok) return json({ error: `Could not fetch the page (${page.status})` }, 502);
+      if (!page.ok) {
+        // 401/402/403/429/451/503 from a recipe site is almost always bot
+        // blocking, not a real "page missing" — tell the user what to do.
+        const blocked = [401, 402, 403, 429, 451, 503].includes(page.status);
+        return json(
+          {
+            error: blocked
+              ? "This site doesn't allow recipe import. Try a photo or paste the recipe instead."
+              : `Couldn't open that page (error ${page.status}).`,
+            blocked,
+          },
+          502,
+        );
+      }
       html = await page.text();
     } catch (_err) {
-      return json({ error: 'Could not reach that URL' }, 502);
+      return json({ error: "Couldn't reach that site — check the URL and try again." }, 502);
     }
 
     // Fast path: schema.org/Recipe JSON-LD, no AI credit consumed.
@@ -264,7 +287,13 @@ Deno.serve(async (req) => {
     }
     if (lastErr || !parsed) {
       console.error('parse-recipe-url failed:', lastErr);
-      return json({ error: 'Could not read a recipe from that page', fallback: true }, 502);
+      return json(
+        {
+          error: "Couldn't find a recipe on that page. Try a photo or paste it instead.",
+          fallback: true,
+        },
+        502,
+      );
     }
 
     return json({ recipe: parsed, source: url, usedAi: true, creditsRemaining: remaining });
