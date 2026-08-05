@@ -80,6 +80,30 @@ export async function removePantryItem(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export interface RecipeConsumption {
+  servings: number;
+  ingredients: { canonicalId: string; quantity: number | null; unit: string | null }[];
+}
+
+/** A recipe's base servings + its canonical-matched ingredients, for decrementing on cook. */
+export async function fetchRecipeConsumption(recipeId: string): Promise<RecipeConsumption> {
+  const [{ data: recipe, error: rErr }, { data: rows, error: iErr }] = await Promise.all([
+    supabase.from('recipe').select('servings').eq('id', recipeId).single(),
+    supabase
+      .from('recipe_ingredient')
+      .select('canonical_ingredient_id, quantity, unit')
+      .eq('recipe_id', recipeId),
+  ]);
+  if (rErr) throw rErr;
+  if (iErr) throw iErr;
+  return {
+    servings: recipe?.servings ?? 1,
+    ingredients: (rows ?? [])
+      .filter((r): r is typeof r & { canonical_ingredient_id: string } => !!r.canonical_ingredient_id)
+      .map((r) => ({ canonicalId: r.canonical_ingredient_id, quantity: r.quantity, unit: r.unit })),
+  };
+}
+
 /**
  * Adjust pantry stock for a canonical ingredient by a signed amount (positive =
  * bought, negative = consumed). Finds any existing row for the ingredient and

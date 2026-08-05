@@ -16,6 +16,7 @@ export interface PlanEntry {
   recipeTitle: string | null;
   note: string | null;
   servingsOverride: number | null;
+  cookedAt: string | null;
   position: number;
 }
 
@@ -26,7 +27,7 @@ export async function listPlanEntries(
 ): Promise<PlanEntry[]> {
   const { data, error } = await supabase
     .from('plan_entry')
-    .select('id, date, slot, kind, recipe_id, note, servings_override, position, created_at, recipe(title)')
+    .select('id, date, slot, kind, recipe_id, note, servings_override, cooked_at, position, created_at, recipe(title)')
     .eq('household_id', householdId)
     .gte('date', start)
     .lte('date', end)
@@ -45,6 +46,7 @@ export async function listPlanEntries(
     recipeTitle: r.recipe?.title ?? null,
     note: r.note,
     servingsOverride: r.servings_override,
+    cookedAt: r.cooked_at,
     position: r.position,
   }));
 }
@@ -84,5 +86,14 @@ export async function movePlanEntry(
 
 export async function deletePlanEntry(id: string): Promise<void> {
   const { error } = await supabase.from('plan_entry').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/** Mark a planned meal cooked (or not). cooked_at gates the pantry decrement. */
+export async function setEntryCooked(id: string, cooked: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('plan_entry')
+    .update({ cooked_at: cooked ? new Date().toISOString() : null })
+    .eq('id', id);
   if (error) throw error;
 }

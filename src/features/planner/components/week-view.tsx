@@ -13,9 +13,10 @@ interface Props {
   entriesByKey: Map<string, PlanEntry[]>;
   actions: PlannerActions;
   costForEntry?: (entry: PlanEntry) => { total: number | null; perServing: number | null };
+  onToggleCooked?: (entry: PlanEntry) => void;
 }
 
-export function WeekView({ days, entriesByKey, actions, costForEntry }: Props) {
+export function WeekView({ days, entriesByKey, actions, costForEntry, onToggleCooked }: Props) {
   return (
     <div className="grid gap-3 md:grid-cols-7">
       {days.map((date) => (
@@ -32,6 +33,7 @@ export function WeekView({ days, entriesByKey, actions, costForEntry }: Props) {
                 entries={entriesByKey.get(keyOf(date, slot)) ?? []}
                 actions={actions}
                 costForEntry={costForEntry}
+                onToggleCooked={onToggleCooked}
               />
             ))}
           </div>
@@ -47,12 +49,14 @@ function SlotCell({
   entries,
   actions,
   costForEntry,
+  onToggleCooked,
 }: {
   date: string;
   slot: Slot;
   entries: PlanEntry[];
   actions: PlannerActions;
   costForEntry?: (entry: PlanEntry) => { total: number | null; perServing: number | null };
+  onToggleCooked?: (entry: PlanEntry) => void;
 }) {
   const isAdding =
     actions.addTarget?.date === date && actions.addTarget?.slot === slot;
@@ -70,6 +74,7 @@ function SlotCell({
             entry={entry}
             costCents={costForEntry?.(entry).total ?? null}
             perServingCents={costForEntry?.(entry).perServing ?? null}
+            onToggleCooked={onToggleCooked ? () => onToggleCooked(entry) : undefined}
             isMoving={moving === entry.id}
             onStartMove={() => actions.startMove(entry.id)}
             onRemove={() => actions.remove(entry.id)}

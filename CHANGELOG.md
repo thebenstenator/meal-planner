@@ -16,6 +16,11 @@ All notable changes to this project are documented here. One entry per slice
   engine; unmatched/ad-hoc items and unreconcilable units are skipped rather than
   corrupting a row. Best-effort — a pantry write never blocks the check-off.
   e2e: buy 8 oz cream cheese → it appears in the pantry at 8.
+- **Cook → −stock** (Phase 3): a "cooked" toggle (🍳 → ✓) on each planned recipe
+  meal in the week view. Marking it cooked subtracts the recipe's ingredients
+  from the pantry (scaled by any servings override); un-marking adds them back.
+  `cooked_at` on `plan_entry` is the idempotent guard. e2e: stock 16 oz cream
+  cheese, cook a recipe that uses 8 oz → pantry shows 8.
 
 ### "What can I make?" — AI dinner ideas from your ingredients
 

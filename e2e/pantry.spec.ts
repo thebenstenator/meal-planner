@@ -54,3 +54,40 @@ test('buying a matched item adds it to the pantry', async ({ page }) => {
   await expect(page.getByText('cream cheese')).toBeVisible();
   await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('8');
 });
+
+// Marking a planned meal cooked removes its ingredients from the pantry.
+test('cooking a meal removes its ingredients from the pantry', async ({ page }) => {
+  await signUp(page, uniqueEmail('cook'));
+  const iso = todayISO();
+
+  await page.goto('/recipes/new');
+  await page.getByLabel('Title').fill('Cook Test');
+  await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
+  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await expect(page.getByText('Ingredients (1)')).toBeVisible();
+  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await expect(page.getByRole('heading', { name: 'Cook Test' })).toBeVisible();
+
+  await page.goto('/planner');
+  await page.getByRole('button', { name: `Add to dinner on ${iso}` }).click({ force: true });
+  const panel = page.getByTestId('add-entry-panel');
+  await panel.getByLabel('Search recipes to add').fill('Cook Test');
+  await panel.getByRole('button', { name: 'Cook Test' }).click();
+
+  // Stock the pantry with 16 oz cream cheese.
+  await page.goto('/pantry');
+  await page.getByPlaceholder('Search ingredient…').fill('cream cheese');
+  await page.getByRole('button', { name: /cream cheese/ }).first().click();
+  await page.getByLabel('Quantity', { exact: true }).fill('16');
+  await page.getByLabel('Unit', { exact: true }).fill('oz');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('16');
+
+  // Cook the meal → 8 oz leaves the pantry.
+  await page.goto('/planner');
+  await page.getByRole('button', { name: 'Mark cooked' }).click({ force: true });
+  await page.waitForLoadState('networkidle');
+
+  await page.goto('/pantry');
+  await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('8');
+});

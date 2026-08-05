@@ -9,6 +9,7 @@ interface Props {
   entry: PlanEntry;
   costCents?: number | null;
   perServingCents?: number | null;
+  onToggleCooked?: () => void;
   isMoving: boolean;
   onStartMove: () => void;
   onRemove: () => void;
@@ -18,11 +19,14 @@ export function EntryChip({
   entry,
   costCents,
   perServingCents,
+  onToggleCooked,
   isMoving,
   onStartMove,
   onRemove,
 }: Props) {
   const nonMeal = entry.kind === 'leftovers' || entry.kind === 'eating_out';
+  const cooked = !!entry.cookedAt;
+  const canCook = entry.kind === 'recipe' && !!onToggleCooked;
   return (
     <div
       className={cn(
@@ -31,8 +35,21 @@ export function EntryChip({
         nonMeal && 'text-muted-foreground',
       )}
     >
-      <span className="min-w-0 truncate">{entryLabel(entry)}</span>
+      <span className={cn('min-w-0 truncate', cooked && 'text-muted-foreground line-through')}>
+        {entryLabel(entry)}
+      </span>
       <div className="flex shrink-0 items-center gap-1">
+        {canCook && (
+          <button
+            type="button"
+            aria-label={cooked ? 'Mark not cooked' : 'Mark cooked'}
+            title={cooked ? 'Cooked — tap to undo' : 'Mark cooked'}
+            className={cn(cooked ? 'text-emerald-600' : 'text-muted-foreground hover:text-foreground')}
+            onClick={onToggleCooked}
+          >
+            {cooked ? '✓' : '🍳'}
+          </button>
+        )}
         {costCents != null && (
           <span className="text-muted-foreground flex flex-col items-end leading-tight tabular-nums">
             <span>{formatCurrency(costCents)}</span>

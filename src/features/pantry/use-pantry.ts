@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useHousehold } from '@/features/household/use-household';
 import {
   adjustPantryStock,
+  fetchRecipeConsumption,
   listPantry,
   pantryKeys,
   removePantryItem,
@@ -10,6 +11,7 @@ import {
   upsertPantryItem,
   type PantryLocation,
 } from '@/features/pantry/api';
+import { planKeys, setEntryCooked, type PlanEntry } from '@/features/planner/api';
 import { fetchConversionInfos } from '@/features/pricing/api';
 import type { ShoppingItem } from '@/features/shopping-list/api';
 
@@ -86,5 +88,40 @@ export function useApplyPurchaseToPantry() {
       );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: pantryKeys.all(householdId ?? 'none') }),
+  });
+}
+
+/**
+ * Mark a planned meal cooked (or not) and move its recipe's ingredients out of
+ * (or back into) the pantry, scaled by any servings override. cooked_at on the
+ * entry is the idempotent guard. Best-effort like the purchase sync.
+ */
+export function useMarkCooked() {
+  const { householdId } = useHousehold();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ entry, cooked }: { entry: PlanEntry; cooked: boolean }) => {
+      await setEntryCooked(entry.id, cooked);
+      if (!householdId || entry.kind !== 'recipe' || !entry.recipeId) return;
+      const { servings, ingredients } = await fetchRecipeConsumption(entry.recipeId);
+      const scale = entry.servingsOverride && servings ? entry.servingsOverride / servings : 1;
+      const ids = [...new Set(ingredients.map((i) => i.canonicalId))];
+      const infos = await fetchConversionInfos(ids);
+      const sign = cooked ? -1 : 1;
+      for (const ing of ingredients) {
+        if (ing.quantity == null) continue;
+        await adjustPantryStock(
+          householdId,
+          ing.canonicalId,
+          sign * ing.quantity * scale,
+          ing.unit,
+          infos.get(ing.canonicalId) ?? {},
+        );
+      }
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: pantryKeys.all(householdId ?? 'none') });
+      void qc.invalidateQueries({ queryKey: planKeys.all(householdId ?? 'none') });
+    },
   });
 }

@@ -15,6 +15,7 @@ import {
   usePlanEntries,
   usePlanRealtime,
 } from '@/features/planner/use-planner';
+import { useMarkCooked } from '@/features/pantry/use-pantry';
 import { useMonthActualSpend } from '@/features/pricing/use-actual-spend';
 import { usePlannerCosts } from '@/features/pricing/use-planner-cost';
 import { cn } from '@/lib/utils/cn';
@@ -38,6 +39,7 @@ function PlannerPage() {
   const { data, isLoading, isError } = usePlanEntries(range.start, range.end);
   const move = useMovePlanEntry();
   const del = useDeletePlanEntry();
+  const markCooked = useMarkCooked();
 
   const entries = useMemo(() => data ?? [], [data]);
   const byKey = useMemo(() => groupBy(entries, (e) => keyOf(e.date, e.slot)), [entries]);
@@ -156,6 +158,7 @@ function PlannerPage() {
             const c = viewCosts.costForEntry(e);
             return { total: c.cents, perServing: c.perServingCents };
           }}
+          onToggleCooked={(e) => markCooked.mutate({ entry: e, cooked: !e.cookedAt })}
         />
       )}
     </main>
