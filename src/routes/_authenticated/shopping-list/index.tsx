@@ -19,11 +19,12 @@ function ShoppingListsPage() {
   const [start, setStart] = useState(week.start);
   const [end, setEnd] = useState(week.end);
   const [name, setName] = useState(`Week of ${format(fromISO(week.start), 'MMM d')}`);
+  const [subtractPantry, setSubtractPantry] = useState(true);
   const generate = useGenerateList();
   const { data: lists } = useShoppingLists();
 
   async function onGenerate() {
-    const id = await generate.mutateAsync({ name, start, end });
+    const id = await generate.mutateAsync({ name, start, end, subtractPantry });
     await navigate({ to: '/shopping-list/$listId', params: { listId: id } });
   }
 
@@ -50,6 +51,14 @@ function ShoppingListsPage() {
             <Label htmlFor="name">List name</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={subtractPantry}
+              onChange={(e) => setSubtractPantry(e.target.checked)}
+            />
+            Subtract what’s already in my pantry
+          </label>
           {generate.isError && (
             <p className="text-destructive text-sm">Couldn’t generate. Try again.</p>
           )}

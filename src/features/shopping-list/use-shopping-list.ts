@@ -38,7 +38,7 @@ export function useGenerateList() {
   return useMutation<
     string,
     Error,
-    { name: string; start: string; end: string; listId?: string }
+    { name: string; start: string; end: string; listId?: string; subtractPantry?: boolean }
   >({
     mutationFn: (opts) => generateList(householdId as string, opts),
     onSuccess: (id) => {

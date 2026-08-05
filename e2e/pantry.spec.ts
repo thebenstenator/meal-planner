@@ -116,3 +116,38 @@ test('suggests restocking a low pantry item, and adds it', async ({ page }) => {
   await low.getByRole('button', { name: 'Add' }).click();
   await expect(page.getByRole('heading', { name: 'Running low' })).toBeHidden();
 });
+
+// Generating a list subtracts what's already in the pantry.
+test('list generation subtracts pantry stock', async ({ page }) => {
+  await signUp(page, uniqueEmail('offset'));
+  const iso = todayISO();
+
+  await page.goto('/recipes/new');
+  await page.getByLabel('Title').fill('Offset Test');
+  await page.getByLabel('Paste ingredients').fill('12 oz cream cheese');
+  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await expect(page.getByText('Ingredients (1)')).toBeVisible();
+  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await expect(page.getByRole('heading', { name: 'Offset Test' })).toBeVisible();
+
+  await page.goto('/planner');
+  await page.getByRole('button', { name: `Add to dinner on ${iso}` }).click({ force: true });
+  const panel = page.getByTestId('add-entry-panel');
+  await panel.getByLabel('Search recipes to add').fill('Offset Test');
+  await panel.getByRole('button', { name: 'Offset Test' }).click();
+
+  // Already have 4 oz on hand.
+  await page.goto('/pantry');
+  await page.getByPlaceholder('Search ingredient…').fill('cream cheese');
+  await page.getByRole('button', { name: /cream cheese/ }).first().click();
+  await page.getByLabel('Quantity', { exact: true }).fill('4');
+  await page.getByLabel('Unit', { exact: true }).fill('oz');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('4');
+
+  // Generate with the pantry offset on (default) → need 12 - 4 = buy 8.
+  await page.goto('/shopping-list');
+  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await expect(page.getByText('cream cheese').first()).toBeVisible();
+  await expect(page.getByText(/4 oz already in your pantry/)).toBeVisible();
+});

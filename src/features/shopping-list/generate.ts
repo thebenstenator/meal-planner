@@ -1,5 +1,13 @@
 import { toCanonicalInfo } from '@/features/ingredients/api';
-import { cleanName, consolidate, type CanonicalInfo, type ConsolidationInput, type Unit } from '@/lib/ingredients';
+import {
+  cleanName,
+  consolidate,
+  convert,
+  roundToPurchase,
+  type CanonicalInfo,
+  type ConsolidationInput,
+  type Unit,
+} from '@/lib/ingredients';
 import { supabase } from '@/lib/supabase/client';
 
 const UNMATCHED = 'unmatched:';
@@ -21,6 +29,7 @@ export interface GeneratedItem {
   sub_totals: Array<{ quantity: number; unit: Unit }> | null;
   purchase: unknown;
   no_quantity_count: number;
+  pantry_offset_quantity: number | null;
   sources: GenItemSource[];
 }
 
@@ -34,6 +43,7 @@ export async function buildShoppingItems(
   householdId: string,
   start: string,
   end: string,
+  subtractPantry = true,
 ): Promise<GeneratedItem[]> {
   const { data, error } = await supabase
     .from('plan_entry')
@@ -104,30 +114,84 @@ export async function buildShoppingItems(
 
   const items = consolidate(inputs, (id) => lookup.get(id));
 
-  return items.map((item) => {
+  // Pantry offset: how much of each canonical is already on hand (summed across
+  // locations, converted into a common unit per item at map time).
+  const pantryByCanonical = new Map<string, { quantity: number; unit: string | null }[]>();
+  if (subtractPantry) {
+    const { data: pantryRows, error: pErr } = await supabase
+      .from('pantry_item')
+      .select('canonical_ingredient_id, quantity, unit')
+      .eq('household_id', householdId);
+    if (pErr) throw pErr;
+    for (const p of pantryRows ?? []) {
+      const arr = pantryByCanonical.get(p.canonical_ingredient_id) ?? [];
+      arr.push({ quantity: Number(p.quantity), unit: p.unit });
+      pantryByCanonical.set(p.canonical_ingredient_id, arr);
+    }
+  }
+
+  return items.flatMap((item) => {
     const isUnmatched = item.canonicalId.startsWith(UNMATCHED);
-    const displayName = lookup.get(item.canonicalId)?.name ?? displayByKey.get(item.canonicalId) ?? item.name;
-    return {
-      canonical_ingredient_id: isUnmatched ? null : item.canonicalId,
-      ad_hoc_name: isUnmatched ? displayName : null,
-      display_name: displayName,
-      total_quantity: item.totalQuantity,
-      unit: item.unit,
-      category: item.category ?? null,
-      unresolved: item.unresolved,
-      sub_totals: item.subTotals.length > 0 ? item.subTotals : null,
-      purchase: item.purchase,
-      no_quantity_count: item.noQuantityCount,
-      sources: item.contributions
-        .filter((c) => c.ref)
-        .map((c) => {
-          const [ri, pe] = (c.ref as string).split('|');
-          return {
-            recipe_ingredient_id: ri ?? null,
-            plan_entry_id: pe ?? null,
-            contributed_quantity: c.contributedQuantity,
-          };
-        }),
-    };
+    const info = lookup.get(item.canonicalId);
+    const displayName = info?.name ?? displayByKey.get(item.canonicalId) ?? item.name;
+
+    // Subtract on-hand stock from resolved, matched items.
+    let totalQuantity = item.totalQuantity;
+    let purchase = item.purchase;
+    let offset: number | null = null;
+    if (
+      subtractPantry &&
+      !isUnmatched &&
+      item.totalQuantity != null &&
+      item.unit &&
+      !item.unresolved
+    ) {
+      let onHand = 0;
+      for (const row of pantryByCanonical.get(item.canonicalId) ?? []) {
+        if (row.quantity <= 0) continue;
+        if (!row.unit || row.unit === item.unit) {
+          onHand += row.quantity;
+        } else {
+          const conv = convert(row.quantity, row.unit as Unit, item.unit as Unit, info ?? {});
+          if (conv.ok) onHand += conv.quantity;
+        }
+      }
+      const covered = Math.min(item.totalQuantity, onHand);
+      if (covered > 0) {
+        const remaining = Number((item.totalQuantity - covered).toFixed(6));
+        if (remaining <= 0) return []; // fully covered — nothing to buy
+        offset = Number(covered.toFixed(6));
+        totalQuantity = remaining;
+        purchase = info?.unitSize
+          ? roundToPurchase(remaining, item.unit as Unit, info.unitSize, info)
+          : item.purchase;
+      }
+    }
+
+    return [
+      {
+        canonical_ingredient_id: isUnmatched ? null : item.canonicalId,
+        ad_hoc_name: isUnmatched ? displayName : null,
+        display_name: displayName,
+        total_quantity: totalQuantity,
+        unit: item.unit,
+        category: item.category ?? null,
+        unresolved: item.unresolved,
+        sub_totals: item.subTotals.length > 0 ? item.subTotals : null,
+        purchase,
+        no_quantity_count: item.noQuantityCount,
+        pantry_offset_quantity: offset,
+        sources: item.contributions
+          .filter((c) => c.ref)
+          .map((c) => {
+            const [ri, pe] = (c.ref as string).split('|');
+            return {
+              recipe_ingredient_id: ri ?? null,
+              plan_entry_id: pe ?? null,
+              contributed_quantity: c.contributedQuantity,
+            };
+          }),
+      },
+    ];
   });
 }

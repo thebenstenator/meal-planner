@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useHousehold } from '@/features/household/use-household';
+import { usePantry } from '@/features/pantry/use-pantry';
 import type { RecipeDetail } from '@/features/recipes/api';
 import { RecipeForm } from '@/features/recipes/components/recipe-form';
 import { ImportError } from '@/features/recipes/import';
@@ -25,6 +26,7 @@ type Step = 'input' | 'loading' | 'ideas' | 'review' | 'error';
 function SuggestPage() {
   const { householdId } = useHousehold();
   const navigate = useNavigate();
+  const { data: pantry } = usePantry();
   const [step, setStep] = useState<Step>('input');
   const [text, setText] = useState('');
   const [filters, setFilters] = useState<string[]>([]);
@@ -96,6 +98,17 @@ function SuggestPage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
+          {pantry && pantry.length > 0 && (
+            <button
+              type="button"
+              className="text-primary text-sm underline"
+              onClick={() =>
+                setText([...new Set(pantry.map((p) => p.canonicalName))].join(', '))
+              }
+            >
+              Use what’s in my pantry ({pantry.length})
+            </button>
+          )}
           <div className="flex flex-wrap gap-2">
             {FILTERS.map((f) => {
               const active = filters.includes(f);

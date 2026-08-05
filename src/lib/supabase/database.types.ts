@@ -682,6 +682,7 @@ export type Database = {
           is_checked: boolean
           is_manual: boolean
           no_quantity_count: number
+          pantry_offset_quantity: number | null
           position: number
           price_is_stale: boolean
           purchase: Json | null
@@ -704,6 +705,7 @@ export type Database = {
           is_checked?: boolean
           is_manual?: boolean
           no_quantity_count?: number
+          pantry_offset_quantity?: number | null
           position?: number
           price_is_stale?: boolean
           purchase?: Json | null
@@ -726,6 +728,7 @@ export type Database = {
           is_checked?: boolean
           is_manual?: boolean
           no_quantity_count?: number
+          pantry_offset_quantity?: number | null
           position?: number
           price_is_stale?: boolean
           purchase?: Json | null

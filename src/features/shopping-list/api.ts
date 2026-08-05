@@ -41,6 +41,8 @@ export interface ShoppingItem {
   subTotals: Array<{ quantity: number; unit: Unit }> | null;
   purchase: ItemPurchase | null;
   noQuantityCount: number;
+  /** How much of the need was already covered by the pantry (in `unit`), if any. */
+  pantryOffsetQuantity: number | null;
   isChecked: boolean;
   /** Actual price paid, captured at check-off; null = use the estimate. */
   actualCostCents: number | null;
@@ -179,6 +181,7 @@ export async function getShoppingList(
     subTotals: (i.sub_totals as ShoppingItem['subTotals']) ?? null,
     purchase: (i.purchase as ItemPurchase | null) ?? null,
     noQuantityCount: i.no_quantity_count,
+    pantryOffsetQuantity: i.pantry_offset_quantity != null ? Number(i.pantry_offset_quantity) : null,
     isChecked: i.is_checked,
     actualCostCents: i.actual_cost_cents,
     isManual: i.is_manual,
@@ -204,9 +207,14 @@ export async function getShoppingList(
 
 export async function generateList(
   householdId: string,
-  opts: { name: string; start: string; end: string; listId?: string },
+  opts: { name: string; start: string; end: string; listId?: string; subtractPantry?: boolean },
 ): Promise<string> {
-  const items = await buildShoppingItems(householdId, opts.start, opts.end);
+  const items = await buildShoppingItems(
+    householdId,
+    opts.start,
+    opts.end,
+    opts.subtractPantry ?? true,
+  );
   const { data, error } = await supabase.rpc('generate_shopping_list', {
     p_household_id: householdId,
     p_name: opts.name,

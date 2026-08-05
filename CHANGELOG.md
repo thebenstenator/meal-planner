@@ -27,6 +27,14 @@ All notable changes to this project are documented here. One entry per slice
   on the list) or **Dismiss**. Items already on the list are skipped. Dismiss/Add
   mute the suggestion (`restock_muted`) until you buy more, which auto-clears it.
   Pure `isLowStock` helper (6 unit tests) + e2e.
+- **Pantry offset on list generation** (Phase 4): generating a list subtracts
+  what's already on hand, per item — "need 12 oz − 4 in pantry = buy 8" (shown on
+  the row), recomputing the purchase rounding on the reduced amount and dropping
+  fully-covered items. A "Subtract what's already in my pantry" toggle (default
+  on) on the generate screen. `pantry_offset_quantity` on `shopping_list_item`.
+  e2e: 12 oz need − 4 oz on hand → buy 8.
+- **Suggest from my pantry**: the Ideas page gets a "Use what's in my pantry"
+  shortcut that fills the ingredient box with your pantry contents.
 
 ### "What can I make?" — AI dinner ideas from your ingredients
 

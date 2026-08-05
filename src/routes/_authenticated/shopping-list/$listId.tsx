@@ -281,6 +281,11 @@ function ItemRow({
           </div>
 
           {quantityText && <div className="text-sm">{quantityText}</div>}
+          {item.pantryOffsetQuantity != null && (
+            <div className="text-xs text-emerald-700">
+              −{trim(item.pantryOffsetQuantity)} {item.unit ?? ''} already in your pantry
+            </div>
+          )}
           {item.purchase && (
             <div className="text-muted-foreground text-xs">
               buy {item.purchase.packages} × {trim(item.purchase.packageQuantity)}{' '}

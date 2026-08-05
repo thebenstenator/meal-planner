@@ -71,5 +71,6 @@ test('records an actual price and reflects it in Spent', async ({ page }) => {
   await page.getByLabel('Actual price paid').fill('5.00');
   await page.getByLabel('Actual price paid').press('Enter');
   await page.getByRole('checkbox', { name: 'Check off Paper Towels' }).click({ force: true });
+  await page.waitForLoadState('networkidle');
   await expect(page.getByTestId('spent-total')).toContainText('$8.10');
 });
