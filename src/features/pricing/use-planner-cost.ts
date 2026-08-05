@@ -42,6 +42,8 @@ async function fetchRecipeCostInputs(ids: string[]): Promise<Map<string, RecipeC
 
 export interface EntryCost {
   cents: number | null;
+  /** Per-serving cost (invariant to a servings override, since both scale together). */
+  perServingCents: number | null;
   /** True when the meal is a recipe we couldn't fully price (no store, no prices, or missing facts). */
   unpriced: boolean;
 }
@@ -94,13 +96,19 @@ export function usePlannerCosts(entries: PlanEntry[]): PlannerCosts {
     });
 
     const costForEntry = (entry: PlanEntry): EntryCost => {
-      if (entry.kind !== 'recipe' || !entry.recipeId) return { cents: null, unpriced: false };
+      if (entry.kind !== 'recipe' || !entry.recipeId)
+        return { cents: null, perServingCents: null, unpriced: false };
       const rc = costByRecipe.get(entry.recipeId);
       const input = inputs?.get(entry.recipeId);
-      if (!rc || !input || rc.pricedCount === 0) return { cents: null, unpriced: true };
+      if (!rc || !input || rc.pricedCount === 0)
+        return { cents: null, perServingCents: null, unpriced: true };
       const scale =
         entry.servingsOverride && input.servings ? entry.servingsOverride / input.servings : 1;
-      return { cents: Math.round(rc.totalCents * scale), unpriced: rc.unpricedCount > 0 };
+      return {
+        cents: Math.round(rc.totalCents * scale),
+        perServingCents: rc.perServingCents,
+        unpriced: rc.unpricedCount > 0,
+      };
     };
 
     let totalCents = 0;

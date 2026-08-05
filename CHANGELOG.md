@@ -22,6 +22,12 @@ All notable changes to this project are documented here. One entry per slice
   any servings override); non-recipe entries (leftovers/eating out) cost nothing.
 - Pure, unit-tested `consumptionCost`/`recipeCost` (9 tests); cost hooks reuse the
   existing store/price/conversion infrastructure.
+- **Planned vs. actual**: the planner budget bar now tracks **actual spend** —
+  purchase cost of checked-off shopping items on lists overlapping the month —
+  against the budget goal (with planned consumption cost shown as a forward
+  estimate). The shopping list shows a running **Spent** total beside the
+  projected total. Each planner meal also shows its **per-serving** cost.
+- e2e: price 8 oz cream cheese at $2.50 → the recipe's estimated cost reads $2.50.
 
 ### Ingredients — bigger catalog + easier matching
 

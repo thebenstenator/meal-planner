@@ -12,7 +12,7 @@ interface Props {
   days: string[];
   entriesByKey: Map<string, PlanEntry[]>;
   actions: PlannerActions;
-  costForEntry?: (entry: PlanEntry) => number | null;
+  costForEntry?: (entry: PlanEntry) => { total: number | null; perServing: number | null };
 }
 
 export function WeekView({ days, entriesByKey, actions, costForEntry }: Props) {
@@ -52,7 +52,7 @@ function SlotCell({
   slot: Slot;
   entries: PlanEntry[];
   actions: PlannerActions;
-  costForEntry?: (entry: PlanEntry) => number | null;
+  costForEntry?: (entry: PlanEntry) => { total: number | null; perServing: number | null };
 }) {
   const isAdding =
     actions.addTarget?.date === date && actions.addTarget?.slot === slot;
@@ -68,7 +68,8 @@ function SlotCell({
           <EntryChip
             key={entry.id}
             entry={entry}
-            costCents={costForEntry?.(entry) ?? null}
+            costCents={costForEntry?.(entry).total ?? null}
+            perServingCents={costForEntry?.(entry).perServing ?? null}
             isMoving={moving === entry.id}
             onStartMove={() => actions.startMove(entry.id)}
             onRemove={() => actions.remove(entry.id)}

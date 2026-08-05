@@ -64,6 +64,46 @@ export async function listShoppingLists(householdId: string): Promise<ShoppingLi
   }));
 }
 
+export interface CheckedItem {
+  canonicalId: string | null;
+  quantity: number | null;
+  unit: string | null;
+}
+
+/**
+ * Checked-off (bought) items across shopping lists whose date range overlaps the
+ * given month — the raw material for actual-spend tracking. Lists without a date
+ * range are excluded (their month is ambiguous).
+ */
+export async function fetchMonthCheckedItems(
+  householdId: string,
+  monthStart: string,
+  monthEnd: string,
+): Promise<CheckedItem[]> {
+  const { data: lists, error } = await supabase
+    .from('shopping_list')
+    .select('id')
+    .eq('household_id', householdId)
+    .lte('date_range_start', monthEnd)
+    .gte('date_range_end', monthStart);
+  if (error) throw error;
+  const ids = (lists ?? []).map((l) => l.id);
+  if (ids.length === 0) return [];
+
+  const { data: items, error: itemErr } = await supabase
+    .from('shopping_list_item')
+    .select('canonical_ingredient_id, total_quantity, unit')
+    .in('shopping_list_id', ids)
+    .eq('is_checked', true);
+  if (itemErr) throw itemErr;
+
+  return (items ?? []).map((i) => ({
+    canonicalId: i.canonical_ingredient_id,
+    quantity: i.total_quantity,
+    unit: i.unit,
+  }));
+}
+
 export async function getShoppingList(
   listId: string,
 ): Promise<{ summary: ShoppingListSummary; items: ShoppingItem[] }> {

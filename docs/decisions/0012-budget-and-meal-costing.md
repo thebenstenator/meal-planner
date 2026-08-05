@@ -49,9 +49,22 @@ override scales a meal's cost proportionally. We show projected-vs-goal with an
 over/under variance. The column already existed on `household` from Slice 1, so
 no migration was needed — just a settings UI and the read.
 
-## No CI e2e yet
+## Planned vs. actual: actual is purchase-based, from checked items
 
-The costing math is covered by unit tests and the data path was verified manually
-end-to-end (budget write/read, `get_current_prices`, recipe-ingredient fetch, and
-the 2 oz → $0.40 calculation). A planner/recipe cost e2e is a reasonable
-follow-up but isn't blocking.
+"Actual spend" for a month is the **purchase-based** cost (`estimateItemCost`,
+whole packages) of items **checked off** on shopping lists whose date range
+overlaps that month — the closest proxy to real spend without receipt capture.
+The budget bar compares that actual against the goal, and shows planned
+(consumption) cost as a secondary forward estimate. Mixing the two bases in one
+bar is intentional and labelled: "spent" (what left the wallet) vs "planned from
+meals" (an estimate of what's coming). Current prices are used as the stand-in
+for the price at checkout time; lists without a date range are excluded (their
+month is ambiguous). The shopping list itself shows a running "Spent" total
+(checked items) beside the projected total.
+
+## e2e coverage
+
+`recipe-cost.spec.ts` prices 8 oz cream cheese at $2.50 and asserts the recipe's
+estimated cost reads $2.50 through the real matcher, pricing, and cost hooks. The
+costing math also has unit tests, and the data path was verified end-to-end
+(budget write/read, `get_current_prices`, recipe-ingredient fetch, 2 oz → $0.40).

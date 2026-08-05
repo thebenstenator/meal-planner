@@ -47,6 +47,12 @@ function ShoppingListDetail() {
     byCategory.set(cat, bucket);
   }
 
+  // What's been bought so far: purchase cost of checked-off items.
+  const checkedCents = items.reduce(
+    (sum, it) => (it.isChecked ? sum + (pricing.byItemId.get(it.id)?.estimatedCents ?? 0) : sum),
+    0,
+  );
+
   async function onRegenerate() {
     if (!summary.dateRangeStart || !summary.dateRangeEnd) return;
     await regenerate.mutateAsync({
@@ -77,12 +83,20 @@ function ShoppingListDetail() {
       </div>
 
       <div className="bg-muted/40 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
-        <div>
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">
-            Projected total
+        <div className="flex gap-6">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+              Projected total
+            </div>
+            <div className="text-xl font-semibold" data-testid="projected-total">
+              {formatCurrency(pricing.projectedTotalCents)}
+            </div>
           </div>
-          <div className="text-xl font-semibold" data-testid="projected-total">
-            {formatCurrency(pricing.projectedTotalCents)}
+          <div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Spent</div>
+            <div className="text-xl font-semibold" data-testid="spent-total">
+              {formatCurrency(checkedCents)}
+            </div>
           </div>
         </div>
         <div className="text-muted-foreground text-right text-xs">

@@ -15,6 +15,7 @@ import {
   usePlanEntries,
   usePlanRealtime,
 } from '@/features/planner/use-planner';
+import { useMonthActualSpend } from '@/features/pricing/use-actual-spend';
 import { usePlannerCosts } from '@/features/pricing/use-planner-cost';
 import { cn } from '@/lib/utils/cn';
 import type { Slot } from '@/schemas/plan';
@@ -49,6 +50,7 @@ function PlannerPage() {
   const monthEnd = format(endOfMonth(anchor), 'yyyy-MM-dd');
   const { data: monthData } = usePlanEntries(monthStart, monthEnd);
   const monthCosts = usePlannerCosts(useMemo(() => monthData ?? [], [monthData]));
+  const actual = useMonthActualSpend(monthStart, monthEnd);
   const viewCosts = usePlannerCosts(entries);
 
   const actions: PlannerActions = {
@@ -116,10 +118,11 @@ function PlannerPage() {
       <BudgetBar
         monthLabel={format(anchor, 'MMMM')}
         projectedCents={monthCosts.totalCents}
+        actualCents={actual.actualCents}
         budgetCents={household?.monthlyBudgetCents ?? null}
         unpricedMeals={monthCosts.unpricedMeals}
-        hasStore={!!monthCosts.storeId}
-        isLoading={monthCosts.isLoading}
+        hasStore={!!monthCosts.storeId || !!actual.storeId}
+        isLoading={monthCosts.isLoading || actual.isLoading}
       />
 
       {movingId && (
@@ -149,7 +152,10 @@ function PlannerPage() {
           days={weekDays(anchor)}
           entriesByKey={byKey}
           actions={actions}
-          costForEntry={(e) => viewCosts.costForEntry(e).cents}
+          costForEntry={(e) => {
+            const c = viewCosts.costForEntry(e);
+            return { total: c.cents, perServing: c.perServingCents };
+          }}
         />
       )}
     </main>
