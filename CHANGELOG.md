@@ -21,6 +21,12 @@ All notable changes to this project are documented here. One entry per slice
   from the pantry (scaled by any servings override); un-marking adds them back.
   `cooked_at` on `plan_entry` is the idempotent guard. e2e: stock 16 oz cream
   cheese, cook a recipe that uses 8 oz → pantry shows 8.
+- **Running low** suggestions: on the shopping list, pantry items below ~10% of a
+  typical package (from the canonical's package size; falls back to "out" when
+  there's no size) surface in a "Running low" section — one-tap **Add** (drops it
+  on the list) or **Dismiss**. Items already on the list are skipped. Dismiss/Add
+  mute the suggestion (`restock_muted`) until you buy more, which auto-clears it.
+  Pure `isLowStock` helper (6 unit tests) + e2e.
 
 ### "What can I make?" — AI dinner ideas from your ingredients
 

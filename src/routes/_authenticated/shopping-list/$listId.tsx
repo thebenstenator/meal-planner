@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useApplyPurchaseToPantry } from '@/features/pantry/use-pantry';
+import { isLowStock } from '@/features/pantry/low-stock';
+import {
+  useApplyPurchaseToPantry,
+  usePantry,
+  usePantryMutations,
+} from '@/features/pantry/use-pantry';
 import { useAddPrice } from '@/features/pricing/use-pricing';
 import { useListPricing, type ItemPricing } from '@/features/pricing/use-list-pricing';
 import type { ShoppingItem } from '@/features/shopping-list/api';
@@ -37,6 +42,8 @@ function ShoppingListDetail() {
   const addPrice = useAddPrice();
   const setActual = useSetActualCost(listId);
   const applyToPantry = useApplyPurchaseToPantry();
+  const { data: pantry } = usePantry();
+  const pantryMut = usePantryMutations();
   const pricing = useListPricing(data?.items ?? []);
 
   if (isLoading) return <Centered>Loading…</Centered>;
@@ -50,6 +57,13 @@ function ShoppingListDetail() {
     bucket.push(item);
     byCategory.set(cat, bucket);
   }
+
+  // Running low: pantry items below the restock line, not muted, and not already
+  // on this list (you're already buying those).
+  const onList = new Set(items.map((i) => i.canonicalId).filter((id): id is string => !!id));
+  const lowItems = (pantry ?? []).filter(
+    (p) => !p.restockMuted && !onList.has(p.canonicalId) && isLowStock(p),
+  );
 
   // What's been bought so far: actual price where recorded, else the estimate.
   const checkedCents = items.reduce(
@@ -114,6 +128,46 @@ function ShoppingListDetail() {
           {pricing.staleCount > 0 && <div>{pricing.staleCount} stale price(s)</div>}
         </div>
       </div>
+
+      {lowItems.length > 0 && (
+        <section className="rounded-lg border border-amber-300/60 bg-amber-50/40 p-3">
+          <h2 className="text-sm font-medium">Running low</h2>
+          <p className="text-muted-foreground mb-2 text-xs">
+            From your pantry — add what you want to restock.
+          </p>
+          <ul className="space-y-1.5">
+            {lowItems.map((item) => (
+              <li key={item.id} className="flex items-center justify-between gap-2 text-sm">
+                <span className="min-w-0 flex-1 truncate">{item.canonicalName}</span>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    size="sm"
+                    className="h-7"
+                    onClick={() => {
+                      edits.addItem.mutate({
+                        name: item.canonicalName,
+                        quantity: item.packageQuantity,
+                        unit: item.packageUnit,
+                      });
+                      pantryMut.mute.mutate(item.id);
+                    }}
+                  >
+                    Add
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7"
+                    onClick={() => pantryMut.mute.mutate(item.id)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {items.length === 0 && (
         <p className="text-muted-foreground text-sm">

@@ -91,3 +91,28 @@ test('cooking a meal removes its ingredients from the pantry', async ({ page }) 
   await page.goto('/pantry');
   await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('8');
 });
+
+// A low pantry item is suggested for restock on the shopping list.
+test('suggests restocking a low pantry item, and adds it', async ({ page }) => {
+  await signUp(page, uniqueEmail('lowstock'));
+
+  // Stock a nearly-empty item: 0.5 oz cream cheese (pkg 8 oz => ~6% => low).
+  await page.goto('/pantry');
+  await page.getByPlaceholder('Search ingredient…').fill('cream cheese');
+  await page.getByRole('button', { name: /cream cheese/ }).first().click();
+  await page.getByLabel('Quantity', { exact: true }).fill('0.5');
+  await page.getByLabel('Unit', { exact: true }).fill('oz');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('0.5');
+
+  // Generate a list; the low item is suggested under "Running low".
+  await page.goto('/shopping-list');
+  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  const low = page.getByRole('heading', { name: 'Running low' }).locator('..');
+  await expect(low).toBeVisible();
+  await expect(low.getByText('cream cheese')).toBeVisible();
+
+  // Add it → the suggestion clears (muted until restocked).
+  await low.getByRole('button', { name: 'Add' }).click();
+  await expect(page.getByRole('heading', { name: 'Running low' })).toBeHidden();
+});

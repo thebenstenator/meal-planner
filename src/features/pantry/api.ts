@@ -17,12 +17,20 @@ export interface PantryItem {
   unit: string | null;
   location: PantryLocation;
   expiresOn: string | null;
+  restockMuted: boolean;
+  /** Typical package size for this ingredient — the reference for "running low". */
+  packageQuantity: number | null;
+  packageUnit: string | null;
+  densityGPerMl: number | null;
+  countToGram: number | null;
 }
 
 export async function listPantry(householdId: string): Promise<PantryItem[]> {
   const { data, error } = await supabase
     .from('pantry_item')
-    .select('id, canonical_ingredient_id, quantity, unit, location, expires_on, canonical_ingredient(name, category)')
+    .select(
+      'id, canonical_ingredient_id, quantity, unit, location, expires_on, restock_muted, canonical_ingredient(name, category, unit_size_quantity, unit_size_unit, density_g_per_ml, count_to_gram)',
+    )
     .eq('household_id', householdId)
     .order('location', { ascending: true });
   if (error) throw error;
@@ -35,7 +43,21 @@ export async function listPantry(householdId: string): Promise<PantryItem[]> {
     unit: r.unit,
     location: r.location as PantryLocation,
     expiresOn: r.expires_on,
+    restockMuted: r.restock_muted,
+    packageQuantity: r.canonical_ingredient?.unit_size_quantity ?? null,
+    packageUnit: r.canonical_ingredient?.unit_size_unit ?? null,
+    densityGPerMl: r.canonical_ingredient?.density_g_per_ml ?? null,
+    countToGram: r.canonical_ingredient?.count_to_gram ?? null,
   }));
+}
+
+/** Dismiss a low-stock suggestion until the item is restocked. */
+export async function setRestockMuted(id: string, muted: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('pantry_item')
+    .update({ restock_muted: muted })
+    .eq('id', id);
+  if (error) throw error;
 }
 
 /** Add or replace a pantry row for a canonical ingredient at a location. */
@@ -152,9 +174,9 @@ export async function adjustPantryStock(
   }
 
   const newQty = Math.max(0, Number(existing.quantity) + deltaInUnit);
-  const { error: updErr } = await supabase
-    .from('pantry_item')
-    .update({ quantity: newQty })
-    .eq('id', existing.id);
+  // Restocking (a positive adjustment) clears any dismissed low-stock suggestion.
+  const patch: { quantity: number; restock_muted?: boolean } = { quantity: newQty };
+  if (deltaQty > 0) patch.restock_muted = false;
+  const { error: updErr } = await supabase.from('pantry_item').update(patch).eq('id', existing.id);
   if (updErr) throw updErr;
 }

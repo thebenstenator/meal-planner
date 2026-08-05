@@ -7,6 +7,7 @@ import {
   listPantry,
   pantryKeys,
   removePantryItem,
+  setRestockMuted,
   updatePantryItem,
   upsertPantryItem,
   type PantryLocation,
@@ -59,7 +60,12 @@ export function usePantryMutations() {
     onSuccess: invalidate,
   });
 
-  return { add, update, remove };
+  const mute = useMutation({
+    mutationFn: (id: string) => setRestockMuted(id, true),
+    onSuccess: invalidate,
+  });
+
+  return { add, update, remove, mute };
 }
 
 /**

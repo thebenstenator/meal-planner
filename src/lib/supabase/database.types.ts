@@ -306,6 +306,7 @@ export type Database = {
           id: string
           location: string
           quantity: number
+          restock_muted: boolean
           unit: string | null
           updated_at: string
         }
@@ -317,6 +318,7 @@ export type Database = {
           id?: string
           location?: string
           quantity?: number
+          restock_muted?: boolean
           unit?: string | null
           updated_at?: string
         }
@@ -328,6 +330,7 @@ export type Database = {
           id?: string
           location?: string
           quantity?: number
+          restock_muted?: boolean
           unit?: string | null
           updated_at?: string
         }
