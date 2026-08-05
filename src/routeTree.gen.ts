@@ -15,6 +15,7 @@ import { Route as HealthRouteImport } from './routes/health'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedIngredientsRouteImport } from './routes/_authenticated/ingredients'
+import { Route as AuthenticatedPantryRouteImport } from './routes/_authenticated/pantry'
 import { Route as AuthenticatedPlannerRouteImport } from './routes/_authenticated/planner'
 import { Route as AuthenticatedSpendingRouteImport } from './routes/_authenticated/spending'
 import { Route as AuthenticatedStoresRouteImport } from './routes/_authenticated/stores'
@@ -58,6 +59,11 @@ const AuthenticatedIngredientsRoute =
     path: '/ingredients',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedPantryRoute = AuthenticatedPantryRouteImport.update({
+  id: '/pantry',
+  path: '/pantry',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedPlannerRoute = AuthenticatedPlannerRouteImport.update({
   id: '/planner',
   path: '/planner',
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRoute
   '/ingredients': typeof AuthenticatedIngredientsRoute
+  '/pantry': typeof AuthenticatedPantryRoute
   '/planner': typeof AuthenticatedPlannerRoute
   '/spending': typeof AuthenticatedSpendingRoute
   '/stores': typeof AuthenticatedStoresRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRoute
   '/ingredients': typeof AuthenticatedIngredientsRoute
+  '/pantry': typeof AuthenticatedPantryRoute
   '/planner': typeof AuthenticatedPlannerRoute
   '/spending': typeof AuthenticatedSpendingRoute
   '/stores': typeof AuthenticatedStoresRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/app': typeof AuthenticatedAppRoute
   '/_authenticated/ingredients': typeof AuthenticatedIngredientsRoute
+  '/_authenticated/pantry': typeof AuthenticatedPantryRoute
   '/_authenticated/planner': typeof AuthenticatedPlannerRoute
   '/_authenticated/spending': typeof AuthenticatedSpendingRoute
   '/_authenticated/stores': typeof AuthenticatedStoresRoute
@@ -193,6 +202,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/app'
     | '/ingredients'
+    | '/pantry'
     | '/planner'
     | '/spending'
     | '/stores'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/app'
     | '/ingredients'
+    | '/pantry'
     | '/planner'
     | '/spending'
     | '/stores'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/app'
     | '/_authenticated/ingredients'
+    | '/_authenticated/pantry'
     | '/_authenticated/planner'
     | '/_authenticated/spending'
     | '/_authenticated/stores'
@@ -295,6 +307,13 @@ declare module '@tanstack/react-router' {
       path: '/ingredients'
       fullPath: '/ingredients'
       preLoaderRoute: typeof AuthenticatedIngredientsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pantry': {
+      id: '/_authenticated/pantry'
+      path: '/pantry'
+      fullPath: '/pantry'
+      preLoaderRoute: typeof AuthenticatedPantryRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/planner': {
@@ -387,6 +406,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedAppRoute: typeof AuthenticatedAppRoute
   AuthenticatedIngredientsRoute: typeof AuthenticatedIngredientsRoute
+  AuthenticatedPantryRoute: typeof AuthenticatedPantryRoute
   AuthenticatedPlannerRoute: typeof AuthenticatedPlannerRoute
   AuthenticatedSpendingRoute: typeof AuthenticatedSpendingRoute
   AuthenticatedStoresRoute: typeof AuthenticatedStoresRoute
@@ -404,6 +424,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppRoute: AuthenticatedAppRoute,
   AuthenticatedIngredientsRoute: AuthenticatedIngredientsRoute,
+  AuthenticatedPantryRoute: AuthenticatedPantryRoute,
   AuthenticatedPlannerRoute: AuthenticatedPlannerRoute,
   AuthenticatedSpendingRoute: AuthenticatedSpendingRoute,
   AuthenticatedStoresRoute: AuthenticatedStoresRoute,

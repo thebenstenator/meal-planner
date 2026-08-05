@@ -297,6 +297,57 @@ export type Database = {
           },
         ]
       }
+      pantry_item: {
+        Row: {
+          canonical_ingredient_id: string
+          created_at: string
+          expires_on: string | null
+          household_id: string
+          id: string
+          location: string
+          quantity: number
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          canonical_ingredient_id: string
+          created_at?: string
+          expires_on?: string | null
+          household_id: string
+          id?: string
+          location?: string
+          quantity?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canonical_ingredient_id?: string
+          created_at?: string
+          expires_on?: string | null
+          household_id?: string
+          id?: string
+          location?: string
+          quantity?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pantry_item_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pantry_item_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_entry: {
         Row: {
           created_at: string
