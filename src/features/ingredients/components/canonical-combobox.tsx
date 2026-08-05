@@ -6,6 +6,9 @@ import { useCanonicalList, useCreateCanonical } from '@/features/ingredients/use
 
 interface Props {
   value: { id: string | null; name: string | null };
+  /** When there's no matched canonical yet, pre-fill the box with this parsed
+   * name so searching / "Create" is one tap instead of re-typing. */
+  seedName?: string | null;
   onSelect: (id: string | null, name: string | null) => void;
   placeholder?: string;
 }
@@ -15,17 +18,18 @@ interface Props {
  * result sets the canonical id; a "Create" option adds a household ingredient
  * on the fly. Used by the recipe ingredient editor.
  */
-export function CanonicalCombobox({ value, onSelect, placeholder }: Props) {
-  const [text, setText] = useState(value.name ?? '');
+export function CanonicalCombobox({ value, seedName, onSelect, placeholder }: Props) {
+  const [text, setText] = useState(value.name ?? seedName ?? '');
   const [open, setOpen] = useState(false);
   const { data } = useCanonicalList(open ? text : '');
   const create = useCreateCanonical();
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reflect external changes (e.g. after parsing a pasted block).
+  // Reflect external changes (e.g. after parsing a pasted block): show the
+  // matched name, or fall back to the parsed name for unmatched rows.
   useEffect(() => {
-    setText(value.name ?? '');
-  }, [value.name]);
+    setText(value.name ?? seedName ?? '');
+  }, [value.name, seedName]);
 
   const results = (data ?? []).slice(0, 8);
   const trimmed = text.trim();

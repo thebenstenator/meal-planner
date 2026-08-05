@@ -14,6 +14,7 @@ function toDraft(
     unit: parsed.unit,
     canonicalId: match?.canonicalIngredientId ?? null,
     canonicalName: match?.name ?? null,
+    parsedName: parsed.name || null,
     descriptor: parsed.descriptor,
     isOptional: parsed.isOptional,
     parseConfidence: parsed.confidence,

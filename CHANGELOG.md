@@ -5,6 +5,19 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Ingredients — bigger catalog + easier matching
+
+- Seeded **370 more global canonical ingredients** (172 → 542): more meat/poultry
+  cuts, seafood, produce, beans/legumes, pasta/grains/noodles, dairy/cheeses,
+  spices, condiments, nuts, bakery, frozen, breakfast, snacks, and beverages —
+  each with aliases, aisle category, default unit, and typical package size.
+  Deduplicated against the original seed, with alias collisions resolved so
+  matches stay deterministic.
+- Ingredient editor: an unmatched row's "Match to ingredient…" box now
+  **pre-fills with the parsed ingredient name**, so matching or creating a new
+  ingredient inline is one tap (no re-typing, no leaving the recipe form). The
+  create-on-the-fly path already existed; this makes it discoverable and fast.
+
 ### Slice 9 — AI Recipe Import
 
 - Supabase Edge Function `parse-recipe` (Deno): sends recipe photos (one recipe,

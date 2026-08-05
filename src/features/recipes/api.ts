@@ -16,6 +16,9 @@ export interface RecipeIngredientDraft {
   unit: string | null;
   canonicalId: string | null;
   canonicalName: string | null;
+  /** Core ingredient name the parser extracted (e.g. "cream cheese"); used to
+   * pre-fill the match/create box for rows that didn't match a canonical one. */
+  parsedName?: string | null;
   descriptor: string | null;
   isOptional: boolean;
   parseConfidence: number | null;

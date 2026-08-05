@@ -126,6 +126,7 @@ export async function toImportDetail(
         unit: ing.unit,
         canonicalId: match?.canonicalIngredientId ?? null,
         canonicalName: match?.name ?? null,
+        parsedName: ing.name || null,
         descriptor: ing.descriptor,
         isOptional: ing.is_optional,
         parseConfidence: ing.confidence,

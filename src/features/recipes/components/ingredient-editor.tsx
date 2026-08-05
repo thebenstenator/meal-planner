@@ -105,6 +105,7 @@ export function IngredientEditor({ householdId, value, onChange }: Props) {
             <div className="grid grid-cols-[1fr_5rem_5rem] gap-2">
               <CanonicalCombobox
                 value={{ id: row.canonicalId, name: row.canonicalName }}
+                seedName={row.parsedName}
                 onSelect={(id, name) =>
                   update(i, { canonicalId: id, canonicalName: name, needsReview: id === null })
                 }
