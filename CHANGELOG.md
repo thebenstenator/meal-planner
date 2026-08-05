@@ -28,6 +28,10 @@ All notable changes to this project are documented here. One entry per slice
   estimate). The shopping list shows a running **Spent** total beside the
   projected total. Each planner meal also shows its **per-serving** cost.
 - e2e: price 8 oz cream cheese at $2.50 → the recipe's estimated cost reads $2.50.
+- **Month-over-month spending**: a new **Spending** page charts actual grocery
+  spend for the last 6 months (checked-off items, attributed to each list's
+  month) with the budget goal drawn as a threshold line, plus a per-month
+  breakdown with over/under variance.
 
 ### Ingredients — bigger catalog + easier matching
 

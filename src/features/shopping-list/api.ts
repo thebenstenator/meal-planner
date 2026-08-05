@@ -104,6 +104,51 @@ export async function fetchMonthCheckedItems(
   }));
 }
 
+export interface CheckedItemWithMonth extends CheckedItem {
+  /** yyyy-MM the item's list belongs to (by its date-range start). */
+  month: string;
+}
+
+/**
+ * Checked-off items across all lists whose date range overlaps [rangeStart,
+ * rangeEnd], each tagged with its list's month — for month-over-month history.
+ */
+export async function fetchCheckedItemsByMonth(
+  householdId: string,
+  rangeStart: string,
+  rangeEnd: string,
+): Promise<CheckedItemWithMonth[]> {
+  const { data: lists, error } = await supabase
+    .from('shopping_list')
+    .select('id, date_range_start')
+    .eq('household_id', householdId)
+    .not('date_range_start', 'is', null)
+    .lte('date_range_start', rangeEnd)
+    .gte('date_range_end', rangeStart);
+  if (error) throw error;
+
+  const monthByList = new Map<string, string>();
+  for (const l of lists ?? []) {
+    if (l.date_range_start) monthByList.set(l.id, l.date_range_start.slice(0, 7));
+  }
+  const ids = [...monthByList.keys()];
+  if (ids.length === 0) return [];
+
+  const { data: items, error: itemErr } = await supabase
+    .from('shopping_list_item')
+    .select('canonical_ingredient_id, total_quantity, unit, shopping_list_id')
+    .in('shopping_list_id', ids)
+    .eq('is_checked', true);
+  if (itemErr) throw itemErr;
+
+  return (items ?? []).map((i) => ({
+    canonicalId: i.canonical_ingredient_id,
+    quantity: i.total_quantity,
+    unit: i.unit,
+    month: monthByList.get(i.shopping_list_id) ?? '',
+  }));
+}
+
 export async function getShoppingList(
   listId: string,
 ): Promise<{ summary: ShoppingListSummary; items: ShoppingItem[] }> {

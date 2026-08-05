@@ -29,6 +29,9 @@ export function AppHeader() {
             <Link to="/shopping-list">List</Link>
           </Button>
           <Button asChild variant="ghost" size="sm">
+            <Link to="/spending">Spending</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
             <Link to="/stores">Stores</Link>
           </Button>
           <Button asChild variant="ghost" size="sm">
