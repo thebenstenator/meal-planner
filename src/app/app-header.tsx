@@ -23,6 +23,9 @@ export function AppHeader() {
         <nav className="flex flex-wrap items-center justify-end gap-1">
           <InstallPrompt />
           <Button asChild variant="ghost" size="sm">
+            <Link to="/suggest">Ideas</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
             <Link to="/planner">Plan</Link>
           </Button>
           <Button asChild variant="ghost" size="sm">

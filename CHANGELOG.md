@@ -5,6 +5,24 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### "What can I make?" — AI dinner ideas from your ingredients
+
+- New **Ideas** page: list what you have (typed, comma/line separated) + optional
+  dietary filters → dinner ideas you can cook tonight. Prompt adapted from the
+  standalone dinner-ideas app (warm, honest, cuisine variety, treats basic pantry
+  staples as free).
+- Edge Function `suggest-meals` (Deno): one Claude call, structured JSON, the
+  Anthropic key stays server-side, rate-limited per household via the existing
+  `consume_ai_credit`. Model is env-configurable (`SUGGEST_MODEL`, default
+  `claude-sonnet-4-6` for idea quality; drop to Haiku to cut cost).
+- Each idea returns the same shape as URL import (title/servings/times/steps +
+  quantified `ingredient_lines`), so **Save as recipe** reuses the recipe-review
+  path verbatim (engine parse → canonical match → the recipe form), and each idea
+  reports what it **uses** and what's **missing**.
+- **Add missing to list**: an idea's missing non-staple ingredients drop into your
+  newest shopping list (or a new week list) in one tap.
+- Built to accept the pantry as an ingredient source once that lands.
+
 ### Budget & meal costing (consumption-based)
 
 - **Recipe cost**: each recipe now shows an estimated cost and cost-per-serving,
