@@ -5,6 +5,14 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Header: primary nav + avatar menu
+
+- The header grew to ~10 flat links as features landed. Now it shows the
+  day-to-day destinations (Plan, Ideas, Recipes, Pantry, List) and tucks the
+  occasional/settings pages (Spending, Stores, Ingredients, Household settings)
+  plus Sign out behind a circular **avatar menu** (initials from your email).
+  Dependency-free dropdown (backdrop-close); e2e covers open → navigate → sign out.
+
 ### Smart pantry
 
 - **Pantry** page (Phase 1): manual setup — quick-add via the canonical search,

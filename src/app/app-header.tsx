@@ -1,15 +1,22 @@
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 
 import { InstallPrompt } from '@/app/install-prompt';
 import { SyncStatus } from '@/app/sync-status';
+import { UserMenu } from '@/app/user-menu';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/features/auth/use-auth';
 import { useHousehold } from '@/features/household/use-household';
 
+// The day-to-day destinations. Occasional/settings pages live in the user menu.
+const PRIMARY_LINKS = [
+  { to: '/planner', label: 'Plan' },
+  { to: '/suggest', label: 'Ideas' },
+  { to: '/recipes', label: 'Recipes' },
+  { to: '/pantry', label: 'Pantry' },
+  { to: '/shopping-list', label: 'List' },
+] as const;
+
 export function AppHeader() {
-  const { signOut } = useAuth();
   const { household } = useHousehold();
-  const navigate = useNavigate();
 
   return (
     <header className="border-b">
@@ -22,43 +29,12 @@ export function AppHeader() {
         </div>
         <nav className="flex flex-wrap items-center justify-end gap-1">
           <InstallPrompt />
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/suggest">Ideas</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/planner">Plan</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/shopping-list">List</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/spending">Spending</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/stores">Stores</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/recipes">Recipes</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/pantry">Pantry</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/ingredients">Ingredients</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/household/settings">Household</Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={async () => {
-              await signOut();
-              await navigate({ to: '/login' });
-            }}
-          >
-            Sign out
-          </Button>
+          {PRIMARY_LINKS.map((link) => (
+            <Button key={link.to} asChild variant="ghost" size="sm">
+              <Link to={link.to}>{link.label}</Link>
+            </Button>
+          ))}
+          <UserMenu />
         </nav>
       </div>
     </header>
