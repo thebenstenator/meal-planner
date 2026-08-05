@@ -199,6 +199,73 @@ async function callClaude(pageText: string): Promise<unknown> {
   return JSON.parse(textBlock.text);
 }
 
+// ---- SSRF guard -----------------------------------------------------------
+
+const BROWSER_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
+  'Upgrade-Insecure-Requests': '1',
+};
+
+class BlockedUrlError extends Error {}
+
+/** Reject loopback / private / link-local / cloud-metadata targets so a caller
+ * can't turn this fetch into an SSRF probe of internal infrastructure. IP
+ * literals and obvious internal names are covered; a public domain that resolves
+ * to a private IP (DNS rebinding) is a residual risk the edge sandbox can't fully
+ * close without raw socket access. */
+function isBlockedHost(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, ''); // strip IPv6 brackets
+  if (
+    h === 'localhost' ||
+    h.endsWith('.localhost') ||
+    h.endsWith('.internal') ||
+    h.endsWith('.local')
+  ) {
+    return true;
+  }
+  // IPv6 loopback, unique-local (fc00::/7), link-local (fe80::/10).
+  if (h === '::1' || h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe80')) return true;
+  // IPv4 literal ranges.
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    if (a === 0 || a === 127 || a === 10) return true; // this-host, loopback, private
+    if (a === 169 && b === 254) return true; // link-local incl. 169.254.169.254 metadata
+    if (a === 172 && b >= 16 && b <= 31) return true; // private
+    if (a === 192 && b === 168) return true; // private
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  }
+  return false;
+}
+
+/** Fetch following redirects manually, re-validating the host on every hop so a
+ * public URL can't 3xx-redirect into an internal address. */
+async function safeFetch(rawUrl: string): Promise<Response> {
+  let current = rawUrl;
+  for (let hop = 0; hop < 5; hop++) {
+    const u = new URL(current);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new BlockedUrlError();
+    if (isBlockedHost(u.hostname)) throw new BlockedUrlError();
+
+    const res = await fetch(current, { headers: BROWSER_HEADERS, redirect: 'manual' });
+    const location = res.headers.get('location');
+    if (res.status >= 300 && res.status < 400 && location) {
+      current = new URL(location, current).toString();
+      continue;
+    }
+    return res;
+  }
+  throw new Error('Too many redirects');
+}
+
 // ---- Handler --------------------------------------------------------------
 
 Deno.serve(async (req) => {
@@ -213,24 +280,11 @@ Deno.serve(async (req) => {
     // Fetch the page server-side, presenting as a real browser. This gets past
     // sites that filter on User-Agent/headers; it does NOT beat sites that
     // fingerprint the TLS/HTTP client (e.g. allrecipes) — those are unfetchable
-    // from a server and surface as a "blocked" status below.
+    // from a server and surface as a "blocked" status below. safeFetch enforces
+    // the SSRF guard on the initial URL and on every redirect hop.
     let html: string;
     try {
-      const page = await fetch(url, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-          Accept:
-            'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Sec-Fetch-User': '?1',
-          'Upgrade-Insecure-Requests': '1',
-        },
-        redirect: 'follow',
-      });
+      const page = await safeFetch(url);
       if (!page.ok) {
         // 401/402/403/429/451/503 from a recipe site is almost always bot
         // blocking, not a real "page missing" — tell the user what to do.
@@ -245,8 +299,15 @@ Deno.serve(async (req) => {
           502,
         );
       }
+      const contentLength = Number(page.headers.get('content-length') ?? '0');
+      if (contentLength > 5_000_000) {
+        return json({ error: "That page is too large to import." }, 502);
+      }
       html = await page.text();
-    } catch (_err) {
+    } catch (err) {
+      if (err instanceof BlockedUrlError) {
+        return json({ error: "That URL can't be imported." }, 400);
+      }
       return json({ error: "Couldn't reach that site — check the URL and try again." }, 502);
     }
 

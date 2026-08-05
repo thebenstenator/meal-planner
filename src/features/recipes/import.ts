@@ -54,25 +54,41 @@ export function fileToImage(file: File): Promise<ImageInput & { preview: string 
   });
 }
 
+/**
+ * Invoke an import Edge Function, turning its structured error body into an
+ * ImportError (preserving the server's message + limitReached flag). Both the
+ * photo and URL import paths share this so error handling stays in one place.
+ */
+async function invokeImport<T>(
+  fn: string,
+  body: Record<string, unknown>,
+  fallbackMessage: string,
+): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(fn, { body });
+  if (error) {
+    let errBody: { error?: string; limitReached?: boolean } | null = null;
+    try {
+      const ctx = (error as { context?: Response }).context;
+      if (ctx) errBody = await ctx.json();
+    } catch {
+      // non-JSON error body
+    }
+    throw new ImportError(errBody?.error ?? fallbackMessage, !!errBody?.limitReached);
+  }
+  return data as T;
+}
+
 /** Call the parse-recipe Edge Function (Anthropic key stays server-side). */
 export async function parseRecipeImages(
   householdId: string,
   images: ImageInput[],
 ): Promise<ParsedRecipe> {
-  const { data, error } = await supabase.functions.invoke('parse-recipe', {
-    body: { images, household_id: householdId },
-  });
-  if (error) {
-    let body: { error?: string; limitReached?: boolean } | null = null;
-    try {
-      const ctx = (error as { context?: Response }).context;
-      if (ctx) body = await ctx.json();
-    } catch {
-      // non-JSON error body
-    }
-    throw new ImportError(body?.error ?? 'Could not read that recipe', !!body?.limitReached);
-  }
-  return data.recipe as ParsedRecipe;
+  const data = await invokeImport<{ recipe: ParsedRecipe }>(
+    'parse-recipe',
+    { images, household_id: householdId },
+    'Could not read that recipe',
+  );
+  return data.recipe;
 }
 
 interface RecipeMeta {
@@ -155,23 +171,12 @@ export async function parseRecipeUrl(
   householdId: string,
   url: string,
 ): Promise<{ recipe: UrlRecipe; source: string }> {
-  const { data, error } = await supabase.functions.invoke('parse-recipe-url', {
-    body: { url, household_id: householdId },
-  });
-  if (error) {
-    let body: { error?: string; limitReached?: boolean } | null = null;
-    try {
-      const ctx = (error as { context?: Response }).context;
-      if (ctx) body = await ctx.json();
-    } catch {
-      // non-JSON error body
-    }
-    throw new ImportError(
-      body?.error ?? 'Could not read a recipe from that page',
-      !!body?.limitReached,
-    );
-  }
-  return { recipe: data.recipe as UrlRecipe, source: data.source as string };
+  const data = await invokeImport<{ recipe: UrlRecipe; source: string }>(
+    'parse-recipe-url',
+    { url, household_id: householdId },
+    'Could not read a recipe from that page',
+  );
+  return { recipe: data.recipe, source: data.source };
 }
 
 /**

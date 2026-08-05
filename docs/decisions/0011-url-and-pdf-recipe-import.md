@@ -39,6 +39,17 @@ units, and canonical matches are produced by one code path we already trust and
 test, and low-confidence/unmatched rows get the same review badges. A shared
 `buildDetail` helper assembles the `RecipeDetail` for both photo and URL imports.
 
+## The server-side fetch is SSRF-guarded
+
+Because the function fetches an arbitrary caller-supplied URL from inside our
+infrastructure, it's an SSRF vector. `safeFetch` rejects loopback, private,
+link-local, CGNAT, and cloud-metadata (`169.254.169.254`) targets — as IP
+literals and as obvious internal names (`localhost`, `*.internal`, `*.local`) —
+and re-validates the host on every redirect hop (`redirect: 'manual'`) so a
+public URL can't 302 into an internal address. Responses over 5 MB are refused.
+A public domain that resolves to a private IP (DNS rebinding) is the residual
+risk the edge sandbox can't close without raw socket access; accepted for now.
+
 ## No CI e2e for the live fetch/parse
 
 Same reasoning as 0010: the fallback calls Claude (costs money, non-deterministic,
