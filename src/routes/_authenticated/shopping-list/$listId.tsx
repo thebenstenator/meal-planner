@@ -10,6 +10,7 @@ import type { ShoppingItem } from '@/features/shopping-list/api';
 import {
   useGenerateList,
   useItemEdits,
+  useSetActualCost,
   useSetConversion,
   useShoppingList,
   useToggleItem,
@@ -33,6 +34,7 @@ function ShoppingListDetail() {
   const setConv = useSetConversion();
   const regenerate = useGenerateList();
   const addPrice = useAddPrice();
+  const setActual = useSetActualCost(listId);
   const pricing = useListPricing(data?.items ?? []);
 
   if (isLoading) return <Centered>Loading…</Centered>;
@@ -47,9 +49,12 @@ function ShoppingListDetail() {
     byCategory.set(cat, bucket);
   }
 
-  // What's been bought so far: purchase cost of checked-off items.
+  // What's been bought so far: actual price where recorded, else the estimate.
   const checkedCents = items.reduce(
-    (sum, it) => (it.isChecked ? sum + (pricing.byItemId.get(it.id)?.estimatedCents ?? 0) : sum),
+    (sum, it) =>
+      it.isChecked
+        ? sum + (it.actualCostCents ?? pricing.byItemId.get(it.id)?.estimatedCents ?? 0)
+        : sum,
     0,
   );
 
@@ -138,6 +143,7 @@ function ShoppingListDetail() {
                     : undefined
                 }
                 onToggle={(checked) => toggle.mutate({ itemId: item.id, checked })}
+                onSetActualCost={(cents) => setActual.mutate({ itemId: item.id, cents })}
                 onOverride={(q, u) =>
                   edits.overrideQuantity.mutate({ itemId: item.id, totalQuantity: q, unit: u })
                 }
@@ -162,6 +168,7 @@ function ItemRow({
   canAddPrice,
   onAddPrice,
   onToggle,
+  onSetActualCost,
   onOverride,
   onDelete,
   onSetConversion,
@@ -171,6 +178,7 @@ function ItemRow({
   canAddPrice: boolean;
   onAddPrice: (priceCents: number, packageQuantity: number, packageUnit: string) => void;
   onToggle: (checked: boolean) => void;
+  onSetActualCost: (cents: number | null) => void;
   onOverride: (quantity: number | null, unit: string | null) => void;
   onDelete: () => void;
   onSetConversion: (density: number) => void;
@@ -225,17 +233,13 @@ function ItemRow({
             <div className="text-muted-foreground text-xs">+{item.noQuantityCount} “to taste”</div>
           )}
 
-          {/* Price */}
-          {pricing?.estimatedCents != null && (
-            <div className="text-sm font-medium">
-              {formatCurrency(pricing.estimatedCents)}
-              {pricing.stale && (
-                <Badge variant="outline" className="ml-2 text-amber-600">
-                  stale
-                </Badge>
-              )}
-            </div>
-          )}
+          {/* Price — tap to record what you actually paid (check-off stays one tap). */}
+          <ItemPrice
+            estimatedCents={pricing?.estimatedCents ?? null}
+            actualCents={item.actualCostCents}
+            stale={pricing?.stale ?? false}
+            onSet={onSetActualCost}
+          />
           {canAddPrice && (!pricing?.hasPrice || pricing?.stale) && (
             <>
               {!pricingOpen ? (
@@ -347,6 +351,95 @@ function ItemRow({
         </div>
       </div>
     </li>
+  );
+}
+
+/**
+ * The item's price, shown as the actual paid (if recorded) or the estimate.
+ * Tapping it opens a tiny inline field to record what was actually paid — one
+ * optional tap, entirely separate from the one-tap check-off. Blank clears it
+ * back to the estimate.
+ */
+function ItemPrice({
+  estimatedCents,
+  actualCents,
+  stale,
+  onSet,
+}: {
+  estimatedCents: number | null;
+  actualCents: number | null;
+  stale: boolean;
+  onSet: (cents: number | null) => void;
+}) {
+  const effective = actualCents ?? estimatedCents;
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState('');
+
+  if (effective == null) return null;
+
+  function begin() {
+    setText(effective != null ? (effective / 100).toFixed(2) : '');
+    setEditing(true);
+  }
+  function commit() {
+    const t = text.trim();
+    if (t === '') onSet(null);
+    else {
+      const dollars = Number(t);
+      if (Number.isFinite(dollars) && dollars >= 0) onSet(Math.round(dollars * 100));
+    }
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="mt-0.5 flex items-center gap-1">
+        <span className="text-sm">$</span>
+        <Input
+          autoFocus
+          inputMode="decimal"
+          aria-label="Actual price paid"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit();
+            }
+            if (e.key === 'Escape') setEditing(false);
+          }}
+          className="h-7 w-20"
+        />
+        <span className="text-muted-foreground text-[10px]">paid</span>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={begin}
+      className="mt-0.5 flex items-center gap-1.5 text-sm font-medium"
+      aria-label={`Edit price paid for this item (currently ${formatCurrency(effective)})`}
+    >
+      <span
+        className={cn(
+          'underline decoration-dotted underline-offset-2',
+          actualCents == null && 'text-muted-foreground',
+        )}
+      >
+        {formatCurrency(effective)}
+      </span>
+      <span className="text-muted-foreground text-[10px] font-normal">
+        {actualCents != null ? 'paid' : 'est'}
+      </span>
+      {stale && actualCents == null && (
+        <Badge variant="outline" className="text-amber-600">
+          stale
+        </Badge>
+      )}
+    </button>
   );
 }
 

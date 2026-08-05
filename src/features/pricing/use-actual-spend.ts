@@ -41,6 +41,11 @@ export function useMonthActualSpend(monthStart: string, monthEnd: string): Actua
     const checked = items ?? [];
 
     for (const item of checked) {
+      // A recorded actual price wins over the estimate (and needs no store price).
+      if (item.actualCostCents != null) {
+        actualCents += item.actualCostCents;
+        continue;
+      }
       const price = item.canonicalId ? index.priceByCanonical.get(item.canonicalId) : undefined;
       if (!price) {
         unpricedCount += 1;

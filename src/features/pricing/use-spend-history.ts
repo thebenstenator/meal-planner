@@ -60,6 +60,11 @@ export function useSpendHistory(months = 6): SpendHistory {
 
     for (const item of items ?? []) {
       if (!byMonth.has(item.month)) continue;
+      // Prefer a recorded actual price over the estimate.
+      if (item.actualCostCents != null) {
+        byMonth.set(item.month, (byMonth.get(item.month) ?? 0) + item.actualCostCents);
+        continue;
+      }
       const price = item.canonicalId ? index.priceByCanonical.get(item.canonicalId) : undefined;
       if (!price) continue;
       const info = (item.canonicalId && index.infoByCanonical.get(item.canonicalId)) || {};

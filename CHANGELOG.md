@@ -32,6 +32,11 @@ All notable changes to this project are documented here. One entry per slice
   spend for the last 6 months (checked-off items, attributed to each list's
   month) with the budget goal drawn as a threshold line, plus a per-month
   breakdown with over/under variance.
+- **Actual price at check-off** (`actual_cost_cents` on `shopping_list_item`):
+  check-off stays one tap; each item's price is now tap-to-edit to record what
+  you actually paid. When set it overrides the estimate everywhere spend is
+  summed (list "Spent", planner budget bar, spending history); blank reverts to
+  the estimate. Optimistic like check-off, so it never flickers. e2e covers it.
 
 ### Ingredients — bigger catalog + easier matching
 

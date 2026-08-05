@@ -42,6 +42,8 @@ export interface ShoppingItem {
   purchase: ItemPurchase | null;
   noQuantityCount: number;
   isChecked: boolean;
+  /** Actual price paid, captured at check-off; null = use the estimate. */
+  actualCostCents: number | null;
   isManual: boolean;
   position: number;
   sources: ItemSource[];
@@ -68,6 +70,7 @@ export interface CheckedItem {
   canonicalId: string | null;
   quantity: number | null;
   unit: string | null;
+  actualCostCents: number | null;
 }
 
 /**
@@ -92,7 +95,7 @@ export async function fetchMonthCheckedItems(
 
   const { data: items, error: itemErr } = await supabase
     .from('shopping_list_item')
-    .select('canonical_ingredient_id, total_quantity, unit')
+    .select('canonical_ingredient_id, total_quantity, unit, actual_cost_cents')
     .in('shopping_list_id', ids)
     .eq('is_checked', true);
   if (itemErr) throw itemErr;
@@ -101,6 +104,7 @@ export async function fetchMonthCheckedItems(
     canonicalId: i.canonical_ingredient_id,
     quantity: i.total_quantity,
     unit: i.unit,
+    actualCostCents: i.actual_cost_cents,
   }));
 }
 
@@ -136,7 +140,7 @@ export async function fetchCheckedItemsByMonth(
 
   const { data: items, error: itemErr } = await supabase
     .from('shopping_list_item')
-    .select('canonical_ingredient_id, total_quantity, unit, shopping_list_id')
+    .select('canonical_ingredient_id, total_quantity, unit, actual_cost_cents, shopping_list_id')
     .in('shopping_list_id', ids)
     .eq('is_checked', true);
   if (itemErr) throw itemErr;
@@ -145,6 +149,7 @@ export async function fetchCheckedItemsByMonth(
     canonicalId: i.canonical_ingredient_id,
     quantity: i.total_quantity,
     unit: i.unit,
+    actualCostCents: i.actual_cost_cents,
     month: monthByList.get(i.shopping_list_id) ?? '',
   }));
 }
@@ -175,6 +180,7 @@ export async function getShoppingList(
     purchase: (i.purchase as ItemPurchase | null) ?? null,
     noQuantityCount: i.no_quantity_count,
     isChecked: i.is_checked,
+    actualCostCents: i.actual_cost_cents,
     isManual: i.is_manual,
     position: i.position,
     sources: (i.shopping_list_item_source ?? []).map((s) => ({
@@ -217,6 +223,15 @@ export async function setItemChecked(itemId: string, checked: boolean): Promise<
   const { error } = await supabase
     .from('shopping_list_item')
     .update({ is_checked: checked })
+    .eq('id', itemId);
+  if (error) throw error;
+}
+
+/** Record (or clear, with null) the actual price paid for an item. */
+export async function setItemActualCost(itemId: string, cents: number | null): Promise<void> {
+  const { error } = await supabase
+    .from('shopping_list_item')
+    .update({ actual_cost_cents: cents })
     .eq('id', itemId);
   if (error) throw error;
 }

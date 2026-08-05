@@ -614,6 +614,7 @@ export type Database = {
       }
       shopping_list_item: {
         Row: {
+          actual_cost_cents: number | null
           ad_hoc_name: string | null
           canonical_ingredient_id: string | null
           category: string | null
@@ -635,6 +636,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          actual_cost_cents?: number | null
           ad_hoc_name?: string | null
           canonical_ingredient_id?: string | null
           category?: string | null
@@ -656,6 +658,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          actual_cost_cents?: number | null
           ad_hoc_name?: string | null
           canonical_ingredient_id?: string | null
           category?: string | null

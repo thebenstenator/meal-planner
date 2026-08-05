@@ -10,6 +10,7 @@ import {
   listKeys,
   listShoppingLists,
   setCanonicalConversion,
+  setItemActualCost,
   setItemChecked,
   updateItemQuantity,
 } from '@/features/shopping-list/api';
@@ -62,6 +63,35 @@ export function useToggleItem(listId: string) {
         return {
           ...data,
           items: data.items.map((i) => (i.id === itemId ? { ...i, isChecked: checked } : i)),
+        };
+      });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      const prev = (ctx as { prev?: unknown } | undefined)?.prev;
+      if (prev !== undefined) qc.setQueryData(listKeys.detail(listId), prev);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
+    },
+  });
+}
+
+export function useSetActualCost(listId: string) {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { itemId: string; cents: number | null }>({
+    mutationFn: ({ itemId, cents }) => setItemActualCost(itemId, cents),
+    // Optimistic like check-off: apply synchronously so the number doesn't flicker.
+    onMutate: ({ itemId, cents }) => {
+      const prev = qc.getQueryData(listKeys.detail(listId));
+      qc.setQueryData(listKeys.detail(listId), (old: unknown) => {
+        const data = old as
+          | { summary: unknown; items: Array<{ id: string; actualCostCents: number | null }> }
+          | undefined;
+        if (!data) return old;
+        return {
+          ...data,
+          items: data.items.map((i) => (i.id === itemId ? { ...i, actualCostCents: cents } : i)),
         };
       });
       return { prev };

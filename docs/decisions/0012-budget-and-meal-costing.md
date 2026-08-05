@@ -62,6 +62,20 @@ for the price at checkout time; lists without a date range are excluded (their
 month is ambiguous). The shopping list itself shows a running "Spent" total
 (checked items) beside the projected total.
 
+## Actual price is captured inline, never as a required step
+
+Recording what you actually paid must not tax the check-off flow — checking an
+item off stays a single tap. So the actual price lives on the item's existing
+price display: it shows the recorded actual (labelled "paid") or the estimate
+("est"), and tapping it opens a tiny inline field. Blank clears back to the
+estimate. It's stored per item (`actual_cost_cents`, nullable) and, when present,
+overrides the estimate everywhere spend is summed — the list "Spent" total, the
+planner budget bar's actual, and the spending history. The mutation is optimistic
+(applied synchronously, like check-off) so the number never flickers. We keep it
+per-item rather than a per-trip total so it can later feed a category breakdown.
+Current prices remain the fallback; this just lets any item be corrected to the
+real amount without receipt capture.
+
 ## e2e coverage
 
 `recipe-cost.spec.ts` prices 8 oz cream cheese at $2.50 and asserts the recipe's
