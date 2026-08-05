@@ -1,3 +1,5 @@
+import type { ConversionInfo } from '@/features/pricing/price-item';
+import { convert, type Unit } from '@/lib/ingredients';
 import { supabase } from '@/lib/supabase/client';
 
 export const pantryKeys = {
@@ -76,4 +78,59 @@ export async function updatePantryItem(
 export async function removePantryItem(id: string): Promise<void> {
   const { error } = await supabase.from('pantry_item').delete().eq('id', id);
   if (error) throw error;
+}
+
+/**
+ * Adjust pantry stock for a canonical ingredient by a signed amount (positive =
+ * bought, negative = consumed). Finds any existing row for the ingredient and
+ * converts the delta into that row's unit via the engine; if it can't reconcile
+ * the units it leaves the row untouched rather than corrupting it. Creates a
+ * pantry row when adding to something not tracked yet. Clamps at 0.
+ */
+export async function adjustPantryStock(
+  householdId: string,
+  canonicalId: string,
+  deltaQty: number,
+  deltaUnit: string | null,
+  info: ConversionInfo = {},
+): Promise<void> {
+  const { data: rows, error } = await supabase
+    .from('pantry_item')
+    .select('id, quantity, unit')
+    .eq('household_id', householdId)
+    .eq('canonical_ingredient_id', canonicalId)
+    .order('location', { ascending: true })
+    .limit(1);
+  if (error) throw error;
+  const existing = rows?.[0];
+
+  if (!existing) {
+    if (deltaQty <= 0) return; // nothing to subtract from
+    const { error: insErr } = await supabase.from('pantry_item').insert({
+      household_id: householdId,
+      canonical_ingredient_id: canonicalId,
+      quantity: deltaQty,
+      unit: deltaUnit,
+      location: 'pantry',
+    });
+    if (insErr) throw insErr;
+    return;
+  }
+
+  let deltaInUnit = deltaQty;
+  if (existing.unit && deltaUnit && existing.unit !== deltaUnit) {
+    const conv = convert(Math.abs(deltaQty), deltaUnit as Unit, existing.unit as Unit, {
+      densityGPerMl: info.densityGPerMl ?? undefined,
+      countToGram: info.countToGram ?? undefined,
+    });
+    if (!conv.ok) return; // units can't be reconciled — don't corrupt the row
+    deltaInUnit = Math.sign(deltaQty) * conv.quantity;
+  }
+
+  const newQty = Math.max(0, Number(existing.quantity) + deltaInUnit);
+  const { error: updErr } = await supabase
+    .from('pantry_item')
+    .update({ quantity: newQty })
+    .eq('id', existing.id);
+  if (updErr) throw updErr;
 }

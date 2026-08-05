@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useApplyPurchaseToPantry } from '@/features/pantry/use-pantry';
 import { useAddPrice } from '@/features/pricing/use-pricing';
 import { useListPricing, type ItemPricing } from '@/features/pricing/use-list-pricing';
 import type { ShoppingItem } from '@/features/shopping-list/api';
@@ -35,6 +36,7 @@ function ShoppingListDetail() {
   const regenerate = useGenerateList();
   const addPrice = useAddPrice();
   const setActual = useSetActualCost(listId);
+  const applyToPantry = useApplyPurchaseToPantry();
   const pricing = useListPricing(data?.items ?? []);
 
   if (isLoading) return <Centered>Loading…</Centered>;
@@ -142,7 +144,10 @@ function ShoppingListDetail() {
                       })
                     : undefined
                 }
-                onToggle={(checked) => toggle.mutate({ itemId: item.id, checked })}
+                onToggle={(checked) => {
+                  toggle.mutate({ itemId: item.id, checked });
+                  applyToPantry.mutate({ item, checked });
+                }}
                 onSetActualCost={(cents) => setActual.mutate({ itemId: item.id, cents })}
                 onOverride={(q, u) =>
                   edits.overrideQuantity.mutate({ itemId: item.id, totalQuantity: q, unit: u })

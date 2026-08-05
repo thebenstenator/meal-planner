@@ -5,6 +5,18 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Smart pantry
+
+- **Pantry** page (Phase 1): manual setup — quick-add via the canonical search,
+  grouped into pantry/fridge/freezer, inline quantity edits + remove.
+  (`pantry_item` table, RLS scoped to members.)
+- **Buy → +stock** (Phase 2): checking a matched item off the shopping list adds
+  its purchased quantity to the pantry (whole packages when known, else the
+  needed amount); un-checking reverses it. Units are converted through the Slice 2
+  engine; unmatched/ad-hoc items and unreconcilable units are skipped rather than
+  corrupting a row. Best-effort — a pantry write never blocks the check-off.
+  e2e: buy 8 oz cream cheese → it appears in the pantry at 8.
+
 ### "What can I make?" — AI dinner ideas from your ingredients
 
 - New **Ideas** page: list what you have (typed, comma/line separated) + optional
