@@ -12,9 +12,10 @@ interface Props {
   days: string[];
   entriesByKey: Map<string, PlanEntry[]>;
   actions: PlannerActions;
+  costForEntry?: (entry: PlanEntry) => number | null;
 }
 
-export function WeekView({ days, entriesByKey, actions }: Props) {
+export function WeekView({ days, entriesByKey, actions, costForEntry }: Props) {
   return (
     <div className="grid gap-3 md:grid-cols-7">
       {days.map((date) => (
@@ -30,6 +31,7 @@ export function WeekView({ days, entriesByKey, actions }: Props) {
                 slot={slot}
                 entries={entriesByKey.get(keyOf(date, slot)) ?? []}
                 actions={actions}
+                costForEntry={costForEntry}
               />
             ))}
           </div>
@@ -44,11 +46,13 @@ function SlotCell({
   slot,
   entries,
   actions,
+  costForEntry,
 }: {
   date: string;
   slot: Slot;
   entries: PlanEntry[];
   actions: PlannerActions;
+  costForEntry?: (entry: PlanEntry) => number | null;
 }) {
   const isAdding =
     actions.addTarget?.date === date && actions.addTarget?.slot === slot;
@@ -64,6 +68,7 @@ function SlotCell({
           <EntryChip
             key={entry.id}
             entry={entry}
+            costCents={costForEntry?.(entry) ?? null}
             isMoving={moving === entry.id}
             onStartMove={() => actions.startMove(entry.id)}
             onRemove={() => actions.remove(entry.id)}

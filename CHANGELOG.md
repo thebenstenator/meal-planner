@@ -5,6 +5,24 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Budget & meal costing (consumption-based)
+
+- **Recipe cost**: each recipe now shows an estimated cost and cost-per-serving,
+  computed from the amount it actually *uses* — 2 oz of a $3.00 / 15 oz bottle of
+  soy sauce is $0.40, not a whole bottle. This is distinct from the shopping
+  list's purchase-based projected total (whole packages), so per-meal numbers are
+  comparable and don't over-count pantry staples. Unmatched/unpriced ingredients
+  are flagged, and recipes fall back to a "set up pricing" nudge when there's no
+  default store or prices.
+- **Monthly budget goal**: owners can set a household monthly grocery budget in
+  Household settings (the `monthly_budget_cents` column existed but was unused).
+- **Planner budget rollup**: a summary bar shows projected consumption spend for
+  the calendar month vs. the budget goal, with an over/under variance and a
+  progress bar. Each planned meal in the week view shows its own cost (scaled by
+  any servings override); non-recipe entries (leftovers/eating out) cost nothing.
+- Pure, unit-tested `consumptionCost`/`recipeCost` (9 tests); cost hooks reuse the
+  existing store/price/conversion infrastructure.
+
 ### Ingredients — bigger catalog + easier matching
 
 - Seeded **370 more global canonical ingredients** (172 → 542): more meat/poultry

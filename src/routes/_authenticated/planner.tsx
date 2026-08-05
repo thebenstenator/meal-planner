@@ -1,8 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { addMonths, addWeeks, format } from 'date-fns';
+import { addMonths, addWeeks, endOfMonth, format, startOfMonth } from 'date-fns';
 import { useMemo, useState } from 'react';
 
+import { useHousehold } from '@/features/household/use-household';
 import { Button } from '@/components/ui/button';
+import { BudgetBar } from '@/features/planner/components/budget-bar';
 import { MonthGrid } from '@/features/planner/components/month-grid';
 import { WeekView } from '@/features/planner/components/week-view';
 import { fromISO, monthGridDays, monthGridRange, weekDays, weekRange } from '@/features/planner/dates';
@@ -13,6 +15,7 @@ import {
   usePlanEntries,
   usePlanRealtime,
 } from '@/features/planner/use-planner';
+import { usePlannerCosts } from '@/features/pricing/use-planner-cost';
 import { cn } from '@/lib/utils/cn';
 import type { Slot } from '@/schemas/plan';
 
@@ -38,6 +41,15 @@ function PlannerPage() {
   const entries = useMemo(() => data ?? [], [data]);
   const byKey = useMemo(() => groupBy(entries, (e) => keyOf(e.date, e.slot)), [entries]);
   const byDate = useMemo(() => groupBy(entries, (e) => e.date), [entries]);
+
+  // Budget rollup is always the calendar month of the anchor (independent of the
+  // week/month toggle), compared against the household goal.
+  const { household } = useHousehold();
+  const monthStart = format(startOfMonth(anchor), 'yyyy-MM-dd');
+  const monthEnd = format(endOfMonth(anchor), 'yyyy-MM-dd');
+  const { data: monthData } = usePlanEntries(monthStart, monthEnd);
+  const monthCosts = usePlannerCosts(useMemo(() => monthData ?? [], [monthData]));
+  const viewCosts = usePlannerCosts(entries);
 
   const actions: PlannerActions = {
     addTarget,
@@ -101,6 +113,15 @@ function PlannerPage() {
         </div>
       </div>
 
+      <BudgetBar
+        monthLabel={format(anchor, 'MMMM')}
+        projectedCents={monthCosts.totalCents}
+        budgetCents={household?.monthlyBudgetCents ?? null}
+        unpricedMeals={monthCosts.unpricedMeals}
+        hasStore={!!monthCosts.storeId}
+        isLoading={monthCosts.isLoading}
+      />
+
       {movingId && (
         <div className="bg-muted/50 flex items-center justify-between rounded-md border px-3 py-2 text-sm">
           <span>Moving an entry — tap “Move here” on a slot.</span>
@@ -124,7 +145,12 @@ function PlannerPage() {
           }}
         />
       ) : (
-        <WeekView days={weekDays(anchor)} entriesByKey={byKey} actions={actions} />
+        <WeekView
+          days={weekDays(anchor)}
+          entriesByKey={byKey}
+          actions={actions}
+          costForEntry={(e) => viewCosts.costForEntry(e).cents}
+        />
       )}
     </main>
   );

@@ -3,7 +3,9 @@ import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useRecipeCost } from '@/features/pricing/use-recipe-cost';
 import { useRecipe, useSoftDeleteRecipe } from '@/features/recipes/use-recipes';
+import { formatCurrency } from '@/lib/utils/format-currency';
 
 export const Route = createFileRoute('/_authenticated/recipes/$recipeId/')({
   component: RecipeDetailPage,
@@ -50,6 +52,8 @@ function RecipeDetailPage() {
       </div>
 
       {recipe.description && <p className="text-muted-foreground">{recipe.description}</p>}
+
+      <RecipeCostCard ingredients={recipe.ingredients} servings={recipe.servings} />
 
       <section>
         <h2 className="mb-2 font-semibold">Ingredients</h2>
@@ -118,4 +122,54 @@ function RecipeDetailPage() {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return <main className="mx-auto max-w-2xl px-4 py-16 text-center text-sm">{children}</main>;
+}
+
+function RecipeCostCard({
+  ingredients,
+  servings,
+}: {
+  ingredients: { quantity: number | null; unit: string | null; canonicalId: string | null; isOptional: boolean }[];
+  servings: number;
+}) {
+  const cost = useRecipeCost(ingredients, servings);
+
+  if (cost.isLoading) return null;
+
+  // No default store / no prices captured yet — point the user at pricing.
+  if (!cost.storeId || cost.pricedCount === 0) {
+    return (
+      <div className="bg-muted/40 rounded-lg border p-4 text-sm">
+        <span className="text-muted-foreground">
+          {cost.storeId
+            ? 'No prices yet for these ingredients. '
+            : 'Set a default store and prices to estimate cost. '}
+        </span>
+        <Link to="/stores" className="underline">
+          {cost.storeId ? 'Add prices' : 'Set up pricing'}
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border p-4">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm font-medium">Estimated cost</span>
+        <span className="text-xl font-semibold" data-testid="recipe-cost">
+          {formatCurrency(cost.totalCents)}
+        </span>
+      </div>
+      <div className="text-muted-foreground mt-1 flex items-baseline justify-between text-sm">
+        <span>{formatCurrency(cost.perServingCents)} / serving</span>
+        {cost.unpricedCount > 0 && (
+          <span>
+            {cost.unpricedCount} of {cost.pricedCount + cost.unpricedCount} not priced
+          </span>
+        )}
+      </div>
+      <p className="text-muted-foreground mt-2 text-xs">
+        Based on the amount this recipe uses, at your default store.
+      </p>
+    </div>
+  );
 }

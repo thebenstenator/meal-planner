@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
+import { BudgetCard } from '@/features/household/components/budget-card';
 import { InviteCard } from '@/features/household/components/invite-card';
 import { JoinCard } from '@/features/household/components/join-card';
 import { MembersCard } from '@/features/household/components/members-card';
@@ -32,6 +33,11 @@ function HouseholdSettingsPage() {
           <RenameCard
             householdId={householdId}
             currentName={household.name}
+            canEdit={role === 'owner'}
+          />
+          <BudgetCard
+            householdId={householdId}
+            monthlyBudgetCents={household.monthlyBudgetCents}
             canEdit={role === 'owner'}
           />
           <MembersCard householdId={householdId} />

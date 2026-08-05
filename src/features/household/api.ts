@@ -68,6 +68,18 @@ export async function renameHousehold(householdId: string, name: string): Promis
   if (error) throw error;
 }
 
+/** Set (or clear, with null) the household's monthly grocery budget goal. */
+export async function setMonthlyBudget(
+  householdId: string,
+  cents: number | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from('household')
+    .update({ monthly_budget_cents: cents })
+    .eq('id', householdId);
+  if (error) throw error;
+}
+
 export interface InviteResult {
   code: string;
   expiresAt: string;

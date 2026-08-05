@@ -6,6 +6,7 @@ import {
   createHouseholdInvite,
   householdKeys,
   renameHousehold,
+  setMonthlyBudget,
   type InviteResult,
 } from '@/features/household/api';
 import { useUiStore } from '@/app/store/ui-store';
@@ -15,6 +16,17 @@ export function useRenameHousehold(householdId: string) {
   const { user } = useAuth();
   return useMutation({
     mutationFn: (name: string) => renameHousehold(householdId, name),
+    onSuccess: () => {
+      if (user) void qc.invalidateQueries({ queryKey: householdKeys.mine(user.id) });
+    },
+  });
+}
+
+export function useSetMonthlyBudget(householdId: string) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: (cents: number | null) => setMonthlyBudget(householdId, cents),
     onSuccess: () => {
       if (user) void qc.invalidateQueries({ queryKey: householdKeys.mine(user.id) });
     },
