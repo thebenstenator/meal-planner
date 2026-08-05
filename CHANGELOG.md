@@ -33,10 +33,14 @@ All notable changes to this project are documented here. One entry per slice
   month) with the budget goal drawn as a threshold line, plus a per-month
   breakdown with over/under variance.
 - **Actual price at check-off** (`actual_cost_cents` on `shopping_list_item`):
-  check-off stays one tap; each item's price is now tap-to-edit to record what
-  you actually paid. When set it overrides the estimate everywhere spend is
-  summed (list "Spent", planner budget bar, spending history); blank reverts to
-  the estimate. Optimistic like check-off, so it never flickers. e2e covers it.
+  check-off stays one tap; every item's price is now tap-to-edit to record what
+  you actually paid — including manual/ad-hoc items and items with no estimate
+  (an "add price" affordance). When set it overrides the estimate everywhere
+  spend is summed (list "Spent", planner budget bar, spending history); blank
+  reverts to the estimate. Optimistic like check-off, so it never flickers. The
+  reusable canonical/estimate price is now a distinct, secondary "set an estimate
+  price" control so the two don't look alike. e2e covers both, incl. pricing a
+  manual item.
 
 ### Ingredients — bigger catalog + easier matching
 

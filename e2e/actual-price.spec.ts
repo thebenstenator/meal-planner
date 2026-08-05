@@ -46,7 +46,7 @@ test('records an actual price and reflects it in Spent', async ({ page }) => {
   await page.goto('/shopping-list');
   await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
   await expect(page.getByText('cream cheese').first()).toBeVisible();
-  await page.getByRole('button', { name: 'no price yet — add one' }).click();
+  await page.getByRole('button', { name: 'set an estimate price' }).click();
   await page.getByLabel('Package price').fill('2.50');
   await page.getByLabel('Package quantity').fill('8');
   await page.getByLabel('Package unit').fill('oz');
@@ -62,4 +62,14 @@ test('records an actual price and reflects it in Spent', async ({ page }) => {
 
   await expect(page.getByTestId('spent-total')).toContainText('$3.10');
   await expect(page.getByText('paid')).toBeVisible();
+
+  // A manual item with no estimate can be priced inline too — no detours.
+  await page.getByLabel('Add item name').fill('Paper Towels');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByText('Paper Towels')).toBeVisible();
+  await page.getByRole('button', { name: 'Add price paid for this item' }).click();
+  await page.getByLabel('Actual price paid').fill('5.00');
+  await page.getByLabel('Actual price paid').press('Enter');
+  await page.getByRole('checkbox', { name: 'Check off Paper Towels' }).click({ force: true });
+  await expect(page.getByTestId('spent-total')).toContainText('$8.10');
 });

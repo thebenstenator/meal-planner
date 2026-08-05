@@ -245,10 +245,10 @@ function ItemRow({
               {!pricingOpen ? (
                 <button
                   type="button"
-                  className="text-primary mt-1 text-xs underline"
+                  className="text-muted-foreground mt-0.5 block text-[11px] underline"
                   onClick={() => setPricingOpen(true)}
                 >
-                  {pricing?.hasPrice ? 'update price' : 'no price yet — add one'}
+                  {pricing?.hasPrice ? 'update estimate price' : 'set an estimate price'}
                 </button>
               ) : (
                 <AddPriceInline
@@ -375,8 +375,6 @@ function ItemPrice({
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState('');
 
-  if (effective == null) return null;
-
   function begin() {
     setText(effective != null ? (effective / 100).toFixed(2) : '');
     setEditing(true);
@@ -413,6 +411,20 @@ function ItemPrice({
         />
         <span className="text-muted-foreground text-[10px]">paid</span>
       </div>
+    );
+  }
+
+  // No estimate and nothing recorded yet — still let the shopper record a price.
+  if (effective == null) {
+    return (
+      <button
+        type="button"
+        onClick={begin}
+        className="text-primary mt-0.5 text-xs underline"
+        aria-label="Add price paid for this item"
+      >
+        add price
+      </button>
     );
   }
 

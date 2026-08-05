@@ -51,7 +51,7 @@ test('shows a consumption-based recipe cost from a captured price', async ({ pag
   await page.goto('/shopping-list');
   await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
   await expect(page.getByText('cream cheese').first()).toBeVisible();
-  await page.getByRole('button', { name: 'no price yet — add one' }).click();
+  await page.getByRole('button', { name: 'set an estimate price' }).click();
   await page.getByLabel('Package price').fill('2.50');
   await page.getByLabel('Package quantity').fill('8');
   await page.getByLabel('Package unit').fill('oz');

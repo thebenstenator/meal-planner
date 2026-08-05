@@ -51,7 +51,7 @@ test('prices an item and shows a projected total', async ({ page }) => {
   await expect(page.getByText('cream cheese').first()).toBeVisible();
 
   // Price it: $2.50 for an 8 oz package. Need 12 oz => buy 2 => $5.00.
-  await page.getByRole('button', { name: 'no price yet — add one' }).click();
+  await page.getByRole('button', { name: 'set an estimate price' }).click();
   await page.getByLabel('Package price').fill('2.50');
   await page.getByLabel('Package quantity').fill('8');
   await page.getByLabel('Package unit').fill('oz');
