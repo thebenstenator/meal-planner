@@ -39,6 +39,14 @@ export function EntryChip({
         {entryLabel(entry)}
       </span>
       <div className="flex shrink-0 items-center gap-1">
+        {entry.kind === 'recipe' && entry.servingsOverride != null && (
+          <span
+            className="text-muted-foreground tabular-nums"
+            title={`Scaled to ${entry.servingsOverride} servings`}
+          >
+            {entry.servingsOverride}sv
+          </span>
+        )}
         {canCook && (
           <button
             type="button"

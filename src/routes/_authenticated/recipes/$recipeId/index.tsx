@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useRecipeCost } from '@/features/pricing/use-recipe-cost';
+import { scaledAmount } from '@/features/recipes/scale';
 import { useRecipe, useSoftDeleteRecipe } from '@/features/recipes/use-recipes';
 import { formatCurrency } from '@/lib/utils/format-currency';
 
@@ -17,6 +18,7 @@ function RecipeDetailPage() {
   const { data: recipe, isLoading, isError } = useRecipe(recipeId);
   const del = useSoftDeleteRecipe();
   const [confirming, setConfirming] = useState(false);
+  const [servings, setServings] = useState<number | null>(null);
 
   if (isLoading) {
     return <Centered>Loading…</Centered>;
@@ -24,6 +26,9 @@ function RecipeDetailPage() {
   if (isError || !recipe) {
     return <Centered>Couldn’t load this recipe.</Centered>;
   }
+
+  const targetServings = servings ?? recipe.servings;
+  const scaled = targetServings !== recipe.servings;
 
   const totalMinutes = (recipe.prepMinutes ?? 0) + (recipe.cookMinutes ?? 0);
 
@@ -56,21 +61,68 @@ function RecipeDetailPage() {
       <RecipeCostCard ingredients={recipe.ingredients} servings={recipe.servings} />
 
       <section>
-        <h2 className="mb-2 font-semibold">Ingredients</h2>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="font-semibold">Ingredients</h2>
+          <div className="flex items-center gap-1.5 text-sm">
+            <span className="text-muted-foreground">Scale to</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              aria-label="Fewer servings"
+              disabled={targetServings <= 1}
+              onClick={() => setServings(Math.max(1, targetServings - 1))}
+            >
+              −
+            </Button>
+            <span className="w-14 text-center tabular-nums" data-testid="scale-servings">
+              {targetServings} serv.
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              aria-label="More servings"
+              onClick={() => setServings(targetServings + 1)}
+            >
+              +
+            </Button>
+            {scaled && (
+              <button
+                type="button"
+                className="text-muted-foreground ml-1 text-xs underline"
+                onClick={() => setServings(null)}
+              >
+                reset
+              </button>
+            )}
+          </div>
+        </div>
+        {scaled && (
+          <p className="text-muted-foreground mb-2 text-xs">
+            Scaled from {recipe.servings} — amounts below are for {targetServings} servings.
+          </p>
+        )}
         <ul className="space-y-1.5">
-          {recipe.ingredients.map((ing) => (
-            <li key={ing.id ?? ing.rawText} className="flex items-center gap-2 text-sm">
-              <span>{ing.rawText}</span>
-              {ing.isOptional && <span className="text-muted-foreground text-xs">(optional)</span>}
-              {ing.canonicalName ? (
-                <Badge variant="outline">{ing.canonicalName}</Badge>
-              ) : (
-                <Badge variant="outline" className="text-amber-600">
-                  needs match
-                </Badge>
-              )}
-            </li>
-          ))}
+          {recipe.ingredients.map((ing) => {
+            const amount = scaled
+              ? scaledAmount(ing.quantity, ing.unit, recipe.servings, targetServings)
+              : null;
+            return (
+              <li key={ing.id ?? ing.rawText} className="flex items-center gap-2 text-sm">
+                <span>{ing.rawText}</span>
+                {amount && <span className="font-medium text-emerald-700">→ {amount}</span>}
+                {ing.isOptional && <span className="text-muted-foreground text-xs">(optional)</span>}
+                {ing.canonicalName ? (
+                  <Badge variant="outline">{ing.canonicalName}</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-amber-600">
+                    needs match
+                  </Badge>
+                )}
+              </li>
+            );
+          })}
           {recipe.ingredients.length === 0 && (
             <li className="text-muted-foreground text-sm">No ingredients yet.</li>
           )}

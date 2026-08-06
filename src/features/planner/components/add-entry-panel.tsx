@@ -18,17 +18,19 @@ export function AddEntryPanel({ date, slot, onClose }: Props) {
   const create = useCreatePlanEntry();
   const [kind, setKind] = useState<PlanKind>('recipe');
   const [recipeSearch, setRecipeSearch] = useState('');
+  const [servings, setServings] = useState('');
   const [note, setNote] = useState('');
   const { data: recipes } = useRecipeList(recipeSearch, '');
 
   async function addRecipe(recipeId: string) {
+    const override = servings.trim() === '' ? null : Number(servings);
     await create.mutateAsync({
       date,
       slot,
       kind: 'recipe',
       recipeId,
       note: null,
-      servingsOverride: null,
+      servingsOverride: override && override > 0 ? override : null,
     });
     onClose();
   }
@@ -65,13 +67,24 @@ export function AddEntryPanel({ date, slot, onClose }: Props) {
 
       {kind === 'recipe' && (
         <div className="space-y-1">
-          <Input
-            aria-label="Search recipes to add"
-            value={recipeSearch}
-            onChange={(e) => setRecipeSearch(e.target.value)}
-            placeholder="Search recipes…"
-            className="h-9"
-          />
+          <div className="flex gap-1">
+            <Input
+              aria-label="Search recipes to add"
+              value={recipeSearch}
+              onChange={(e) => setRecipeSearch(e.target.value)}
+              placeholder="Search recipes…"
+              className="h-9 flex-1"
+            />
+            <Input
+              aria-label="Servings for this meal"
+              inputMode="numeric"
+              value={servings}
+              onChange={(e) => setServings(e.target.value)}
+              placeholder="serv."
+              title="Servings (optional) — leave blank for the recipe default"
+              className="h-9 w-16"
+            />
+          </div>
           <ul className="max-h-40 overflow-auto">
             {(recipes ?? []).slice(0, 8).map((r) => (
               <li key={r.id}>

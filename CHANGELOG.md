@@ -5,6 +5,17 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Slice 10 — Recipe scaling (UI)
+
+- **Recipe page:** a "Scale to N servings" stepper that recomputes and shows each
+  ingredient's scaled amount inline ("2 cups flour → 2.5 cup"), with a reset.
+  Pure display; the stored recipe is unchanged. Pure `scaledAmount` helper
+  (6 unit tests, fractional + rounding).
+- **Planner:** an optional "Servings" field when adding a recipe to a slot sets
+  the meal's `servings_override` (one-click add still works — blank = the recipe
+  default). The chip shows the override ("6sv"), and it already flows through
+  consolidation and cost scaling. e2e covers both.
+
 ### Editable name (avatar initials)
 
 - Household settings gains a **"Your name"** card. Setting it updates your auth
