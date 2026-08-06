@@ -13,6 +13,23 @@ async function signUp(page: Page, email: string, password = 'password123') {
   await expect(page).toHaveURL(/\/app/);
 }
 
+test('setting your name updates the avatar initials', async ({ page }) => {
+  await signUp(page, uniqueEmail('name'));
+
+  // No name yet → avatar falls back to email initials.
+  const avatar = page.getByRole('button', { name: 'Account menu' });
+  await expect(avatar).not.toContainText('BA');
+
+  await avatar.click();
+  await page.getByRole('menuitem', { name: 'Household settings' }).click();
+  const nameForm = page.locator('form:has(#display-name)');
+  await nameForm.locator('#display-name').fill('Ben A');
+  await nameForm.getByRole('button', { name: 'Save' }).click();
+
+  // Avatar updates to the name's initials without a reload.
+  await expect(avatar).toContainText('BA');
+});
+
 test('the avatar menu navigates to a hidden page and signs out', async ({ page }) => {
   await signUp(page, uniqueEmail('menu'));
 

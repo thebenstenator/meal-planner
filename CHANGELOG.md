@@ -5,6 +5,13 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Editable name (avatar initials)
+
+- Household settings gains a **"Your name"** card. Setting it updates your auth
+  profile (`full_name`) so the avatar initials and account menu update live — no
+  reload. Fills the gap for accounts created before signup collected a name
+  (their avatar was falling back to email initials). e2e covers it.
+
 ### Fix: planner crash after reload (persisted `Map` cache)
 
 - The planner (and list/recipe costing) crashed with `n.forEach is not a

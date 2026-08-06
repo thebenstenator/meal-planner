@@ -17,6 +17,8 @@ export interface AuthContextValue {
   loading: boolean;
   signUp: (creds: Credentials, name?: string) => Promise<void>;
   signIn: (creds: Credentials) => Promise<void>;
+  /** Update the signed-in user's display name (auth metadata). */
+  updateName: (name: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }

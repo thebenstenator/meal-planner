@@ -4,6 +4,7 @@ import { BudgetCard } from '@/features/household/components/budget-card';
 import { InviteCard } from '@/features/household/components/invite-card';
 import { JoinCard } from '@/features/household/components/join-card';
 import { MembersCard } from '@/features/household/components/members-card';
+import { ProfileCard } from '@/features/household/components/profile-card';
 import { RenameCard } from '@/features/household/components/rename-card';
 import { useHousehold } from '@/features/household/use-household';
 
@@ -30,6 +31,7 @@ function HouseholdSettingsPage() {
 
       {household && householdId && (
         <div className="space-y-6">
+          <ProfileCard />
           <RenameCard
             householdId={householdId}
             currentName={household.name}

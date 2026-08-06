@@ -63,6 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       },
+      updateName: async (name) => {
+        const { error } = await supabase.auth.updateUser({
+          data: { full_name: name.trim() || null },
+        });
+        if (error) throw error;
+      },
       signInWithGoogle: async () => {
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
