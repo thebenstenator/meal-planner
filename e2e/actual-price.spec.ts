@@ -55,10 +55,12 @@ test('records an actual price and reflects it in Spent', async ({ page }) => {
 
   // Check it off (one tap), then record the actual price paid.
   await page.getByRole('checkbox', { name: 'Check off cream cheese' }).click({ force: true });
+  await page.waitForLoadState('networkidle');
   await expect(page.getByTestId('spent-total')).toContainText('$2.50'); // estimate first
   await page.getByRole('button', { name: /Edit price paid/ }).click();
   await page.getByLabel('Actual price paid').fill('3.10');
   await page.getByLabel('Actual price paid').press('Enter');
+  await page.waitForLoadState('networkidle');
 
   await expect(page.getByTestId('spent-total')).toContainText('$3.10');
   await expect(page.getByText('paid')).toBeVisible();

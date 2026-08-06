@@ -50,8 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user: session?.user ?? null,
       loading,
-      signUp: async ({ email, password }) => {
-        const { error } = await supabase.auth.signUp({ email, password });
+      signUp: async ({ email, password }, name) => {
+        const trimmed = name?.trim();
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: trimmed ? { data: { full_name: trimmed } } : undefined,
+        });
         if (error) throw error;
       },
       signIn: async ({ email, password }) => {

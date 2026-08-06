@@ -5,6 +5,15 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Signup collects a name; household named after it
+
+- Sign-up now has an optional **"Your name"** field. It's stored as `full_name`
+  auth metadata and used to name the auto-created household ("Ben's Household"
+  instead of the email-derived "bstenson's Household"). Falls back to the email
+  prefix when no name is given. `handle_new_user` reads the metadata.
+- The avatar menu shows the name (with email beneath) and derives its initials
+  from the name when present.
+
 ### Header: primary nav + avatar menu
 
 - The header grew to ~10 flat links as features landed. Now it shows the

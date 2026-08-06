@@ -112,8 +112,11 @@ test('suggests restocking a low pantry item, and adds it', async ({ page }) => {
   await expect(low).toBeVisible();
   await expect(low.getByText('cream cheese')).toBeVisible();
 
-  // Add it → the suggestion clears (muted until restocked).
+  // Add it → the suggestion clears (muted until restocked). Reload to assert the
+  // committed state rather than racing the optimistic invalidations under load.
   await low.getByRole('button', { name: 'Add' }).click();
+  await page.waitForLoadState('networkidle');
+  await page.reload();
   await expect(page.getByRole('heading', { name: 'Running low' })).toBeHidden();
 });
 

@@ -17,7 +17,15 @@ export function UserMenu() {
   const [open, setOpen] = useState(false);
 
   const email = user?.email ?? '';
-  const initials = email.slice(0, 2).toUpperCase() || '?';
+  const fullName = ((user?.user_metadata as { full_name?: string } | undefined)?.full_name ?? '').trim();
+  const initials = fullName
+    ? fullName
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+    : email.slice(0, 2).toUpperCase() || '?';
 
   return (
     <div className="relative">
@@ -46,8 +54,11 @@ export function UserMenu() {
             role="menu"
             className="bg-popover absolute right-0 z-20 mt-1 w-56 rounded-md border p-1 shadow-md"
           >
-            {email && (
-              <div className="text-muted-foreground truncate px-2 py-1.5 text-xs">{email}</div>
+            {(fullName || email) && (
+              <div className="px-2 py-1.5">
+                {fullName && <div className="truncate text-sm font-medium">{fullName}</div>}
+                {email && <div className="text-muted-foreground truncate text-xs">{email}</div>}
+              </div>
             )}
             {MENU_LINKS.map((item) => (
               <Link

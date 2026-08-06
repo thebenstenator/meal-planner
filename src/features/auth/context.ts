@@ -15,7 +15,7 @@ export interface AuthContextValue {
   user: User | null;
   /** True until the initial session has been resolved. */
   loading: boolean;
-  signUp: (creds: Credentials) => Promise<void>;
+  signUp: (creds: Credentials, name?: string) => Promise<void>;
   signIn: (creds: Credentials) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;

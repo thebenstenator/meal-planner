@@ -27,6 +27,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const { redirect } = Route.useSearch();
   const [mode, setMode] = useState<Mode>('sign-in');
+  const [name, setName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
   const {
@@ -44,7 +45,7 @@ function LoginPage() {
       if (mode === 'sign-in') {
         await signIn(values);
       } else {
-        await signUp(values);
+        await signUp(values, name);
       }
       await navigate({ to: redirect ?? '/app' });
     } catch (err) {
@@ -66,6 +67,21 @@ function LoginPage() {
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        {mode === 'sign-up' && (
+          <div className="space-y-2">
+            <Label htmlFor="name">Your name</Label>
+            <Input
+              id="name"
+              type="text"
+              autoComplete="name"
+              placeholder="e.g. Ben"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">Used to name your household.</p>
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
