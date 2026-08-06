@@ -90,7 +90,7 @@ export function useApplyPurchaseToPantry() {
         item.canonicalId,
         checked ? qty : -qty,
         unit,
-        infos.get(item.canonicalId) ?? {},
+        infos[0] ?? {},
       );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: pantryKeys.all(householdId ?? 'none') }),
@@ -113,6 +113,7 @@ export function useMarkCooked() {
       const scale = entry.servingsOverride && servings ? entry.servingsOverride / servings : 1;
       const ids = [...new Set(ingredients.map((i) => i.canonicalId))];
       const infos = await fetchConversionInfos(ids);
+      const infoById = new Map(infos.map((i) => [i.canonicalId, i]));
       const sign = cooked ? -1 : 1;
       for (const ing of ingredients) {
         if (ing.quantity == null) continue;
@@ -121,7 +122,7 @@ export function useMarkCooked() {
           ing.canonicalId,
           sign * ing.quantity * scale,
           ing.unit,
-          infos.get(ing.canonicalId) ?? {},
+          infoById.get(ing.canonicalId) ?? {},
         );
       }
     },

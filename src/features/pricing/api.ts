@@ -106,25 +106,28 @@ export async function addPriceRecord(
 }
 
 export interface ConversionRow {
+  canonicalId: string;
   densityGPerMl: number | null;
   countToGram: number | null;
 }
 
-/** Fetch density/count facts for a set of canonical ingredients (for pricing conversions). */
-export async function fetchConversionInfos(
-  ids: string[],
-): Promise<Map<string, ConversionRow>> {
-  const map = new Map<string, ConversionRow>();
-  if (ids.length === 0) return map;
+/**
+ * Fetch density/count facts for a set of canonical ingredients (for pricing
+ * conversions). Returns a plain array (not a Map) so it stays intact when the
+ * query cache is persisted to localStorage — a Map JSON-round-trips to `{}`.
+ */
+export async function fetchConversionInfos(ids: string[]): Promise<ConversionRow[]> {
+  if (ids.length === 0) return [];
   const { data, error } = await supabase
     .from('canonical_ingredient')
     .select('id, density_g_per_ml, count_to_gram')
     .in('id', ids);
   if (error) throw error;
-  for (const c of data ?? []) {
-    map.set(c.id, { densityGPerMl: c.density_g_per_ml, countToGram: c.count_to_gram });
-  }
-  return map;
+  return (data ?? []).map((c) => ({
+    canonicalId: c.id,
+    densityGPerMl: c.density_g_per_ml,
+    countToGram: c.count_to_gram,
+  }));
 }
 
 export async function fetchCanonicalNames(ids: string[]): Promise<Map<string, string>> {

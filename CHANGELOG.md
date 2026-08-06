@@ -5,6 +5,17 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Fix: planner crash after reload (persisted `Map` cache)
+
+- The planner (and list/recipe costing) crashed with `n.forEach is not a
+  function` after a reload. Cause: two query functions returned `Map`s, which
+  JSON-round-trip to `{}` when the query cache is persisted to localStorage
+  (Slice 8 offline), so the rehydrated data had no `.forEach`/`.get`.
+  `fetchRecipeCostInputs` and `fetchConversionInfos` now return plain arrays,
+  with the `Map` built in-memory at the use site. Bumped the persister cache key
+  (`…-v2`) so any already-corrupted cache is discarded on next load. e2e: the
+  planner survives a reload with a persisted cost cache.
+
 ### Signup collects a name; household named after it
 
 - Sign-up now has an optional **"Your name"** field. It's stored as `full_name`

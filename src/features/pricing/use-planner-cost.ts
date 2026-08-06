@@ -7,14 +7,18 @@ import { usePriceIndex } from '@/features/pricing/use-recipe-cost';
 import { supabase } from '@/lib/supabase/client';
 
 interface RecipeCostInput {
+  recipeId: string;
   servings: number;
   ingredients: CostableIngredient[];
 }
 
-/** Batch-load the ingredients + base servings for a set of recipes (for costing planned meals). */
-async function fetchRecipeCostInputs(ids: string[]): Promise<Map<string, RecipeCostInput>> {
-  const map = new Map<string, RecipeCostInput>();
-  if (ids.length === 0) return map;
+/**
+ * Batch-load the ingredients + base servings for a set of recipes (for costing
+ * planned meals). Returns a plain array (not a Map) so it survives being
+ * persisted to localStorage and rehydrated — a Map JSON-round-trips to `{}`.
+ */
+async function fetchRecipeCostInputs(ids: string[]): Promise<RecipeCostInput[]> {
+  if (ids.length === 0) return [];
 
   const [{ data: recipes, error: rErr }, { data: rows, error: iErr }] = await Promise.all([
     supabase.from('recipe').select('id, servings').in('id', ids),
@@ -26,18 +30,17 @@ async function fetchRecipeCostInputs(ids: string[]): Promise<Map<string, RecipeC
   if (rErr) throw rErr;
   if (iErr) throw iErr;
 
-  for (const r of recipes ?? []) map.set(r.id, { servings: r.servings ?? 1, ingredients: [] });
+  const byId = new Map<string, RecipeCostInput>();
+  for (const r of recipes ?? []) byId.set(r.id, { recipeId: r.id, servings: r.servings ?? 1, ingredients: [] });
   for (const row of rows ?? []) {
-    const entry = map.get(row.recipe_id);
-    if (!entry) continue;
-    entry.ingredients.push({
+    byId.get(row.recipe_id)?.ingredients.push({
       canonicalId: row.canonical_ingredient_id,
       quantity: row.quantity,
       unit: row.unit,
       isOptional: row.is_optional,
     });
   }
-  return map;
+  return [...byId.values()];
 }
 
 export interface EntryCost {
@@ -83,23 +86,27 @@ export function usePlannerCosts(entries: PlanEntry[]): PlannerCosts {
 
   const canonicalIds = useMemo(() => {
     const s = new Set<string>();
-    inputs?.forEach((v) => v.ingredients.forEach((i) => i.canonicalId && s.add(i.canonicalId)));
+    for (const v of inputs ?? []) for (const i of v.ingredients) if (i.canonicalId) s.add(i.canonicalId);
     return [...s];
   }, [inputs]);
 
   const index = usePriceIndex(canonicalIds);
 
   return useMemo(() => {
+    const inputById = new Map((inputs ?? []).map((v) => [v.recipeId, v]));
     const costByRecipe = new Map<string, RecipeCost>();
-    inputs?.forEach((v, rid) => {
-      costByRecipe.set(rid, recipeCost(v.ingredients, v.servings, index.priceByCanonical, index.infoByCanonical));
-    });
+    for (const v of inputs ?? []) {
+      costByRecipe.set(
+        v.recipeId,
+        recipeCost(v.ingredients, v.servings, index.priceByCanonical, index.infoByCanonical),
+      );
+    }
 
     const costForEntry = (entry: PlanEntry): EntryCost => {
       if (entry.kind !== 'recipe' || !entry.recipeId)
         return { cents: null, perServingCents: null, unpriced: false };
       const rc = costByRecipe.get(entry.recipeId);
-      const input = inputs?.get(entry.recipeId);
+      const input = inputById.get(entry.recipeId);
       if (!rc || !input || rc.pricedCount === 0)
         return { cents: null, perServingCents: null, unpriced: true };
       const scale =

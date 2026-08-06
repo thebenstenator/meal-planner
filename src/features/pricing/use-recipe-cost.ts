@@ -40,9 +40,12 @@ export function usePriceIndex(canonicalIds: string[]): PriceIndex {
         packageUnit: p.packageUnit,
       });
     }
+    const infoByCanonical = new Map<string, ConversionInfo>(
+      (infos ?? []).map((i) => [i.canonicalId, i]),
+    );
     return {
       priceByCanonical,
-      infoByCanonical: infos ?? new Map(),
+      infoByCanonical,
       storeId,
       isLoading: pricesLoading || infosLoading,
     };

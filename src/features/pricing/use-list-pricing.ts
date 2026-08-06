@@ -43,6 +43,7 @@ export function useListPricing(items: ShoppingItem[]): ListPricing {
   return useMemo(() => {
     const priceByCanonical = new Map<string, CurrentPrice>();
     for (const p of prices ?? []) priceByCanonical.set(p.canonicalId, p);
+    const infoByCanonical = new Map((infos ?? []).map((i) => [i.canonicalId, i]));
 
     const byItemId = new Map<string, ItemPricing>();
     let projectedTotalCents = 0;
@@ -62,7 +63,7 @@ export function useListPricing(items: ShoppingItem[]): ListPricing {
         unpricedCount += 1;
         continue;
       }
-      const info = infos?.get(item.canonicalId) ?? {};
+      const info = infoByCanonical.get(item.canonicalId) ?? {};
       const estimatedCents = estimateItemCost(item.totalQuantity, item.unit, price, info);
       const stale = differenceInCalendarDays(new Date(), new Date(price.observedOn)) > staleDays;
       if (estimatedCents == null) unpricedCount += 1;

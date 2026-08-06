@@ -9,5 +9,7 @@ export const CACHE_MAX_AGE = 1000 * 60 * 60 * 24; // 24h
 
 export const queryPersister = createSyncStoragePersister({
   storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-  key: 'mealplan-query-cache',
+  // v2: query data must be JSON-serializable (no Maps — they round-trip to `{}`).
+  // Bumping the key discards any older, incompatible cache on next load.
+  key: 'mealplan-query-cache-v2',
 });
