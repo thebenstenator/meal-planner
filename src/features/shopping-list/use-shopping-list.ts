@@ -2,10 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useHousehold } from '@/features/household/use-household';
 import {
-  addAdHocItem,
+  addSmartItem,
   deleteItem,
   deleteShoppingList,
   generateList,
+  getOrCreateRunningList,
   getShoppingList,
   listKeys,
   listShoppingLists,
@@ -13,6 +14,7 @@ import {
   setItemActualCost,
   setItemChecked,
   updateItemQuantity,
+  type SmartAddResult,
 } from '@/features/shopping-list/api';
 
 export function useShoppingLists() {
@@ -115,13 +117,18 @@ export function useDeleteShoppingList() {
   });
 }
 
-/** Item-level edits on a list: add ad-hoc, override quantity, delete. */
+/** Item-level edits on a list: add a smart item, override quantity, delete. */
 export function useItemEdits(listId: string) {
+  const { householdId } = useHousehold();
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
 
-  const addItem = useMutation<void, Error, { name: string; quantity: number | null; unit: string | null }>({
-    mutationFn: (input) => addAdHocItem(listId, input),
+  const addItem = useMutation<
+    SmartAddResult,
+    Error,
+    { name: string; quantity: number | null; unit: string | null }
+  >({
+    mutationFn: (input) => addSmartItem(householdId as string, listId, input),
     onSuccess: invalidate,
   });
   const overrideQuantity = useMutation<
@@ -139,6 +146,30 @@ export function useItemEdits(listId: string) {
   });
 
   return { addItem, overrideQuantity, removeItem };
+}
+
+/**
+ * Jot an item onto the household's standing running list — created on first use.
+ * Returns whether it was added or was already there, plus the list id.
+ */
+export function useAddToRunningList() {
+  const { householdId } = useHousehold();
+  const qc = useQueryClient();
+  return useMutation<
+    { result: SmartAddResult; listId: string },
+    Error,
+    { name: string; quantity: number | null; unit: string | null }
+  >({
+    mutationFn: async (input) => {
+      const listId = await getOrCreateRunningList(householdId as string);
+      const result = await addSmartItem(householdId as string, listId, input);
+      return { result, listId };
+    },
+    onSuccess: ({ listId }) => {
+      void qc.invalidateQueries({ queryKey: listKeys.all(householdId ?? 'none') });
+      void qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
+    },
+  });
 }
 
 /** Save a conversion to a canonical ingredient, then regenerate to merge. */

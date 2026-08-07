@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { isLowStock } from '@/features/pantry/low-stock';
 import {
   useApplyPurchaseToPantry,
@@ -95,12 +96,17 @@ function ShoppingListDetail() {
         <div>
           <h1 className="text-2xl font-semibold">{summary.name}</h1>
           <p className="text-muted-foreground text-sm">
-            {summary.dateRangeStart} → {summary.dateRangeEnd} · {items.length} items
+            {summary.isRunning
+              ? 'Ongoing — jot anything you need'
+              : `${summary.dateRangeStart} → ${summary.dateRangeEnd}`}{' '}
+            · {items.length} items
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={onRegenerate} disabled={regenerate.isPending}>
-          {regenerate.isPending ? 'Regenerating…' : 'Regenerate'}
-        </Button>
+        {!summary.isRunning && (
+          <Button variant="outline" size="sm" onClick={onRegenerate} disabled={regenerate.isPending}>
+            {regenerate.isPending ? 'Regenerating…' : 'Regenerate'}
+          </Button>
+        )}
       </div>
 
       <div className="bg-muted/40 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
@@ -171,7 +177,9 @@ function ShoppingListDetail() {
 
       {items.length === 0 && (
         <p className="text-muted-foreground text-sm">
-          Nothing to buy — plan some recipes in this range first.
+          {summary.isRunning
+            ? 'Nothing here yet — add what you need below.'
+            : 'Nothing to buy — plan some recipes in this range first.'}
         </p>
       )}
 
@@ -216,7 +224,9 @@ function ShoppingListDetail() {
         </section>
       ))}
 
-      <AddItemForm onAdd={(name, q, u) => edits.addItem.mutate({ name, quantity: q, unit: u })} />
+      <AddItemForm
+        onAdd={(name, q, u) => edits.addItem.mutateAsync({ name, quantity: q, unit: u })}
+      />
     </main>
   );
 }
@@ -583,35 +593,81 @@ function AddPriceInline({
 function AddItemForm({
   onAdd,
 }: {
-  onAdd: (name: string, quantity: number | null, unit: string | null) => void;
+  onAdd: (name: string, quantity: number | null, unit: string | null) => Promise<'added' | 'exists'>;
 }) {
-  const [name, setName] = useState('');
+  const [picked, setPicked] = useState<{ id: string | null; name: string | null }>({
+    id: null,
+    name: null,
+  });
+  const [typed, setTyped] = useState('');
   const [qty, setQty] = useState('');
   const [unit, setUnit] = useState('');
+  const [comboKey, setComboKey] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null,
+  );
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const name = (typed.trim() || picked.name?.trim()) ?? '';
+    if (name === '') {
+      setFeedback({ type: 'error', message: 'Type an item to add.' });
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await onAdd(name, qty.trim() === '' ? null : Number(qty), unit || null);
+      setFeedback({
+        type: 'success',
+        message: result === 'exists' ? `${name} is already on this list.` : `Added ${name}.`,
+      });
+      setPicked({ id: null, name: null });
+      setTyped('');
+      setQty('');
+      setUnit('');
+      setComboKey((k) => k + 1);
+    } catch {
+      setFeedback({ type: 'error', message: 'Couldn’t add that — please try again.' });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
-    <form
-      className="flex items-end gap-2 rounded-lg border p-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (name.trim() === '') return;
-        onAdd(name.trim(), qty.trim() === '' ? null : Number(qty), unit || null);
-        setName('');
-        setQty('');
-        setUnit('');
-      }}
-    >
-      <div className="flex-1">
-        <Input
-          aria-label="Add item name"
-          placeholder="Add an item (e.g. paper towels)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+    <form className="space-y-2 rounded-lg border p-3" onSubmit={submit}>
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          <CanonicalCombobox
+            key={comboKey}
+            value={picked}
+            onSelect={(id, name) => {
+              setPicked({ id, name });
+              setTyped(name ?? '');
+              setFeedback(null);
+            }}
+            onTextChange={(t) => {
+              setTyped(t);
+              setFeedback(null);
+            }}
+            placeholder="Add an item (e.g. paper towels)"
+          />
+        </div>
+        <Input aria-label="Add item quantity" className="w-16" placeholder="qty" value={qty} onChange={(e) => setQty(e.target.value)} />
+        <Input aria-label="Add item unit" className="w-16" placeholder="unit" value={unit} onChange={(e) => setUnit(e.target.value)} />
+        <Button type="submit" disabled={busy}>
+          {busy ? 'Adding…' : 'Add'}
+        </Button>
       </div>
-      <Input aria-label="Add item quantity" className="w-16" placeholder="qty" value={qty} onChange={(e) => setQty(e.target.value)} />
-      <Input aria-label="Add item unit" className="w-16" placeholder="unit" value={unit} onChange={(e) => setUnit(e.target.value)} />
-      <Button type="submit">Add</Button>
+      {feedback && (
+        <p
+          role="status"
+          aria-live="polite"
+          className={feedback.type === 'success' ? 'text-sm text-emerald-700' : 'text-destructive text-sm'}
+        >
+          {feedback.message}
+        </p>
+      )}
     </form>
   );
 }

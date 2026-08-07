@@ -6,8 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { fromISO, weekRange } from '@/features/planner/dates';
-import { useGenerateList, useShoppingLists } from '@/features/shopping-list/use-shopping-list';
+import type { ShoppingListSummary } from '@/features/shopping-list/api';
+import {
+  useAddToRunningList,
+  useGenerateList,
+  useShoppingLists,
+} from '@/features/shopping-list/use-shopping-list';
 
 export const Route = createFileRoute('/_authenticated/shopping-list/')({
   component: ShoppingListsPage,
@@ -23,6 +29,9 @@ function ShoppingListsPage() {
   const generate = useGenerateList();
   const { data: lists } = useShoppingLists();
 
+  const running = lists?.find((l) => l.isRunning);
+  const weeklyLists = (lists ?? []).filter((l) => !l.isRunning);
+
   async function onGenerate() {
     const id = await generate.mutateAsync({ name, start, end, subtractPantry });
     await navigate({ to: '/shopping-list/$listId', params: { listId: id } });
@@ -31,6 +40,8 @@ function ShoppingListsPage() {
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <h1 className="text-2xl font-semibold">Shopping lists</h1>
+
+      <RunningListCard running={running} />
 
       <Card>
         <CardHeader>
@@ -69,7 +80,7 @@ function ShoppingListsPage() {
       </Card>
 
       <div className="space-y-2">
-        {(lists ?? []).map((l) => (
+        {weeklyLists.map((l) => (
           <Link key={l.id} to="/shopping-list/$listId" params={{ listId: l.id }} className="block">
             <Card className="hover:border-primary/50 transition-colors">
               <CardContent className="flex items-center justify-between p-4">
@@ -81,12 +92,101 @@ function ShoppingListsPage() {
             </Card>
           </Link>
         ))}
-        {lists && lists.length === 0 && (
+        {weeklyLists.length === 0 && (
           <p className="text-muted-foreground text-sm">
-            No lists yet. Plan some meals, then generate a list for that week.
+            No weekly lists yet. Plan some meals, then generate a list for that week.
           </p>
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * The household's standing list: jot anything you need, anytime — no plan
+ * required. Typed items are matched to a real ingredient (aisle, price, pantry
+ * link) by the smart add. The list is created on the first item.
+ */
+function RunningListCard({ running }: { running?: ShoppingListSummary }) {
+  const add = useAddToRunningList();
+  const [picked, setPicked] = useState<{ id: string | null; name: string | null }>({
+    id: null,
+    name: null,
+  });
+  const [typed, setTyped] = useState('');
+  const [comboKey, setComboKey] = useState(0);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null,
+  );
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const name = (typed.trim() || picked.name?.trim()) ?? '';
+    if (name === '') {
+      setFeedback({ type: 'error', message: 'Type something you need (e.g. “dish soap”).' });
+      return;
+    }
+    try {
+      const { result } = await add.mutateAsync({ name, quantity: null, unit: null });
+      setFeedback({
+        type: 'success',
+        message: result === 'exists' ? `${name} is already on your list.` : `Added ${name}.`,
+      });
+      setPicked({ id: null, name: null });
+      setTyped('');
+      setComboKey((k) => k + 1);
+    } catch {
+      setFeedback({ type: 'error', message: 'Couldn’t add that — please try again.' });
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle>Things you need</CardTitle>
+        {running && (
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/shopping-list/$listId" params={{ listId: running.id }}>
+              Open list
+            </Link>
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p className="text-muted-foreground text-sm">
+          Jot down anything you’re out of — it’s always here, no meal plan needed.
+        </p>
+        <form onSubmit={submit} className="flex items-start gap-2">
+          <div className="flex-1">
+            <CanonicalCombobox
+              key={comboKey}
+              value={picked}
+              onSelect={(id, name) => {
+                setPicked({ id, name });
+                setTyped(name ?? '');
+                setFeedback(null);
+              }}
+              onTextChange={(t) => {
+                setTyped(t);
+                setFeedback(null);
+              }}
+              placeholder="Add something you need…"
+            />
+          </div>
+          <Button type="submit" disabled={add.isPending}>
+            {add.isPending ? 'Adding…' : 'Add'}
+          </Button>
+        </form>
+        {feedback && (
+          <p
+            role="status"
+            aria-live="polite"
+            className={feedback.type === 'success' ? 'text-sm text-emerald-700' : 'text-destructive text-sm'}
+          >
+            {feedback.message}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

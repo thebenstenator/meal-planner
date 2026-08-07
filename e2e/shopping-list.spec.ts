@@ -62,11 +62,37 @@ test('generates one consolidated, rounded line from two recipes', async ({ page 
   await expect(page.getByText(/Cheese Dip B/)).toBeVisible();
 
   // A manually added item survives regeneration.
-  await page.getByLabel('Add item name').fill('paper towels');
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByText('paper towels')).toBeVisible();
+  const addBox = page.getByPlaceholder('Add an item (e.g. paper towels)');
+  await addBox.fill('paper towels');
+  await addBox.press('Enter');
+  // exact: the item row is "paper towels"; the success line "Added paper towels." would also match.
+  await expect(page.getByText('paper towels', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Regenerate' }).click();
-  await expect(page.getByText('paper towels')).toBeVisible();
+  await expect(page.getByText('paper towels', { exact: true })).toBeVisible();
   // The consolidated line is still correct after regenerating.
   await expect(page.getByText('12 oz')).toBeVisible();
+});
+
+// The standing "running list": jot items anytime with no plan; items are
+// smart-matched and deduped, and the list persists.
+test('running list captures ad-hoc items, deduped', async ({ page }) => {
+  await signUp(page, uniqueEmail('running'));
+  await page.goto('/shopping-list');
+
+  // Quick-add from the index — no meal plan or generated list needed.
+  const box = page.getByPlaceholder('Add something you need…');
+  await box.fill('dish soap');
+  await box.press('Enter');
+  await expect(page.getByText(/Added dish soap/)).toBeVisible();
+
+  // Adding the same thing again is recognized, not duplicated.
+  const box2 = page.getByPlaceholder('Add something you need…');
+  await box2.fill('dish soap');
+  await box2.press('Enter');
+  await expect(page.getByText(/already on your list/)).toBeVisible();
+
+  // Open the standing list → it's ongoing and holds the item once.
+  await page.getByRole('link', { name: 'Open list' }).click();
+  await expect(page.getByText(/Ongoing/)).toBeVisible();
+  await expect(page.getByText('dish soap')).toBeVisible();
 });

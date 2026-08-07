@@ -66,9 +66,10 @@ test('records an actual price and reflects it in Spent', async ({ page }) => {
   await expect(page.getByText('paid')).toBeVisible();
 
   // A manual item with no estimate can be priced inline too — no detours.
-  await page.getByLabel('Add item name').fill('Paper Towels');
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByText('Paper Towels')).toBeVisible();
+  const addBox = page.getByPlaceholder('Add an item (e.g. paper towels)');
+  await addBox.fill('Paper Towels');
+  await addBox.press('Enter');
+  await expect(page.getByText('Paper Towels', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add price paid for this item' }).click();
   await page.getByLabel('Actual price paid').fill('5.00');
   await page.getByLabel('Actual price paid').press('Enter');

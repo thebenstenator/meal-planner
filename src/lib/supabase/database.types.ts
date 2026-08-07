@@ -716,6 +716,7 @@ export type Database = {
           generated_at: string
           household_id: string
           id: string
+          is_running: boolean
           name: string
           status: string
           store_id: string | null
@@ -728,6 +729,7 @@ export type Database = {
           generated_at?: string
           household_id: string
           id?: string
+          is_running?: boolean
           name: string
           status?: string
           store_id?: string | null
@@ -740,6 +742,7 @@ export type Database = {
           generated_at?: string
           household_id?: string
           id?: string
+          is_running?: boolean
           name?: string
           status?: string
           store_id?: string | null

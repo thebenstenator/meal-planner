@@ -1,3 +1,4 @@
+import { resolveOrCreateCanonical } from '@/features/ingredients/resolve';
 import { buildShoppingItems } from '@/features/shopping-list/generate';
 import { supabase } from '@/lib/supabase/client';
 import type { Json } from '@/lib/supabase/database.types';
@@ -15,6 +16,7 @@ export interface ShoppingListSummary {
   dateRangeStart: string | null;
   dateRangeEnd: string | null;
   generatedAt: string;
+  isRunning: boolean;
 }
 
 export interface ItemPurchase {
@@ -54,7 +56,7 @@ export interface ShoppingItem {
 export async function listShoppingLists(householdId: string): Promise<ShoppingListSummary[]> {
   const { data, error } = await supabase
     .from('shopping_list')
-    .select('id, name, status, date_range_start, date_range_end, generated_at')
+    .select('id, name, status, date_range_start, date_range_end, generated_at, is_running')
     .eq('household_id', householdId)
     .order('generated_at', { ascending: false });
   if (error) throw error;
@@ -65,7 +67,42 @@ export async function listShoppingLists(householdId: string): Promise<ShoppingLi
     dateRangeStart: l.date_range_start,
     dateRangeEnd: l.date_range_end,
     generatedAt: l.generated_at,
+    isRunning: l.is_running,
   }));
+}
+
+/**
+ * The household's standing "running" list, created on first use. There's at most
+ * one (enforced by a partial unique index), so a race just returns the existing
+ * one. Jotted-down items live here, independent of the meal plan.
+ */
+export async function getOrCreateRunningList(householdId: string): Promise<string> {
+  const { data: existing, error } = await supabase
+    .from('shopping_list')
+    .select('id')
+    .eq('household_id', householdId)
+    .eq('is_running', true)
+    .limit(1);
+  if (error) throw error;
+  if (existing && existing.length > 0) return existing[0].id;
+
+  const { data, error: insErr } = await supabase
+    .from('shopping_list')
+    .insert({ household_id: householdId, name: 'Things we need', is_running: true })
+    .select('id')
+    .single();
+  // A concurrent create loses the unique-index race — fetch the winner instead.
+  if (insErr) {
+    const { data: winner } = await supabase
+      .from('shopping_list')
+      .select('id')
+      .eq('household_id', householdId)
+      .eq('is_running', true)
+      .limit(1);
+    if (winner && winner.length > 0) return winner[0].id;
+    throw insErr;
+  }
+  return data.id;
 }
 
 export interface CheckedItem {
@@ -162,7 +199,7 @@ export async function getShoppingList(
   const { data, error } = await supabase
     .from('shopping_list')
     .select(
-      'id, name, status, date_range_start, date_range_end, generated_at, shopping_list_item(*, shopping_list_item_source(contributed_quantity, recipe_ingredient(recipe(title))))',
+      'id, name, status, date_range_start, date_range_end, generated_at, is_running, shopping_list_item(*, shopping_list_item_source(contributed_quantity, recipe_ingredient(recipe(title))))',
     )
     .eq('id', listId)
     .order('position', { referencedTable: 'shopping_list_item', ascending: true })
@@ -200,6 +237,7 @@ export async function getShoppingList(
       dateRangeStart: data.date_range_start,
       dateRangeEnd: data.date_range_end,
       generatedAt: data.generated_at,
+      isRunning: data.is_running,
     },
     items,
   };
@@ -264,6 +302,56 @@ export async function addAdHocItem(
     is_manual: true,
   });
   if (error) throw error;
+}
+
+export type SmartAddResult = 'added' | 'exists';
+
+/**
+ * Add a jotted item the smart way: resolve the typed name to a canonical
+ * ingredient (creating one if new), so it groups by aisle, gets priced from your
+ * store, and lands in the pantry when checked off. Deduplicates against anything
+ * already on the list for that ingredient. Falls back to a plain ad-hoc row if
+ * the name can't be resolved.
+ */
+export async function addSmartItem(
+  householdId: string,
+  listId: string,
+  input: { name: string; quantity: number | null; unit: string | null },
+): Promise<SmartAddResult> {
+  const resolved = await resolveOrCreateCanonical(householdId, input.name).catch(() => null);
+
+  if (!resolved) {
+    await addAdHocItem(listId, input);
+    return 'added';
+  }
+
+  // Already on this list for the same ingredient — don't add a duplicate row.
+  const { data: existing, error: exErr } = await supabase
+    .from('shopping_list_item')
+    .select('id')
+    .eq('shopping_list_id', listId)
+    .eq('canonical_ingredient_id', resolved.canonicalId)
+    .limit(1);
+  if (exErr) throw exErr;
+  if (existing && existing.length > 0) return 'exists';
+
+  const { data: canon } = await supabase
+    .from('canonical_ingredient')
+    .select('category')
+    .eq('id', resolved.canonicalId)
+    .single();
+
+  const { error } = await supabase.from('shopping_list_item').insert({
+    shopping_list_id: listId,
+    canonical_ingredient_id: resolved.canonicalId,
+    display_name: resolved.name,
+    total_quantity: input.quantity,
+    unit: input.unit,
+    category: canon?.category ?? 'other',
+    is_manual: true,
+  });
+  if (error) throw error;
+  return 'added';
 }
 
 /** Manual override of an item's quantity/unit (lasts until regeneration). */
