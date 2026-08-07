@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { guessCategory } from '@/features/ingredients/guess-category';
 import { useCanonicalList, useCreateCanonical } from '@/features/ingredients/use-ingredients';
 
 interface Props {
@@ -83,7 +84,7 @@ export function CanonicalCombobox({ value, seedName, onSelect, placeholder }: Pr
                     {
                       name: trimmed,
                       aliases: [],
-                      category: null,
+                      category: guessCategory(trimmed),
                       defaultUnit: null,
                       densityGPerMl: null,
                       unitSizeQuantity: null,

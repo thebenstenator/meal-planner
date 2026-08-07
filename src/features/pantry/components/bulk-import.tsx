@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
+import { guessCategory } from '@/features/ingredients/guess-category';
 import { useCreateCanonical } from '@/features/ingredients/use-ingredients';
 import type { PantryLocation } from '@/features/pantry/api';
 import { parsePantryText, type PantryDraft } from '@/features/pantry/bulk-import';
@@ -59,7 +60,7 @@ export function PantryBulkImport({ householdId }: { householdId: string }) {
           (await createCanonical.mutateAsync({
             name: r.name.trim(),
             aliases: [],
-            category: null,
+            category: guessCategory(r.name),
             defaultUnit: null,
             densityGPerMl: null,
             unitSizeQuantity: null,
