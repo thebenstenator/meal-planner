@@ -50,6 +50,7 @@ export interface RecipeDetail {
   notes: string | null;
   rating: number | null;
   timesCooked: number;
+  isFavorite: boolean;
   ingredients: RecipeIngredientDraft[];
 }
 
@@ -111,6 +112,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
     notes: data.notes,
     rating: data.rating,
     timesCooked: data.times_cooked,
+    isFavorite: data.is_favorite,
     ingredients: (data.recipe_ingredient ?? []).map((ri) => ({
       id: ri.id,
       rawText: ri.raw_text,
@@ -176,6 +178,11 @@ export async function softDeleteRecipe(id: string): Promise<void> {
 
 export async function restoreRecipe(id: string): Promise<void> {
   const { error } = await supabase.from('recipe').update({ deleted_at: null }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function setRecipeFavorite(id: string, favorite: boolean): Promise<void> {
+  const { error } = await supabase.from('recipe').update({ is_favorite: favorite }).eq('id', id);
   if (error) throw error;
 }
 

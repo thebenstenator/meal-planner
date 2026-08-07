@@ -8,6 +8,7 @@ import {
   recipeKeys,
   restoreRecipe,
   saveRecipe,
+  setRecipeFavorite,
   softDeleteRecipe,
   type RecipeIngredientDraft,
 } from '@/features/recipes/api';
@@ -58,6 +59,23 @@ export function useSaveRecipe() {
     onSuccess: (id) => {
       invalidate();
       void qc.invalidateQueries({ queryKey: recipeKeys.detail(id) });
+    },
+  });
+}
+
+export function useSetFavorite(recipeId: string) {
+  const qc = useQueryClient();
+  const invalidate = useInvalidateRecipes();
+  return useMutation<void, Error, boolean>({
+    mutationFn: (favorite) => setRecipeFavorite(recipeId, favorite),
+    onMutate: (favorite) => {
+      qc.setQueryData(recipeKeys.detail(recipeId), (old: unknown) =>
+        old ? { ...(old as object), isFavorite: favorite } : old,
+      );
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: recipeKeys.detail(recipeId) });
+      invalidate();
     },
   });
 }

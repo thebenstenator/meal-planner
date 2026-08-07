@@ -525,6 +525,7 @@ export type Database = {
           image_path: string | null
           import_status: string
           instructions: string | null
+          is_favorite: boolean
           last_cooked_on: string | null
           meal_types: string[]
           notes: string | null
@@ -547,6 +548,7 @@ export type Database = {
           image_path?: string | null
           import_status?: string
           instructions?: string | null
+          is_favorite?: boolean
           last_cooked_on?: string | null
           meal_types?: string[]
           notes?: string | null
@@ -569,6 +571,7 @@ export type Database = {
           image_path?: string | null
           import_status?: string
           instructions?: string | null
+          is_favorite?: boolean
           last_cooked_on?: string | null
           meal_types?: string[]
           notes?: string | null

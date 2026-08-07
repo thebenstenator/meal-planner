@@ -119,6 +119,7 @@ function buildDetail(
     notes: null,
     rating: null,
     timesCooked: 0,
+    isFavorite: false,
     ingredients,
   };
 }

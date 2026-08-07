@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useRecipeCost } from '@/features/pricing/use-recipe-cost';
 import { scaledAmount } from '@/features/recipes/scale';
-import { useRecipe, useSoftDeleteRecipe } from '@/features/recipes/use-recipes';
+import { useRecipe, useSetFavorite, useSoftDeleteRecipe } from '@/features/recipes/use-recipes';
 import { formatCurrency } from '@/lib/utils/format-currency';
 
 export const Route = createFileRoute('/_authenticated/recipes/$recipeId/')({
@@ -17,6 +17,7 @@ function RecipeDetailPage() {
   const navigate = useNavigate();
   const { data: recipe, isLoading, isError } = useRecipe(recipeId);
   const del = useSoftDeleteRecipe();
+  const favorite = useSetFavorite(recipeId);
   const [confirming, setConfirming] = useState(false);
   const [servings, setServings] = useState<number | null>(null);
 
@@ -49,11 +50,23 @@ function RecipeDetailPage() {
             )}
           </div>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/recipes/$recipeId/edit" params={{ recipeId }}>
-            Edit
-          </Link>
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            aria-label={recipe.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            aria-pressed={recipe.isFavorite}
+            title={recipe.isFavorite ? 'Favorited' : 'Add to favorites'}
+            className={recipe.isFavorite ? 'text-amber-500' : 'text-muted-foreground hover:text-foreground'}
+            onClick={() => favorite.mutate(!recipe.isFavorite)}
+          >
+            <span className="text-xl leading-none">{recipe.isFavorite ? '★' : '☆'}</span>
+          </button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/recipes/$recipeId/edit" params={{ recipeId }}>
+              Edit
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {recipe.description && <p className="text-muted-foreground">{recipe.description}</p>}
