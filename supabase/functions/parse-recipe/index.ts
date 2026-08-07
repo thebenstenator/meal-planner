@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     );
     const { data: remaining, error: rlError } = await supabase.rpc('consume_ai_credit', {
       p_household_id: household_id,
-      p_limit: MONTHLY_LIMIT,
+      p_source: 'parse-recipe',
     });
     if (rlError) return json({ error: rlError.message }, 403);
     if (remaining === -1) {

@@ -12,6 +12,7 @@ export interface HouseholdSummary {
   name: string;
   role: 'owner' | 'member';
   monthlyBudgetCents: number | null;
+  isPremium: boolean;
 }
 
 export interface HouseholdMemberRow {
@@ -25,7 +26,7 @@ export interface HouseholdMemberRow {
 export async function fetchMyHouseholds(): Promise<HouseholdSummary[]> {
   const { data, error } = await supabase
     .from('household_member')
-    .select('role, household:household_id (id, name, monthly_budget_cents)')
+    .select('role, household:household_id (id, name, monthly_budget_cents, is_premium)')
     .order('created_at', { ascending: true });
   if (error) throw error;
 
@@ -38,6 +39,7 @@ export async function fetchMyHouseholds(): Promise<HouseholdSummary[]> {
         name: h.name,
         role: row.role as 'owner' | 'member',
         monthlyBudgetCents: h.monthly_budget_cents,
+        isPremium: h.is_premium,
       },
     ];
   });

@@ -34,6 +34,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_call_log: {
+        Row: {
+          created_at: string
+          household_id: string
+          id: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          household_id: string
+          id?: string
+          source: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string
+          id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_call_log_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage_counter: {
         Row: {
           count: number
@@ -137,6 +166,7 @@ export type Database = {
           created_at: string
           default_store_id: string | null
           id: string
+          is_premium: boolean
           monthly_budget_cents: number | null
           name: string
           price_stale_days: number
@@ -146,6 +176,7 @@ export type Database = {
           created_at?: string
           default_store_id?: string | null
           id?: string
+          is_premium?: boolean
           monthly_budget_cents?: number | null
           name: string
           price_stale_days?: number
@@ -155,6 +186,7 @@ export type Database = {
           created_at?: string
           default_store_id?: string | null
           id?: string
+          is_premium?: boolean
           monthly_budget_cents?: number | null
           name?: string
           price_stale_days?: number
@@ -844,7 +876,7 @@ export type Database = {
     Functions: {
       accept_household_invite: { Args: { p_code: string }; Returns: string }
       consume_ai_credit: {
-        Args: { p_household_id: string; p_limit: number }
+        Args: { p_household_id: string; p_limit?: number; p_source?: string }
         Returns: number
       }
       create_household_invite: {
