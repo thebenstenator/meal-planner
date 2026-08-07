@@ -170,10 +170,11 @@ interface UrlRecipe {
 export async function parseRecipeUrl(
   householdId: string,
   url: string,
+  opts: { jsonLdOnly?: boolean } = {},
 ): Promise<{ recipe: UrlRecipe; source: string }> {
   const data = await invokeImport<{ recipe: UrlRecipe; source: string }>(
     'parse-recipe-url',
-    { url, household_id: householdId },
+    { url, household_id: householdId, jsonLdOnly: opts.jsonLdOnly ?? false },
     'Could not read a recipe from that page',
   );
   return { recipe: data.recipe, source: data.source };

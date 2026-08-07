@@ -5,6 +5,24 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Bulk recipe import (no AI credits)
+
+- New **Bulk import** page (Recipes → Bulk): add many recipes at once, free.
+  - **Paste text / upload files:** paste one or more recipes (separated by a
+    `---` line) or upload `.txt`/`.md` files. A deterministic parser pulls out
+    title, ingredients (via the engine + trigram matcher), and instructions —
+    "Ingredients"/"Directions" headers when present, else a heuristic split.
+  - **Recipe links:** paste a list of URLs; each is imported via the site's
+    schema.org data only (`jsonLdOnly` on `parse-recipe-url` — **never falls back
+    to Claude**, so no credits). Links without structured data are skipped and
+    listed.
+  - A review list shows each parsed recipe (ingredient count, how many still need
+    matching); untick any, then save them all. Unmatched ingredients still save —
+    fixable per recipe later.
+  - Pure parser helpers with unit tests; e2e for the text path.
+  - **Note:** the URL bulk mode needs `supabase functions deploy parse-recipe-url`
+    (adds the `jsonLdOnly` mode). The text/file mode needs no deploy.
+
 ### Pantry: bulk import from a pasted list (no AI)
 
 - A "Bulk add from a list" box on the Pantry page: paste your inventory (one item

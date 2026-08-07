@@ -33,6 +33,9 @@ function RecipeLibrary() {
           <Button asChild variant="outline">
             <Link to="/recipes/import">Import</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link to="/recipes/bulk-import">Bulk</Link>
+          </Button>
           <Button asChild>
             <Link to="/recipes/new">New recipe</Link>
           </Button>

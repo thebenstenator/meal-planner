@@ -272,7 +272,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   try {
-    const { url, household_id } = await req.json();
+    const { url, household_id, jsonLdOnly } = await req.json();
     if (typeof url !== 'string' || !/^https?:\/\//i.test(url) || !household_id) {
       return json({ error: 'A valid http(s) url and household_id are required' }, 400);
     }
@@ -316,6 +316,11 @@ Deno.serve(async (req) => {
     const fromLd = node ? recipeFromJsonLd(node) : null;
     if (fromLd) {
       return json({ recipe: fromLd, source: url, usedAi: false });
+    }
+
+    // Bulk / no-AI mode: only the free JSON-LD path; don't fall back to Claude.
+    if (jsonLdOnly) {
+      return json({ error: 'No structured recipe data on that page', noStructuredData: true }, 422);
     }
 
     // Fallback: Claude on the page text — this costs a credit. Rate-limit first

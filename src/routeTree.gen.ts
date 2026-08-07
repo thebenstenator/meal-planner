@@ -22,6 +22,7 @@ import { Route as AuthenticatedStoresRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedSuggestRouteImport } from './routes/_authenticated/suggest'
 import { Route as AuthenticatedHouseholdSettingsRouteImport } from './routes/_authenticated/household.settings'
 import { Route as AuthenticatedRecipesIndexRouteImport } from './routes/_authenticated/recipes/index'
+import { Route as AuthenticatedRecipesBulkImportRouteImport } from './routes/_authenticated/recipes/bulk-import'
 import { Route as AuthenticatedRecipesImportRouteImport } from './routes/_authenticated/recipes/import'
 import { Route as AuthenticatedRecipesNewRouteImport } from './routes/_authenticated/recipes/new'
 import { Route as AuthenticatedShoppingListIndexRouteImport } from './routes/_authenticated/shopping-list/index'
@@ -96,6 +97,12 @@ const AuthenticatedRecipesIndexRoute =
     path: '/recipes/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedRecipesBulkImportRoute =
+  AuthenticatedRecipesBulkImportRouteImport.update({
+    id: '/recipes/bulk-import',
+    path: '/recipes/bulk-import',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedRecipesImportRoute =
   AuthenticatedRecipesImportRouteImport.update({
     id: '/recipes/import',
@@ -144,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/stores': typeof AuthenticatedStoresRoute
   '/suggest': typeof AuthenticatedSuggestRoute
   '/household/settings': typeof AuthenticatedHouseholdSettingsRoute
+  '/recipes/bulk-import': typeof AuthenticatedRecipesBulkImportRoute
   '/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/recipes/new': typeof AuthenticatedRecipesNewRoute
   '/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
@@ -164,6 +172,7 @@ export interface FileRoutesByTo {
   '/stores': typeof AuthenticatedStoresRoute
   '/suggest': typeof AuthenticatedSuggestRoute
   '/household/settings': typeof AuthenticatedHouseholdSettingsRoute
+  '/recipes/bulk-import': typeof AuthenticatedRecipesBulkImportRoute
   '/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/recipes/new': typeof AuthenticatedRecipesNewRoute
   '/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
@@ -186,6 +195,7 @@ export interface FileRoutesById {
   '/_authenticated/stores': typeof AuthenticatedStoresRoute
   '/_authenticated/suggest': typeof AuthenticatedSuggestRoute
   '/_authenticated/household/settings': typeof AuthenticatedHouseholdSettingsRoute
+  '/_authenticated/recipes/bulk-import': typeof AuthenticatedRecipesBulkImportRoute
   '/_authenticated/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/_authenticated/recipes/new': typeof AuthenticatedRecipesNewRoute
   '/_authenticated/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/stores'
     | '/suggest'
     | '/household/settings'
+    | '/recipes/bulk-import'
     | '/recipes/import'
     | '/recipes/new'
     | '/shopping-list/$listId'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/stores'
     | '/suggest'
     | '/household/settings'
+    | '/recipes/bulk-import'
     | '/recipes/import'
     | '/recipes/new'
     | '/shopping-list/$listId'
@@ -249,6 +261,7 @@ export interface FileRouteTypes {
     | '/_authenticated/stores'
     | '/_authenticated/suggest'
     | '/_authenticated/household/settings'
+    | '/_authenticated/recipes/bulk-import'
     | '/_authenticated/recipes/import'
     | '/_authenticated/recipes/new'
     | '/_authenticated/shopping-list/$listId'
@@ -358,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRecipesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/recipes/bulk-import': {
+      id: '/_authenticated/recipes/bulk-import'
+      path: '/recipes/bulk-import'
+      fullPath: '/recipes/bulk-import'
+      preLoaderRoute: typeof AuthenticatedRecipesBulkImportRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/recipes/import': {
       id: '/_authenticated/recipes/import'
       path: '/recipes/import'
@@ -412,6 +432,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedStoresRoute: typeof AuthenticatedStoresRoute
   AuthenticatedSuggestRoute: typeof AuthenticatedSuggestRoute
   AuthenticatedHouseholdSettingsRoute: typeof AuthenticatedHouseholdSettingsRoute
+  AuthenticatedRecipesBulkImportRoute: typeof AuthenticatedRecipesBulkImportRoute
   AuthenticatedRecipesImportRoute: typeof AuthenticatedRecipesImportRoute
   AuthenticatedRecipesNewRoute: typeof AuthenticatedRecipesNewRoute
   AuthenticatedShoppingListListIdRoute: typeof AuthenticatedShoppingListListIdRoute
@@ -430,6 +451,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedStoresRoute: AuthenticatedStoresRoute,
   AuthenticatedSuggestRoute: AuthenticatedSuggestRoute,
   AuthenticatedHouseholdSettingsRoute: AuthenticatedHouseholdSettingsRoute,
+  AuthenticatedRecipesBulkImportRoute: AuthenticatedRecipesBulkImportRoute,
   AuthenticatedRecipesImportRoute: AuthenticatedRecipesImportRoute,
   AuthenticatedRecipesNewRoute: AuthenticatedRecipesNewRoute,
   AuthenticatedShoppingListListIdRoute: AuthenticatedShoppingListListIdRoute,
