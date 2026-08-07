@@ -30,6 +30,11 @@ export function monthGridDays(anchor: Date): string[] {
   return eachDayOfInterval({ start: fromISO(start), end: fromISO(end) }).map(toISO);
 }
 
+/** The calendar-month days of `anchor` (no week padding), as ISO strings. */
+export function monthDays(anchor: Date): string[] {
+  return eachDayOfInterval({ start: startOfMonth(anchor), end: endOfMonth(anchor) }).map(toISO);
+}
+
 /** Inclusive [start, end] ISO range for the week containing `anchor`. */
 export function weekRange(anchor: Date): { start: string; end: string } {
   return {

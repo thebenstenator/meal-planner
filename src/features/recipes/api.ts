@@ -1,3 +1,4 @@
+import type { LibraryRecipe } from '@/features/planner/autofill';
 import type { RecipeFormInput } from '@/schemas/recipe';
 import { supabase } from '@/lib/supabase/client';
 
@@ -179,6 +180,28 @@ export async function softDeleteRecipe(id: string): Promise<void> {
 export async function restoreRecipe(id: string): Promise<void> {
   const { error } = await supabase.from('recipe').update({ deleted_at: null }).eq('id', id);
   if (error) throw error;
+}
+
+/**
+ * All of a household's live recipes with just the signals the month auto-fill
+ * ranks on (favorite / times-cooked / haven't-made-in-a-while). Kept lean — this
+ * feeds the pure `buildMonthPlan` balancer, not the recipe list UI.
+ */
+export async function listLibraryForAutofill(householdId: string): Promise<LibraryRecipe[]> {
+  const { data, error } = await supabase
+    .from('recipe')
+    .select('id, title, is_favorite, times_cooked, last_cooked_on')
+    .eq('household_id', householdId)
+    .is('deleted_at', null)
+    .limit(500);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    isFavorite: r.is_favorite,
+    timesCooked: r.times_cooked,
+    lastCookedOn: r.last_cooked_on,
+  }));
 }
 
 export async function setRecipeFavorite(id: string, favorite: boolean): Promise<void> {

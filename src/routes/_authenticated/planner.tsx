@@ -4,10 +4,18 @@ import { useMemo, useState } from 'react';
 
 import { useHousehold } from '@/features/household/use-household';
 import { Button } from '@/components/ui/button';
+import { AutofillPanel } from '@/features/planner/components/autofill-panel';
 import { BudgetBar } from '@/features/planner/components/budget-bar';
 import { MonthGrid } from '@/features/planner/components/month-grid';
 import { WeekView } from '@/features/planner/components/week-view';
-import { fromISO, monthGridDays, monthGridRange, weekDays, weekRange } from '@/features/planner/dates';
+import {
+  fromISO,
+  monthDays,
+  monthGridDays,
+  monthGridRange,
+  weekDays,
+  weekRange,
+} from '@/features/planner/dates';
 import { keyOf, type PlannerActions } from '@/features/planner/view';
 import {
   useDeletePlanEntry,
@@ -32,6 +40,7 @@ function PlannerPage() {
   const [anchor, setAnchor] = useState(() => new Date());
   const [addTarget, setAddTarget] = useState<{ date: string; slot: Slot } | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null);
+  const [autofillOpen, setAutofillOpen] = useState(false);
 
   usePlanRealtime();
 
@@ -51,7 +60,12 @@ function PlannerPage() {
   const monthStart = format(startOfMonth(anchor), 'yyyy-MM-dd');
   const monthEnd = format(endOfMonth(anchor), 'yyyy-MM-dd');
   const { data: monthData } = usePlanEntries(monthStart, monthEnd);
-  const monthCosts = usePlannerCosts(useMemo(() => monthData ?? [], [monthData]));
+  const monthEntries = useMemo(() => monthData ?? [], [monthData]);
+  const monthCosts = usePlannerCosts(monthEntries);
+  const occupied = useMemo(
+    () => new Set(monthEntries.map((e) => keyOf(e.date, e.slot))),
+    [monthEntries],
+  );
   const actual = useMonthActualSpend(monthStart, monthEnd);
   const viewCosts = usePlannerCosts(entries);
 
@@ -100,20 +114,25 @@ function PlannerPage() {
             Today
           </Button>
         </div>
-        <div className="flex rounded-md border p-0.5">
-          {(['week', 'month'] as Mode[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={cn(
-                'rounded px-3 py-1 text-sm capitalize',
-                mode === m ? 'bg-primary text-primary-foreground' : '',
-              )}
-            >
-              {m}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => setAutofillOpen(true)}>
+            ✨ Auto-fill month
+          </Button>
+          <div className="flex rounded-md border p-0.5">
+            {(['week', 'month'] as Mode[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={cn(
+                  'rounded px-3 py-1 text-sm capitalize',
+                  mode === m ? 'bg-primary text-primary-foreground' : '',
+                )}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -159,6 +178,16 @@ function PlannerPage() {
             return { total: c.cents, perServing: c.perServingCents };
           }}
           onToggleCooked={(e) => markCooked.mutate({ entry: e, cooked: !e.cookedAt })}
+        />
+      )}
+
+      {autofillOpen && (
+        <AutofillPanel
+          monthLabel={format(anchor, 'MMMM')}
+          days={monthDays(anchor)}
+          occupied={occupied}
+          onClose={() => setAutofillOpen(false)}
+          onDone={() => setAutofillOpen(false)}
         />
       )}
     </main>
