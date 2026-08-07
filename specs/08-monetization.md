@@ -77,15 +77,19 @@ that thinks *for* the user. Some of it has a real AI cost; some of it costs us
 nothing but is the ambient, recurring value that justifies staying subscribed.
 
 **1. The recurring hooks (why someone stays subscribed):**
-- **Auto-fill a balanced month** — the flagship. One tap fills an empty or
-  partial planner month with a proposed set of dinners that mixes the
+- **Auto-fill a balanced month** — the flagship. **BUILT (Phase 2).** One tap
+  fills the month's **empty** slots with a proposed set of meals that mixes the
   household's **favorites / most-cooked**, recipes they **haven't made in a
   while**, and **fresh AI ideas** for novelty — balanced for variety (no 12
-  chicken nights), honoring dietary tags, and biased toward using up pantry
-  stock. Always an editable proposal, never auto-committed (per the "never
-  auto-save AI output" principle); regenerate any day you don't like. This is
-  the "month is the unit" promise delivered in one tap, and it's a *monthly
-  ritual* — the single best reason to keep a subscription.
+  chicken nights) and seeded from pantry stock. A **novelty dial** (all
+  favorites / a few new ~1/wk / lots new ~2–3/wk) controls how much AI is used
+  (all-favorites is free — no credit), and a **slot toggle** picks dinner-only
+  vs all meals. Always an editable proposal (swap any day to another recipe or
+  skip it), never auto-committed (per the "never auto-save AI output"
+  principle). One metered credit per generate. This is the "month is the unit"
+  promise delivered in one tap, and it's a *monthly ritual* — the single best
+  reason to keep a subscription. Code: `src/features/planner/autofill.ts`
+  (balancer), `use-autofill.ts`, `components/autofill-panel.tsx`.
 - **Meal ideas** (`suggest-meals`) — pantry-aware dinner ideas, saved straight
   to the plan and list. Sell the *integration*, not raw generation (that's the
   moat vs. free ChatGPT).
@@ -122,12 +126,16 @@ The gated tier has to actually drive sales. The honest read:
   (ambient). Analytics barely moves anyone.
 
 **Build priority for monetization:**
-1. `useEntitlement()` + tier the AI limit (the plumbing everything below needs).
-2. **Auto-fill a balanced month** — the flagship recurring hook, and it composes
-   features largely already built (planner, suggest-meals, consolidation).
-3. **Receipt scanning** — the feature that decides whether this is a subscription
-   business or a one-time-unlock business.
+1. ✅ `useEntitlement()` + tier the AI limit (Phase 0) — plumbing everything needs.
+2. ✅ **Auto-fill a balanced month** (Phase 2) — the flagship recurring hook,
+   composing features already built (planner, suggest-meals, cook stats).
+3. **Receipt scanning** — *next.* The feature that decides whether this is a
+   subscription business or a one-time-unlock business.
 4. Smart reminders / surfacing — cheap, recurring, ships incrementally.
+
+(Phase 1 = favorites + auto-maintained cook stats, the ranking signals auto-fill
+needs. Payment rails deferred — everyone grandfathered to premium during testing
+via `household.is_premium` default true.)
 
 Rule of thumb tying this to the model question: if the paid tier stays mostly
 front-loaded AI import, price it as a **one-time unlock**. The more of the
