@@ -84,7 +84,8 @@ export async function getOrCreateRunningList(householdId: string): Promise<strin
     .eq('is_running', true)
     .limit(1);
   if (error) throw error;
-  if (existing && existing.length > 0) return existing[0].id;
+  const found = existing?.[0];
+  if (found) return found.id;
 
   const { data, error: insErr } = await supabase
     .from('shopping_list')
@@ -99,7 +100,8 @@ export async function getOrCreateRunningList(householdId: string): Promise<strin
       .eq('household_id', householdId)
       .eq('is_running', true)
       .limit(1);
-    if (winner && winner.length > 0) return winner[0].id;
+    const winnerRow = winner?.[0];
+    if (winnerRow) return winnerRow.id;
     throw insErr;
   }
   return data.id;
