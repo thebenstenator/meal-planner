@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useHousehold } from '@/features/household/use-household';
+import { toISO } from '@/features/planner/dates';
 import { usePantry } from '@/features/pantry/use-pantry';
+import { expiringSoonSeed, pantrySuggestSeed } from '@/features/pantry/suggest-seed';
 import type { RecipeDetail } from '@/features/recipes/api';
 import { RecipeForm } from '@/features/recipes/components/recipe-form';
 import { ImportError } from '@/features/recipes/import';
@@ -38,6 +40,15 @@ function SuggestPage() {
     .split(/[\n,]/)
     .map((s) => s.trim())
     .filter(Boolean);
+
+  // Smart pantry seeds: the useful, prioritized list (not a raw 87-item dump) and
+  // a shortcut for just what's about to spoil.
+  const today = toISO(new Date());
+  const smartSeed = useMemo(() => (pantry ? pantrySuggestSeed(pantry, today) : []), [pantry, today]);
+  const expiringSeed = useMemo(
+    () => (pantry ? expiringSoonSeed(pantry, today) : []),
+    [pantry, today],
+  );
 
   async function getIdeas() {
     if (!householdId || ingredients.length === 0) return;
@@ -98,16 +109,31 @@ function SuggestPage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          {pantry && pantry.length > 0 && (
-            <button
-              type="button"
-              className="text-primary text-sm underline"
-              onClick={() =>
-                setText([...new Set(pantry.map((p) => p.canonicalName))].join(', '))
-              }
-            >
-              Use what’s in my pantry ({pantry.length})
-            </button>
+          {smartSeed.length > 0 && (
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                <button
+                  type="button"
+                  className="text-primary underline"
+                  onClick={() => setText(smartSeed.join(', '))}
+                >
+                  Use what’s in my pantry
+                </button>
+                {expiringSeed.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-primary underline"
+                    onClick={() => setText(expiringSeed.join(', '))}
+                  >
+                    Use things expiring soon ({expiringSeed.length})
+                  </button>
+                )}
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Focuses on fresh and soon-to-expire ingredients — snacks, drinks, and staples are
+                skipped.
+              </p>
+            </div>
           )}
           <div className="flex flex-wrap gap-2">
             {FILTERS.map((f) => {
