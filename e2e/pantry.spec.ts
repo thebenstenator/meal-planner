@@ -154,3 +154,23 @@ test('list generation subtracts pantry stock', async ({ page }) => {
   await expect(page.getByText('cream cheese').first()).toBeVisible();
   await expect(page.getByText(/4 oz already in your pantry/)).toBeVisible();
 });
+
+// Bulk-import a pasted inventory list into the pantry (no AI).
+test('bulk-imports a pasted list into the pantry', async ({ page }) => {
+  await signUp(page, uniqueEmail('bulk'));
+
+  await page.goto('/pantry');
+  await page.getByRole('button', { name: 'Bulk add from a list' }).click();
+  await page
+    .getByLabel('Paste your inventory')
+    .fill('2 cups flour\ncream cheese, 8 oz\neggs');
+  await page.getByRole('button', { name: 'Preview' }).click();
+
+  // All three match seeded canonicals -> one tap to add.
+  await page.getByRole('button', { name: /Add 3 items/ }).click();
+  await expect(page.getByText(/Added 3 items/)).toBeVisible();
+
+  // They're now in the pantry.
+  await expect(page.getByText('cream cheese')).toBeVisible();
+  await expect(page.getByText('all-purpose flour')).toBeVisible();
+});

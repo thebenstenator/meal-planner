@@ -5,6 +5,15 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Pantry: bulk import from a pasted list (no AI)
+
+- A "Bulk add from a list" box on the Pantry page: paste your inventory (one item
+  per line, or spreadsheet columns — tab/comma separated), and each row is parsed
+  and matched to a canonical ingredient with the engine + trigram matcher —
+  **no AI credits**. A preview lets you fix any misses (per-row match + qty/unit)
+  and pick a location, then add all matched rows in one go. Pure `parsePantryLine`
+  helper (5 unit tests); e2e paste → preview → add.
+
 ### Slice 10 — Recipe scaling (UI)
 
 - **Recipe page:** a "Scale to N servings" stepper that recomputes and shows each

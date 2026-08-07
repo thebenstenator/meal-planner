@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import type { PantryItem, PantryLocation } from '@/features/pantry/api';
+import { PantryBulkImport } from '@/features/pantry/components/bulk-import';
 import { usePantry, usePantryMutations } from '@/features/pantry/use-pantry';
+import { useHousehold } from '@/features/household/use-household';
 
 export const Route = createFileRoute('/_authenticated/pantry')({
   component: PantryPage,
@@ -14,6 +16,7 @@ export const Route = createFileRoute('/_authenticated/pantry')({
 const LOCATIONS: PantryLocation[] = ['pantry', 'fridge', 'freezer'];
 
 function PantryPage() {
+  const { householdId } = useHousehold();
   const { data, isLoading, isError } = usePantry();
   const { add } = usePantryMutations();
 
@@ -99,6 +102,8 @@ function PantryPage() {
           </Button>
         </div>
       </form>
+
+      {householdId && <PantryBulkImport householdId={householdId} />}
 
       {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
       {isError && <p className="text-destructive text-sm">Couldn’t load your pantry.</p>}
