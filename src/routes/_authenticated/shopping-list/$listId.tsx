@@ -62,7 +62,7 @@ function ShoppingListDetail() {
   // on this list (you're already buying those).
   const onList = new Set(items.map((i) => i.canonicalId).filter((id): id is string => !!id));
   const lowItems = (pantry ?? []).filter(
-    (p) => !p.restockMuted && !onList.has(p.canonicalId) && isLowStock(p),
+    (p) => !p.amountUnknown && !p.restockMuted && !onList.has(p.canonicalId) && isLowStock(p),
   );
 
   // What's been bought so far: actual price where recorded, else the estimate.

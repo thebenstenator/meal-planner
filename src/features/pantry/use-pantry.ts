@@ -38,6 +38,7 @@ export function usePantryMutations() {
       unit: string | null;
       location: PantryLocation;
       expiresOn?: string | null;
+      amountUnknown?: boolean;
     }) => upsertPantryItem(householdId as string, input),
     onSuccess: invalidate,
   });
@@ -51,6 +52,7 @@ export function usePantryMutations() {
       quantity?: number;
       unit?: string | null;
       expiresOn?: string | null;
+      amountUnknown?: boolean;
     }) => updatePantryItem(id, patch),
     onSuccess: invalidate,
   });

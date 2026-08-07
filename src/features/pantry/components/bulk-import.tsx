@@ -69,6 +69,7 @@ export function PantryBulkImport({ householdId }: { householdId: string }) {
         await add.mutateAsync({
           canonicalId,
           quantity: r.quantity ?? 0,
+          amountUnknown: r.quantity == null,
           unit: r.unit,
           location,
         });

@@ -117,13 +117,20 @@ export async function buildShoppingItems(
   // Pantry offset: how much of each canonical is already on hand (summed across
   // locations, converted into a common unit per item at map time).
   const pantryByCanonical = new Map<string, { quantity: number; unit: string | null }[]>();
+  // Canonicals the household has on hand with an unquantified amount — treated as
+  // fully in stock, so they never hit the list ("we have some, just didn't measure").
+  const pantryUnknown = new Set<string>();
   if (subtractPantry) {
     const { data: pantryRows, error: pErr } = await supabase
       .from('pantry_item')
-      .select('canonical_ingredient_id, quantity, unit')
+      .select('canonical_ingredient_id, quantity, unit, amount_unknown')
       .eq('household_id', householdId);
     if (pErr) throw pErr;
     for (const p of pantryRows ?? []) {
+      if (p.amount_unknown) {
+        pantryUnknown.add(p.canonical_ingredient_id);
+        continue;
+      }
       const arr = pantryByCanonical.get(p.canonical_ingredient_id) ?? [];
       arr.push({ quantity: Number(p.quantity), unit: p.unit });
       pantryByCanonical.set(p.canonical_ingredient_id, arr);
@@ -134,6 +141,9 @@ export async function buildShoppingItems(
     const isUnmatched = item.canonicalId.startsWith(UNMATCHED);
     const info = lookup.get(item.canonicalId);
     const displayName = info?.name ?? displayByKey.get(item.canonicalId) ?? item.name;
+
+    // On hand with an unquantified amount → assume it covers the need, drop it.
+    if (subtractPantry && !isUnmatched && pantryUnknown.has(item.canonicalId)) return [];
 
     // Subtract on-hand stock from resolved, matched items.
     let totalQuantity = item.totalQuantity;

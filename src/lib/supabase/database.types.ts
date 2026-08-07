@@ -379,6 +379,7 @@ export type Database = {
       }
       pantry_item: {
         Row: {
+          amount_unknown: boolean
           canonical_ingredient_id: string
           created_at: string
           expires_on: string | null
@@ -391,6 +392,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          amount_unknown?: boolean
           canonical_ingredient_id: string
           created_at?: string
           expires_on?: string | null
@@ -403,6 +405,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          amount_unknown?: boolean
           canonical_ingredient_id?: string
           created_at?: string
           expires_on?: string | null

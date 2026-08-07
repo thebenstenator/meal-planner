@@ -155,6 +155,41 @@ test('list generation subtracts pantry stock', async ({ page }) => {
   await expect(page.getByText(/4 oz already in your pantry/)).toBeVisible();
 });
 
+// An item added without an amount ("have some, didn't measure") counts as in
+// stock and is kept off the generated list, even though a planned recipe needs
+// it. A second ingredient the pantry lacks still appears (anchors the page).
+test('unquantified pantry stock keeps an item off the generated list', async ({ page }) => {
+  await signUp(page, uniqueEmail('unknownstock'));
+  const iso = todayISO();
+
+  await page.goto('/recipes/new');
+  await page.getByLabel('Title').fill('Unknown Stock Test');
+  await page.getByLabel('Paste ingredients').fill('12 oz cream cheese\n2 cups all-purpose flour');
+  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await expect(page.getByText('Ingredients (2)')).toBeVisible();
+  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await expect(page.getByRole('heading', { name: 'Unknown Stock Test' })).toBeVisible();
+
+  await page.goto('/planner');
+  await page.getByRole('button', { name: `Add to dinner on ${iso}` }).click({ force: true });
+  const panel = page.getByTestId('add-entry-panel');
+  await panel.getByLabel('Search recipes to add').fill('Unknown Stock Test');
+  await panel.getByRole('button', { name: 'Unknown Stock Test' }).click();
+
+  // Add cream cheese to the pantry with NO amount → it's flagged "in stock".
+  await page.goto('/pantry');
+  await page.getByPlaceholder('Search ingredient…').fill('cream cheese');
+  await page.getByRole('button', { name: /cream cheese/ }).first().click();
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByLabel('Quantity of cream cheese')).toHaveAttribute('placeholder', 'in stock');
+
+  // Generate → flour (not on hand) is listed; cream cheese (in stock) is not.
+  await page.goto('/shopping-list');
+  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await expect(page.getByText(/flour/i).first()).toBeVisible();
+  await expect(page.getByText(/cream cheese/i)).toHaveCount(0);
+});
+
 // Bulk-import a pasted inventory list into the pantry (no AI).
 test('bulk-imports a pasted list into the pantry', async ({ page }) => {
   await signUp(page, uniqueEmail('bulk'));

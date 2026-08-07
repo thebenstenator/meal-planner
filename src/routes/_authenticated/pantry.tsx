@@ -36,10 +36,12 @@ function PantryPage() {
   function submitAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!picked.id) return;
+    const blankQty = qty.trim() === '';
     add.mutate(
       {
         canonicalId: picked.id,
-        quantity: qty.trim() === '' ? 0 : Number(qty),
+        quantity: blankQty ? 0 : Number(qty),
+        amountUnknown: blankQty,
         unit: unit.trim() || null,
         location,
       },
@@ -101,6 +103,10 @@ function PantryPage() {
             Add
           </Button>
         </div>
+        <p className="text-muted-foreground text-xs">
+          Leave the amount blank if you have it but haven’t measured it — it’ll count as in stock
+          and stay off your shopping list.
+        </p>
       </form>
 
       {householdId && <PantryBulkImport householdId={householdId} />}
@@ -139,12 +145,18 @@ function PantryPage() {
 
 function PantryRow({ item }: { item: PantryItem }) {
   const { update, remove } = usePantryMutations();
-  const [qty, setQty] = useState(String(item.quantity));
+  const [qty, setQty] = useState(item.amountUnknown ? '' : String(item.quantity));
 
   function commitQty() {
+    // Cleared → back to "have some, amount unknown" (kept off the shopping list).
+    if (qty.trim() === '') {
+      if (!item.amountUnknown) update.mutate({ id: item.id, quantity: 0, amountUnknown: true });
+      return;
+    }
+    // A typed amount quantifies the item (clears the unknown flag).
     const n = Number(qty);
-    if (Number.isFinite(n) && n >= 0 && n !== item.quantity) {
-      update.mutate({ id: item.id, quantity: n });
+    if (Number.isFinite(n) && n >= 0 && (n !== item.quantity || item.amountUnknown)) {
+      update.mutate({ id: item.id, quantity: n, amountUnknown: false });
     }
   }
 
@@ -156,6 +168,7 @@ function PantryRow({ item }: { item: PantryItem }) {
           aria-label={`Quantity of ${item.canonicalName}`}
           inputMode="decimal"
           value={qty}
+          placeholder={item.amountUnknown ? 'in stock' : undefined}
           onChange={(e) => setQty(e.target.value)}
           onBlur={commitQty}
           onKeyDown={(e) => {

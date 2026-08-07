@@ -14,6 +14,8 @@ export interface PantryItem {
   canonicalName: string;
   category: string | null;
   quantity: number;
+  /** True when the item is on hand but its amount was never quantified. */
+  amountUnknown: boolean;
   unit: string | null;
   location: PantryLocation;
   expiresOn: string | null;
@@ -29,7 +31,7 @@ export async function listPantry(householdId: string): Promise<PantryItem[]> {
   const { data, error } = await supabase
     .from('pantry_item')
     .select(
-      'id, canonical_ingredient_id, quantity, unit, location, expires_on, restock_muted, canonical_ingredient(name, category, unit_size_quantity, unit_size_unit, density_g_per_ml, count_to_gram)',
+      'id, canonical_ingredient_id, quantity, amount_unknown, unit, location, expires_on, restock_muted, canonical_ingredient(name, category, unit_size_quantity, unit_size_unit, density_g_per_ml, count_to_gram)',
     )
     .eq('household_id', householdId)
     .order('location', { ascending: true });
@@ -40,6 +42,7 @@ export async function listPantry(householdId: string): Promise<PantryItem[]> {
     canonicalName: r.canonical_ingredient?.name ?? 'Unknown',
     category: r.canonical_ingredient?.category ?? null,
     quantity: Number(r.quantity),
+    amountUnknown: r.amount_unknown,
     unit: r.unit,
     location: r.location as PantryLocation,
     expiresOn: r.expires_on,
@@ -69,6 +72,7 @@ export async function upsertPantryItem(
     unit: string | null;
     location: PantryLocation;
     expiresOn?: string | null;
+    amountUnknown?: boolean;
   },
 ): Promise<void> {
   const { error } = await supabase.from('pantry_item').upsert(
@@ -76,6 +80,7 @@ export async function upsertPantryItem(
       household_id: householdId,
       canonical_ingredient_id: input.canonicalId,
       quantity: input.quantity,
+      amount_unknown: input.amountUnknown ?? false,
       unit: input.unit,
       location: input.location,
       expires_on: input.expiresOn ?? null,
@@ -87,12 +92,18 @@ export async function upsertPantryItem(
 
 export async function updatePantryItem(
   id: string,
-  patch: { quantity?: number; unit?: string | null; expiresOn?: string | null },
+  patch: { quantity?: number; unit?: string | null; expiresOn?: string | null; amountUnknown?: boolean },
 ): Promise<void> {
-  const row: { quantity?: number; unit?: string | null; expires_on?: string | null } = {};
+  const row: {
+    quantity?: number;
+    unit?: string | null;
+    expires_on?: string | null;
+    amount_unknown?: boolean;
+  } = {};
   if (patch.quantity !== undefined) row.quantity = patch.quantity;
   if (patch.unit !== undefined) row.unit = patch.unit;
   if (patch.expiresOn !== undefined) row.expires_on = patch.expiresOn;
+  if (patch.amountUnknown !== undefined) row.amount_unknown = patch.amountUnknown;
   const { error } = await supabase.from('pantry_item').update(row).eq('id', id);
   if (error) throw error;
 }
@@ -142,13 +153,17 @@ export async function adjustPantryStock(
 ): Promise<void> {
   const { data: rows, error } = await supabase
     .from('pantry_item')
-    .select('id, quantity, unit')
+    .select('id, quantity, unit, amount_unknown')
     .eq('household_id', householdId)
     .eq('canonical_ingredient_id', canonicalId)
     .order('location', { ascending: true })
     .limit(1);
   if (error) throw error;
   const existing = rows?.[0];
+
+  // An unquantified "have some" row has no measured amount to add to or subtract
+  // from — leave it as-is rather than inventing a number.
+  if (existing?.amount_unknown) return;
 
   if (!existing) {
     if (deltaQty <= 0) return; // nothing to subtract from
