@@ -17,6 +17,7 @@ import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/ap
 import { Route as AuthenticatedIngredientsRouteImport } from './routes/_authenticated/ingredients'
 import { Route as AuthenticatedPantryRouteImport } from './routes/_authenticated/pantry'
 import { Route as AuthenticatedPlannerRouteImport } from './routes/_authenticated/planner'
+import { Route as AuthenticatedReceiptsRouteImport } from './routes/_authenticated/receipts'
 import { Route as AuthenticatedSpendingRouteImport } from './routes/_authenticated/spending'
 import { Route as AuthenticatedStoresRouteImport } from './routes/_authenticated/stores'
 import { Route as AuthenticatedSuggestRouteImport } from './routes/_authenticated/suggest'
@@ -68,6 +69,11 @@ const AuthenticatedPantryRoute = AuthenticatedPantryRouteImport.update({
 const AuthenticatedPlannerRoute = AuthenticatedPlannerRouteImport.update({
   id: '/planner',
   path: '/planner',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedReceiptsRoute = AuthenticatedReceiptsRouteImport.update({
+  id: '/receipts',
+  path: '/receipts',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSpendingRoute = AuthenticatedSpendingRouteImport.update({
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/ingredients': typeof AuthenticatedIngredientsRoute
   '/pantry': typeof AuthenticatedPantryRoute
   '/planner': typeof AuthenticatedPlannerRoute
+  '/receipts': typeof AuthenticatedReceiptsRoute
   '/spending': typeof AuthenticatedSpendingRoute
   '/stores': typeof AuthenticatedStoresRoute
   '/suggest': typeof AuthenticatedSuggestRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/ingredients': typeof AuthenticatedIngredientsRoute
   '/pantry': typeof AuthenticatedPantryRoute
   '/planner': typeof AuthenticatedPlannerRoute
+  '/receipts': typeof AuthenticatedReceiptsRoute
   '/spending': typeof AuthenticatedSpendingRoute
   '/stores': typeof AuthenticatedStoresRoute
   '/suggest': typeof AuthenticatedSuggestRoute
@@ -191,6 +199,7 @@ export interface FileRoutesById {
   '/_authenticated/ingredients': typeof AuthenticatedIngredientsRoute
   '/_authenticated/pantry': typeof AuthenticatedPantryRoute
   '/_authenticated/planner': typeof AuthenticatedPlannerRoute
+  '/_authenticated/receipts': typeof AuthenticatedReceiptsRoute
   '/_authenticated/spending': typeof AuthenticatedSpendingRoute
   '/_authenticated/stores': typeof AuthenticatedStoresRoute
   '/_authenticated/suggest': typeof AuthenticatedSuggestRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/ingredients'
     | '/pantry'
     | '/planner'
+    | '/receipts'
     | '/spending'
     | '/stores'
     | '/suggest'
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | '/ingredients'
     | '/pantry'
     | '/planner'
+    | '/receipts'
     | '/spending'
     | '/stores'
     | '/suggest'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ingredients'
     | '/_authenticated/pantry'
     | '/_authenticated/planner'
+    | '/_authenticated/receipts'
     | '/_authenticated/spending'
     | '/_authenticated/stores'
     | '/_authenticated/suggest'
@@ -334,6 +346,13 @@ declare module '@tanstack/react-router' {
       path: '/planner'
       fullPath: '/planner'
       preLoaderRoute: typeof AuthenticatedPlannerRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/receipts': {
+      id: '/_authenticated/receipts'
+      path: '/receipts'
+      fullPath: '/receipts'
+      preLoaderRoute: typeof AuthenticatedReceiptsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/spending': {
@@ -428,6 +447,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedIngredientsRoute: typeof AuthenticatedIngredientsRoute
   AuthenticatedPantryRoute: typeof AuthenticatedPantryRoute
   AuthenticatedPlannerRoute: typeof AuthenticatedPlannerRoute
+  AuthenticatedReceiptsRoute: typeof AuthenticatedReceiptsRoute
   AuthenticatedSpendingRoute: typeof AuthenticatedSpendingRoute
   AuthenticatedStoresRoute: typeof AuthenticatedStoresRoute
   AuthenticatedSuggestRoute: typeof AuthenticatedSuggestRoute
@@ -447,6 +467,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedIngredientsRoute: AuthenticatedIngredientsRoute,
   AuthenticatedPantryRoute: AuthenticatedPantryRoute,
   AuthenticatedPlannerRoute: AuthenticatedPlannerRoute,
+  AuthenticatedReceiptsRoute: AuthenticatedReceiptsRoute,
   AuthenticatedSpendingRoute: AuthenticatedSpendingRoute,
   AuthenticatedStoresRoute: AuthenticatedStoresRoute,
   AuthenticatedSuggestRoute: AuthenticatedSuggestRoute,

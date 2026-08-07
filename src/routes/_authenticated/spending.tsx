@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 
+import { Button } from '@/components/ui/button';
 import { useSpendHistory } from '@/features/pricing/use-spend-history';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format-currency';
@@ -17,25 +18,32 @@ function SpendingPage() {
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Spending</h1>
-        <p className="text-muted-foreground text-sm">
-          Actual grocery spend by month, from items you’ve checked off.
-        </p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold">Spending</h1>
+          <p className="text-muted-foreground text-sm">
+            Actual grocery spend by month, from scanned receipts and items you’ve checked off.
+          </p>
+        </div>
+        <Button asChild size="sm">
+          <Link to="/receipts">📷 Scan receipt</Link>
+        </Button>
       </div>
 
       {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
 
-      {!isLoading && !storeId && (
+      {!isLoading && !storeId && !anySpend && (
         <div className="bg-muted/40 rounded-lg border p-4 text-sm">
-          <span className="text-muted-foreground">Set a default store and prices to track spend. </span>
+          <span className="text-muted-foreground">
+            Scan a receipt or set a default store and prices to track spend.{' '}
+          </span>
           <Link to="/stores" className="underline">
             Set up pricing
           </Link>
         </div>
       )}
 
-      {!isLoading && storeId && (
+      {!isLoading && (storeId || anySpend) && (
         <>
           {/* Bar chart */}
           <div className="rounded-lg border p-4">
@@ -76,7 +84,8 @@ function SpendingPage() {
 
           {!anySpend && (
             <p className="text-muted-foreground text-sm">
-              No spend recorded yet. Check off items on a shopping list and they’ll show up here.
+              No spend recorded yet. Scan a receipt or check off items on a shopping list and
+              they’ll show up here.
             </p>
           )}
 

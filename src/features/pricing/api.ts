@@ -92,6 +92,7 @@ export async function addPriceRecord(
     priceCents: number;
     packageQuantity: number;
     packageUnit: string;
+    source?: 'manual' | 'receipt_ocr' | 'estimated';
   },
 ): Promise<void> {
   const { error } = await supabase.from('price_record').insert({
@@ -101,6 +102,7 @@ export async function addPriceRecord(
     price_cents: input.priceCents,
     package_quantity: input.packageQuantity,
     package_unit: input.packageUnit,
+    source: input.source ?? 'manual',
   });
   if (error) throw error;
 }

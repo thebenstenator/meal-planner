@@ -6,6 +6,7 @@ import { useAuth } from '@/features/auth/use-auth';
 // Less-used / settings destinations tucked behind the avatar.
 const MENU_LINKS = [
   { to: '/spending', label: 'Spending' },
+  { to: '/receipts', label: 'Scan receipt' },
   { to: '/stores', label: 'Stores' },
   { to: '/ingredients', label: 'Ingredients' },
   { to: '/household/settings', label: 'Household settings' },

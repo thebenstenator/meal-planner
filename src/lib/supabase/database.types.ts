@@ -161,6 +161,54 @@ export type Database = {
           },
         ]
       }
+      grocery_trip: {
+        Row: {
+          created_at: string
+          household_id: string
+          id: string
+          note: string | null
+          purchased_on: string
+          store_id: string | null
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          household_id: string
+          id?: string
+          note?: string | null
+          purchased_on?: string
+          store_id?: string | null
+          total_cents: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string
+          id?: string
+          note?: string | null
+          purchased_on?: string
+          store_id?: string | null
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grocery_trip_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grocery_trip_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "store"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household: {
         Row: {
           created_at: string
@@ -868,6 +916,67 @@ export type Database = {
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_line_item: {
+        Row: {
+          canonical_ingredient_id: string | null
+          created_at: string
+          household_id: string
+          id: string
+          position: number
+          price_cents: number | null
+          quantity: number | null
+          raw_text: string
+          trip_id: string
+          unit: string | null
+        }
+        Insert: {
+          canonical_ingredient_id?: string | null
+          created_at?: string
+          household_id: string
+          id?: string
+          position?: number
+          price_cents?: number | null
+          quantity?: number | null
+          raw_text: string
+          trip_id: string
+          unit?: string | null
+        }
+        Update: {
+          canonical_ingredient_id?: string | null
+          created_at?: string
+          household_id?: string
+          id?: string
+          position?: number
+          price_cents?: number | null
+          quantity?: number | null
+          raw_text?: string
+          trip_id?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_line_item_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_line_item_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_line_item_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "grocery_trip"
             referencedColumns: ["id"]
           },
         ]

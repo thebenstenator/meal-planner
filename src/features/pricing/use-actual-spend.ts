@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useHousehold } from '@/features/household/use-household';
 import { estimateItemCost } from '@/features/pricing/price-item';
 import { usePriceIndex } from '@/features/pricing/use-recipe-cost';
+import { fetchTripTotalsInRange, receiptKeys } from '@/features/receipts/api';
 import { fetchMonthCheckedItems } from '@/features/shopping-list/api';
 
 export interface ActualSpend {
@@ -29,6 +30,13 @@ export function useMonthActualSpend(monthStart: string, monthEnd: string): Actua
     enabled: !!householdId,
   });
 
+  // Scanned receipts are the accurate record of a trip — add their totals on top.
+  const { data: trips } = useQuery({
+    queryKey: receiptKeys.tripTotals(householdId ?? 'none', monthStart, monthEnd),
+    queryFn: () => fetchTripTotalsInRange(householdId as string, monthStart, monthEnd),
+    enabled: !!householdId,
+  });
+
   const canonicalIds = useMemo(
     () => (items ?? []).map((i) => i.canonicalId).filter((id): id is string => !!id),
     [items],
@@ -36,7 +44,7 @@ export function useMonthActualSpend(monthStart: string, monthEnd: string): Actua
   const index = usePriceIndex(canonicalIds);
 
   return useMemo(() => {
-    let actualCents = 0;
+    let actualCents = (trips ?? []).reduce((sum, t) => sum + t.totalCents, 0);
     let unpricedCount = 0;
     const checked = items ?? [];
 
@@ -64,5 +72,5 @@ export function useMonthActualSpend(monthStart: string, monthEnd: string): Actua
       storeId: index.storeId,
       isLoading: itemsLoading || index.isLoading,
     };
-  }, [items, index, itemsLoading]);
+  }, [items, index, itemsLoading, trips]);
 }

@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { useHousehold } from '@/features/household/use-household';
 import { estimateItemCost } from '@/features/pricing/price-item';
 import { usePriceIndex } from '@/features/pricing/use-recipe-cost';
+import { fetchTripTotalsInRange, receiptKeys } from '@/features/receipts/api';
 import { fetchCheckedItemsByMonth } from '@/features/shopping-list/api';
 
 export interface MonthSpend {
@@ -49,6 +50,12 @@ export function useSpendHistory(months = 6): SpendHistory {
     enabled: !!householdId,
   });
 
+  const { data: trips } = useQuery({
+    queryKey: receiptKeys.tripTotals(householdId ?? 'none', rangeStart, rangeEnd),
+    queryFn: () => fetchTripTotalsInRange(householdId as string, rangeStart, rangeEnd),
+    enabled: !!householdId,
+  });
+
   const canonicalIds = useMemo(
     () => (items ?? []).map((i) => i.canonicalId).filter((id): id is string => !!id),
     [items],
@@ -57,6 +64,12 @@ export function useSpendHistory(months = 6): SpendHistory {
 
   return useMemo(() => {
     const byMonth = new Map<string, number>(monthKeys.map((k) => [k.month, 0]));
+
+    // Receipt trips: attribute the total to the purchase month.
+    for (const t of trips ?? []) {
+      const month = t.purchasedOn.slice(0, 7); // yyyy-MM
+      if (byMonth.has(month)) byMonth.set(month, (byMonth.get(month) ?? 0) + t.totalCents);
+    }
 
     for (const item of items ?? []) {
       if (!byMonth.has(item.month)) continue;
@@ -84,7 +97,7 @@ export function useSpendHistory(months = 6): SpendHistory {
       storeId: index.storeId,
       isLoading: itemsLoading || index.isLoading,
     };
-  }, [items, index, monthKeys, household?.monthlyBudgetCents, itemsLoading]);
+  }, [items, index, monthKeys, household?.monthlyBudgetCents, itemsLoading, trips]);
 }
 
 /** Exposed for tests/formatting: full month label from a yyyy-MM key. */
