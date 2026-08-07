@@ -3,13 +3,13 @@
 // returns strict, Zod-validated JSON. The Anthropic API key never leaves the
 // server. Per-household monthly rate limiting via consume_ai_credit.
 //
-// Env: ANTHROPIC_API_KEY (secret), optional RECIPE_PARSE_MODEL, AI_MONTHLY_LIMIT.
+// Env: ANTHROPIC_API_KEY (secret), optional RECIPE_PARSE_MODEL. The monthly AI
+// limit is resolved server-side in consume_ai_credit (free vs premium).
 // SUPABASE_URL / SUPABASE_ANON_KEY are injected by the platform.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { z } from 'npm:zod@3.23.8';
 
 const MODEL = Deno.env.get('RECIPE_PARSE_MODEL') ?? 'claude-haiku-4-5';
-const MONTHLY_LIMIT = Number(Deno.env.get('AI_MONTHLY_LIMIT') ?? '50');
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',

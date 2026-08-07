@@ -1,12 +1,11 @@
 import { weekRange } from '@/features/planner/dates';
 import type { RecipeDetail } from '@/features/recipes/api';
-import { ImportError, urlImportToDetail } from '@/features/recipes/import';
+import { invokeAiFunction, urlImportToDetail } from '@/features/recipes/import';
 import {
   addAdHocItem,
   generateList,
   listShoppingLists,
 } from '@/features/shopping-list/api';
-import { supabase } from '@/lib/supabase/client';
 
 export interface MealIdea {
   title: string;
@@ -30,20 +29,12 @@ export async function suggestMeals(
   filters: string[] = [],
   count = 3,
 ): Promise<MealIdea[]> {
-  const { data, error } = await supabase.functions.invoke('suggest-meals', {
-    body: { ingredients, filters, count, household_id: householdId },
-  });
-  if (error) {
-    let body: { error?: string; limitReached?: boolean } | null = null;
-    try {
-      const ctx = (error as { context?: Response }).context;
-      if (ctx) body = await ctx.json();
-    } catch {
-      // non-JSON error body
-    }
-    throw new ImportError(body?.error ?? 'Could not come up with ideas', !!body?.limitReached);
-  }
-  return data.meals as MealIdea[];
+  const data = await invokeAiFunction<{ meals: MealIdea[] }>(
+    'suggest-meals',
+    { ingredients, filters, count, household_id: householdId },
+    'Could not come up with ideas',
+  );
+  return data.meals;
 }
 
 /**

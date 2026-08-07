@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useHousehold } from '@/features/household/use-household';
+import { pricingKeys } from '@/features/pricing/api';
 import {
   deleteTrip,
   listTrips,
@@ -45,10 +46,10 @@ function useInvalidateSpend() {
   const { householdId } = useHousehold();
   return () => {
     void qc.invalidateQueries({ queryKey: receiptKeys.trips(householdId ?? 'none') });
-    void qc.invalidateQueries({ queryKey: ['trip-totals'] });
-    void qc.invalidateQueries({ queryKey: ['spend-history'] });
-    void qc.invalidateQueries({ queryKey: ['month-checked-items'] });
-    void qc.invalidateQueries({ queryKey: ['current-prices'] });
+    void qc.invalidateQueries({ queryKey: receiptKeys.tripTotalsAll() });
+    for (const prefix of pricingKeys.spendAffected()) {
+      void qc.invalidateQueries({ queryKey: prefix });
+    }
   };
 }
 

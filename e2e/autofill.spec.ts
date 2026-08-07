@@ -42,11 +42,12 @@ test('auto-fill a month from the recipe library (all favorites)', async ({ page 
   await page.getByRole('button', { name: 'Dinner only' }).click();
   await page.getByRole('button', { name: 'Build a plan' }).click();
 
-  // Review step lists proposed meals from the library.
+  // Review step lists proposed meals from the library. Match the visible row
+  // title (a <span>), not the hidden <option>s in each row's swap <select>.
   await expect(page.getByRole('button', { name: /Fill \d+ meals?/ })).toBeVisible({
     timeout: 15000,
   });
-  await expect(page.getByText('Sheet-Pan Chicken').first()).toBeVisible();
+  await expect(page.locator('span', { hasText: 'Sheet-Pan Chicken' }).first()).toBeVisible();
 
   // Commit, panel closes, and entries show on the planner.
   await page.getByRole('button', { name: /Fill \d+ meals?/ }).click();

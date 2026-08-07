@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { useHousehold } from '@/features/household/use-household';
+import { pricingKeys } from '@/features/pricing/api';
 import { estimateItemCost } from '@/features/pricing/price-item';
 import { usePriceIndex } from '@/features/pricing/use-recipe-cost';
 import { fetchTripTotalsInRange, receiptKeys } from '@/features/receipts/api';
@@ -25,7 +26,7 @@ export function useMonthActualSpend(monthStart: string, monthEnd: string): Actua
   const { householdId } = useHousehold();
 
   const { data: items, isLoading: itemsLoading } = useQuery({
-    queryKey: ['month-checked-items', householdId ?? 'none', monthStart, monthEnd],
+    queryKey: pricingKeys.monthChecked(householdId ?? 'none', monthStart, monthEnd),
     queryFn: () => fetchMonthCheckedItems(householdId as string, monthStart, monthEnd),
     enabled: !!householdId,
   });

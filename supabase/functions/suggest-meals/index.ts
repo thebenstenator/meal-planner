@@ -9,14 +9,14 @@
 // Same guarantees as parse-recipe: the Anthropic key stays server-side, and the
 // call is rate-limited per household via consume_ai_credit.
 //
-// Env: ANTHROPIC_API_KEY (secret), optional SUGGEST_MODEL, AI_MONTHLY_LIMIT.
+// Env: ANTHROPIC_API_KEY (secret), optional SUGGEST_MODEL. The monthly AI limit
+// is resolved server-side in consume_ai_credit (free vs premium).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { z } from 'npm:zod@3.23.8';
 
 // Dinner ideas are a creative task, so default to Sonnet (what the source app
 // used); override to claude-haiku-4-5 via SUGGEST_MODEL to cut cost.
 const MODEL = Deno.env.get('SUGGEST_MODEL') ?? 'claude-sonnet-4-6';
-const MONTHLY_LIMIT = Number(Deno.env.get('AI_MONTHLY_LIMIT') ?? '50');
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',

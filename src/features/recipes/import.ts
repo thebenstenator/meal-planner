@@ -55,11 +55,12 @@ export function fileToImage(file: File): Promise<ImageInput & { preview: string 
 }
 
 /**
- * Invoke an import Edge Function, turning its structured error body into an
- * ImportError (preserving the server's message + limitReached flag). Both the
- * photo and URL import paths share this so error handling stays in one place.
+ * Invoke an AI Edge Function, turning its structured error body into an
+ * ImportError (preserving the server's message + limitReached flag). Every AI
+ * feature — photo/URL import, meal ideas, receipt scanning — shares this so the
+ * limit-reached handling lives in one place.
  */
-async function invokeImport<T>(
+export async function invokeAiFunction<T>(
   fn: string,
   body: Record<string, unknown>,
   fallbackMessage: string,
@@ -83,7 +84,7 @@ export async function parseRecipeImages(
   householdId: string,
   images: ImageInput[],
 ): Promise<ParsedRecipe> {
-  const data = await invokeImport<{ recipe: ParsedRecipe }>(
+  const data = await invokeAiFunction<{ recipe: ParsedRecipe }>(
     'parse-recipe',
     { images, household_id: householdId },
     'Could not read that recipe',
@@ -173,7 +174,7 @@ export async function parseRecipeUrl(
   url: string,
   opts: { jsonLdOnly?: boolean } = {},
 ): Promise<{ recipe: UrlRecipe; source: string }> {
-  const data = await invokeImport<{ recipe: UrlRecipe; source: string }>(
+  const data = await invokeAiFunction<{ recipe: UrlRecipe; source: string }>(
     'parse-recipe-url',
     { url, household_id: householdId, jsonLdOnly: opts.jsonLdOnly ?? false },
     'Could not read a recipe from that page',

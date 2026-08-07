@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-import { fetchConversionInfos } from '@/features/pricing/api';
+import { fetchConversionInfos, pricingKeys } from '@/features/pricing/api';
 import type { ConversionInfo, PriceInfo } from '@/features/pricing/price-item';
 import { recipeCost, type CostableIngredient, type RecipeCost } from '@/features/pricing/recipe-cost';
 import { useCurrentPrices, usePricingSettings } from '@/features/pricing/use-pricing';
@@ -26,7 +26,7 @@ export function usePriceIndex(canonicalIds: string[]): PriceIndex {
   const ids = useMemo(() => [...new Set(canonicalIds)].sort(), [canonicalIds]);
 
   const { data: infos, isLoading: infosLoading } = useQuery({
-    queryKey: ['conversion-infos', ids],
+    queryKey: pricingKeys.conversions(ids),
     queryFn: () => fetchConversionInfos(ids),
     enabled: ids.length > 0,
   });

@@ -4,6 +4,19 @@ export const pricingKeys = {
   stores: (householdId: string) => ['stores', householdId] as const,
   settings: (householdId: string) => ['pricing-settings', householdId] as const,
   currentPrices: (storeId: string) => ['current-prices', storeId] as const,
+  conversions: (ids: string[]) => ['conversion-infos', ids] as const,
+  monthChecked: (householdId: string, start: string, end: string) =>
+    ['month-checked-items', householdId, start, end] as const,
+  spendHistory: (householdId: string, start: string, end: string) =>
+    ['spend-history', householdId, start, end] as const,
+  /**
+   * Query-key prefixes for every price/spend-derived query — invalidate all of
+   * these after new prices or a trip land (e.g. from a scanned receipt), so the
+   * budget bar and spending page refresh. Single source of truth for the heads
+   * shared across features.
+   */
+  spendAffected: () =>
+    [['current-prices'], ['month-checked-items'], ['spend-history']] as const,
 };
 
 export interface Store {

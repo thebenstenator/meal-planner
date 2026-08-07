@@ -2,7 +2,7 @@ import { differenceInCalendarDays } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-import { fetchConversionInfos, type CurrentPrice } from '@/features/pricing/api';
+import { fetchConversionInfos, pricingKeys, type CurrentPrice } from '@/features/pricing/api';
 import { estimateItemCost } from '@/features/pricing/price-item';
 import { useCurrentPrices, usePricingSettings } from '@/features/pricing/use-pricing';
 import type { ShoppingItem } from '@/features/shopping-list/api';
@@ -35,7 +35,7 @@ export function useListPricing(items: ShoppingItem[]): ListPricing {
   );
 
   const { data: infos, isLoading: infosLoading } = useQuery({
-    queryKey: ['conversion-infos', canonicalIds],
+    queryKey: pricingKeys.conversions(canonicalIds),
     queryFn: () => fetchConversionInfos(canonicalIds),
     enabled: canonicalIds.length > 0,
   });

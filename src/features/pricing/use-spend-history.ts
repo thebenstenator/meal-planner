@@ -3,6 +3,7 @@ import { endOfMonth, format, parseISO, startOfMonth, subMonths } from 'date-fns'
 import { useMemo } from 'react';
 
 import { useHousehold } from '@/features/household/use-household';
+import { pricingKeys } from '@/features/pricing/api';
 import { estimateItemCost } from '@/features/pricing/price-item';
 import { usePriceIndex } from '@/features/pricing/use-recipe-cost';
 import { fetchTripTotalsInRange, receiptKeys } from '@/features/receipts/api';
@@ -45,7 +46,7 @@ export function useSpendHistory(months = 6): SpendHistory {
   }, [months]);
 
   const { data: items, isLoading: itemsLoading } = useQuery({
-    queryKey: ['spend-history', householdId ?? 'none', rangeStart, rangeEnd],
+    queryKey: pricingKeys.spendHistory(householdId ?? 'none', rangeStart, rangeEnd),
     queryFn: () => fetchCheckedItemsByMonth(householdId as string, rangeStart, rangeEnd),
     enabled: !!householdId,
   });

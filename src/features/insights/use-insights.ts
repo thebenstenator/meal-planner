@@ -15,6 +15,10 @@ import { toISO, weekRange } from '@/features/planner/dates';
 import { usePlanEntries } from '@/features/planner/use-planner';
 import { listLibraryForAutofill } from '@/features/recipes/api';
 
+export const insightsKeys = {
+  library: (householdId: string) => ['insights-library', householdId] as const,
+};
+
 export interface Insights {
   stale: LibraryRecipe[];
   expiring: ExpiringItem[];
@@ -35,7 +39,7 @@ export function useInsights(): Insights {
   const { start, end } = weekRange(new Date());
 
   const { data: library, isLoading: libLoading } = useQuery({
-    queryKey: ['insights-library', householdId ?? 'none'],
+    queryKey: insightsKeys.library(householdId ?? 'none'),
     queryFn: () => listLibraryForAutofill(householdId as string),
     enabled: !!householdId,
   });

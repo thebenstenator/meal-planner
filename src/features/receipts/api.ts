@@ -1,12 +1,14 @@
 import { matchCanonical } from '@/features/ingredients/api';
 import { addPriceRecord } from '@/features/pricing/api';
-import { ImportError } from '@/features/recipes/import';
+import { invokeAiFunction } from '@/features/recipes/import';
 import { supabase } from '@/lib/supabase/client';
 
 export const receiptKeys = {
   trips: (householdId: string) => ['trips', householdId] as const,
   tripTotals: (householdId: string, start: string, end: string) =>
     ['trip-totals', householdId, start, end] as const,
+  /** Prefix that matches every tripTotals query, for range-agnostic invalidation. */
+  tripTotalsAll: () => ['trip-totals'] as const,
 };
 
 export interface ParsedReceiptLine {
@@ -57,20 +59,12 @@ export async function parseReceiptImages(
   householdId: string,
   images: { media_type: string; data: string }[],
 ): Promise<ParsedReceipt> {
-  const { data, error } = await supabase.functions.invoke<ReceiptResponse>('parse-receipt', {
-    body: { images, household_id: householdId },
-  });
-  if (error) {
-    let body: { error?: string; limitReached?: boolean } | null = null;
-    try {
-      const ctx = (error as { context?: Response }).context;
-      if (ctx) body = await ctx.json();
-    } catch {
-      // non-JSON error body
-    }
-    throw new ImportError(body?.error ?? 'Could not read that receipt', !!body?.limitReached);
-  }
-  const r = (data as ReceiptResponse).receipt;
+  const data = await invokeAiFunction<ReceiptResponse>(
+    'parse-receipt',
+    { images, household_id: householdId },
+    'Could not read that receipt',
+  );
+  const r = data.receipt;
   return {
     storeName: r.store_name,
     purchasedOn: r.purchased_on,
