@@ -101,11 +101,14 @@ nothing but is the ambient, recurring value that justifies staying subscribed.
   matched lines with a price + chosen store. Removes the one recurring tedious
   step in keeping prices honest. Code: `src/features/receipts/*`,
   `routes/_authenticated/receipts.tsx`, migration `20260806140000_grocery_trips`.
-- **Smart reminders & surfacing** (zero AI cost): shopping-day and prep
-  reminders ("thaw the chicken tonight"), expiration alerts, "haven't made this
-  in a while," use-it-up suggestions, meal-type balance nudges. Individually
-  small; together they're the ambient weekly value that a one-time unlock can't
-  replicate.
+- **Smart reminders & surfacing** (zero AI cost): expiration alerts, "haven't
+  made this in a while," use-it-up suggestions, meal-type balance nudges.
+  Individually small; together they're the ambient weekly value that a one-time
+  unlock can't replicate. **In-app surfacing BUILT (Phase 4)** — premium home
+  dashboard (`/app`) with use-it-up (expiring pantry), haven't-made-in-a-while
+  (stale cook history), and mix-it-up (weekly repeats). Pure logic in
+  `src/features/insights/insights.ts`. *Push/prep reminders ("thaw the chicken
+  tonight") deferred to the native app — they need push infra.*
 
 **2. Unlimited AI (the cost-recovery gate):**
 - **Unlimited (or high-cap) AI**: recipe photo/PDF/URL import + meal ideas +
@@ -136,7 +139,8 @@ The gated tier has to actually drive sales. The honest read:
    composing features already built (planner, suggest-meals, cook stats).
 3. ✅ **Receipt scanning** (Phase 3) — the feature that decides whether this is a
    subscription business or a one-time-unlock business.
-4. **Smart reminders / surfacing** — *next.* Cheap, recurring, ships incrementally.
+4. ✅ **Smart in-app surfacing** (Phase 4) — cheap, recurring. (Push/prep
+   reminders still pending — deferred to the native app.)
 
 (Phase 1 = favorites + auto-maintained cook stats, the ranking signals auto-fill
 needs. Payment rails deferred — everyone grandfathered to premium during testing
