@@ -41,6 +41,7 @@ Legend: **[V1]** MVP · **[V2]** · **[V3]** · **[BL]** backlog
 | Servings override per entry | V2 | Feeds recipe scaling |
 | Copy week / copy month | V2 | Huge time saver, cheap to build |
 | Meal-type balance summary | V3 | "12 chicken nights, 2 vegetarian" — variety awareness |
+| **Auto-fill a balanced month** | V3 | **Premium flagship.** One-tap fill an empty/partial month mixing favorites, "haven't made in a while", and fresh AI ideas; balanced for variety, honors dietary tags, biased to use up pantry. Editable proposal, never auto-committed; regenerate any day. Composes suggest-meals + planner + consolidation. See `08-monetization.md`. |
 | Plan templates | BL | Save a favorite week as a reusable template |
 
 ## 3. Shopping list

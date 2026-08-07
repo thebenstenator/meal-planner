@@ -39,12 +39,22 @@ function BulkImportPage() {
     try {
       const fromPaste = text.trim() ? await draftsFromText(householdId, text) : [];
       const fromFiles: DraftRecipe[] = [];
+      const fails: UrlImportResult[] = [];
       for (const file of files ? [...files] : []) {
-        const content = await file.text();
-        const d = await draftFromFile(householdId, file.name, content);
-        if (d) fromFiles.push(d);
+        const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+        let content = '';
+        if (isPdf) {
+          const { extractPdfText } = await import('@/features/recipes/pdf-text');
+          content = await extractPdfText(file);
+        } else {
+          content = await file.text();
+        }
+        const draft = content.trim() ? await draftFromFile(householdId, file.name, content) : null;
+        if (draft) fromFiles.push(draft);
+        else fails.push({ url: file.name, draft: null, error: 'No readable text (a scan?)' });
       }
       setDrafts([...fromPaste, ...fromFiles]);
+      setFailures(fails);
       setSkip(new Set());
     } finally {
       setBusy(false);
@@ -142,12 +152,12 @@ function BulkImportPage() {
                 <label className="text-primary cursor-pointer text-sm underline">
                   <input
                     type="file"
-                    accept=".txt,.md,text/plain,text/markdown"
+                    accept=".txt,.md,.pdf,text/plain,text/markdown,application/pdf"
                     multiple
                     className="hidden"
                     onChange={(e) => parseText(e.target.files)}
                   />
-                  …or upload .txt / .md files
+                  …or upload .txt / .md / .pdf files
                 </label>
               </div>
             </>

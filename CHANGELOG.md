@@ -20,8 +20,13 @@ All notable changes to this project are documented here. One entry per slice
     matching); untick any, then save them all. Unmatched ingredients still save —
     fixable per recipe later.
   - Pure parser helpers with unit tests; e2e for the text path.
+  - **PDF files (digital/text):** upload `.pdf` files too — the text layer is
+    extracted **in the browser with pdf.js (no AI)**, then parsed like any other
+    text. Image-only/scanned PDFs (no text layer) are detected and listed as
+    "unreadable" (those still need the AI photo import). pdf.js loads lazily, only
+    when a PDF is processed. e2e extracts a generated text PDF and imports it.
   - **Note:** the URL bulk mode needs `supabase functions deploy parse-recipe-url`
-    (adds the `jsonLdOnly` mode). The text/file mode needs no deploy.
+    (adds the `jsonLdOnly` mode). The text/file/PDF modes need no deploy.
 
 ### Pantry: bulk import from a pasted list (no AI)
 
