@@ -174,3 +174,23 @@ test('bulk-imports a pasted list into the pantry', async ({ page }) => {
   await expect(page.getByText('cream cheese')).toBeVisible();
   await expect(page.getByText('all-purpose flour')).toBeVisible();
 });
+
+// Rows that don't match an existing canonical are created as new household
+// ingredients (rather than being silently skipped) and added to the pantry.
+test('bulk import adds unmatched rows as new ingredients', async ({ page }) => {
+  await signUp(page, uniqueEmail('bulknew'));
+
+  await page.goto('/pantry');
+  await page.getByRole('button', { name: 'Bulk add from a list' }).click();
+  await page.getByLabel('Paste your inventory').fill('eggs\nflorbnak');
+  await page.getByRole('button', { name: 'Preview' }).click();
+
+  // One matches a seeded canonical (eggs); the made-up one is flagged "new".
+  await expect(page.getByText(/1 added as new/)).toBeVisible();
+
+  await page.getByRole('button', { name: /Add 2 items/ }).click();
+  await expect(page.getByText(/Added 2 items/)).toBeVisible();
+
+  // The new ingredient was created and is now in the pantry.
+  await expect(page.getByText('florbnak')).toBeVisible();
+});

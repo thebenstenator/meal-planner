@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
+import { useCreateCanonical } from '@/features/ingredients/use-ingredients';
 import type { PantryLocation } from '@/features/pantry/api';
 import { parsePantryText, type PantryDraft } from '@/features/pantry/bulk-import';
 import { usePantryMutations } from '@/features/pantry/use-pantry';
@@ -13,11 +14,13 @@ const LOCATIONS: PantryLocation[] = ['pantry', 'fridge', 'freezer'];
 /**
  * Paste an inventory list (e.g. from a spreadsheet) and bulk-add it to the
  * pantry. Each line is parsed and matched to a canonical ingredient with the
- * engine + trigram matcher — no AI. Unmatched rows can be fixed inline; only
- * matched rows are added.
+ * engine + trigram matcher — no AI. Rows that don't match an existing ingredient
+ * are added as a new household ingredient (using the parsed name) unless you pick
+ * an existing one instead.
  */
 export function PantryBulkImport({ householdId }: { householdId: string }) {
   const { add } = usePantryMutations();
+  const createCanonical = useCreateCanonical();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [location, setLocation] = useState<PantryLocation>('pantry');
@@ -41,21 +44,36 @@ export function PantryBulkImport({ householdId }: { householdId: string }) {
     setRows((rs) => rs?.map((r, j) => (j === i ? { ...r, ...patch } : r)) ?? null);
   }
 
-  const matched = (rows ?? []).filter((r) => r.canonicalId);
-  const unmatched = (rows ?? []).length - matched.length;
+  // A row is addable as long as it has a name to add under — matched rows use
+  // their canonical, unmatched rows get one created from the parsed name.
+  const addable = (rows ?? []).filter((r) => r.name.trim() !== '');
+  const willCreate = addable.filter((r) => !r.canonicalId);
+  const skipped = (rows ?? []).length - addable.length;
 
   async function addAll() {
     setAdding(true);
     try {
-      for (const r of matched) {
+      for (const r of addable) {
+        const canonicalId =
+          r.canonicalId ??
+          (await createCanonical.mutateAsync({
+            name: r.name.trim(),
+            aliases: [],
+            category: null,
+            defaultUnit: null,
+            densityGPerMl: null,
+            unitSizeQuantity: null,
+            unitSizeUnit: null,
+            countToGram: null,
+          }));
         await add.mutateAsync({
-          canonicalId: r.canonicalId as string,
+          canonicalId,
           quantity: r.quantity ?? 0,
           unit: r.unit,
           location,
         });
       }
-      setAdded(matched.length);
+      setAdded(addable.length);
       setRows(null);
       setText('');
     } finally {
@@ -133,37 +151,45 @@ export function PantryBulkImport({ householdId }: { householdId: string }) {
               ))}
             </select>
             <span>
-              · {matched.length} matched{unmatched > 0 ? `, ${unmatched} need a match` : ''}
+              · {addable.length - willCreate.length} matched
+              {willCreate.length > 0 ? `, ${willCreate.length} added as new` : ''}
+              {skipped > 0 ? `, ${skipped} skipped` : ''}
             </span>
           </div>
 
-          {unmatched > 0 && (
+          {willCreate.length > 0 && (
             <p className="text-xs text-amber-700">
-              Highlighted rows need a match before they’ll be added — pick an ingredient for each.
+              Highlighted rows will be added as new ingredients. Pick an existing one instead if you
+              want to avoid a duplicate.
             </p>
           )}
 
           <ul className="space-y-2">
             {rows.map((row, i) => {
-              const needsMatch = !row.canonicalId;
+              const willCreateRow = !row.canonicalId && row.name.trim() !== '';
+              const noName = row.name.trim() === '' && !row.canonicalId;
               return (
               <li
                 key={i}
                 className={
-                  needsMatch
+                  willCreateRow
                     ? 'space-y-1 rounded border border-amber-400 bg-amber-50 p-2'
                     : 'space-y-1 rounded border p-2'
                 }
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-muted-foreground truncate text-xs">{row.raw}</span>
-                  {needsMatch ? (
-                    <span className="shrink-0 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
-                      needs match
-                    </span>
-                  ) : (
+                  {row.canonicalId ? (
                     <span className="shrink-0 text-[10px] font-medium text-emerald-700">
                       ✓ {row.canonicalName}
+                    </span>
+                  ) : noName ? (
+                    <span className="text-muted-foreground shrink-0 text-[10px] font-medium">
+                      skipped
+                    </span>
+                  ) : (
+                    <span className="shrink-0 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
+                      new
                     </span>
                   )}
                 </div>
@@ -198,8 +224,8 @@ export function PantryBulkImport({ householdId }: { householdId: string }) {
           </ul>
 
           <div className="flex gap-2">
-            <Button type="button" onClick={addAll} disabled={adding || matched.length === 0}>
-              {adding ? 'Adding…' : `Add ${matched.length} item${matched.length === 1 ? '' : 's'}`}
+            <Button type="button" onClick={addAll} disabled={adding || addable.length === 0}>
+              {adding ? 'Adding…' : `Add ${addable.length} item${addable.length === 1 ? '' : 's'}`}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setRows(null)}>
               Back
