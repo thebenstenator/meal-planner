@@ -137,10 +137,36 @@ export function PantryBulkImport({ householdId }: { householdId: string }) {
             </span>
           </div>
 
+          {unmatched > 0 && (
+            <p className="text-xs text-amber-700">
+              Highlighted rows need a match before they’ll be added — pick an ingredient for each.
+            </p>
+          )}
+
           <ul className="space-y-2">
-            {rows.map((row, i) => (
-              <li key={i} className="space-y-1 rounded border p-2">
-                <div className="text-muted-foreground truncate text-xs">{row.raw}</div>
+            {rows.map((row, i) => {
+              const needsMatch = !row.canonicalId;
+              return (
+              <li
+                key={i}
+                className={
+                  needsMatch
+                    ? 'space-y-1 rounded border border-amber-400 bg-amber-50 p-2'
+                    : 'space-y-1 rounded border p-2'
+                }
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground truncate text-xs">{row.raw}</span>
+                  {needsMatch ? (
+                    <span className="shrink-0 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
+                      needs match
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-[10px] font-medium text-emerald-700">
+                      ✓ {row.canonicalName}
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-[1fr_4rem_4rem] gap-1">
                   <CanonicalCombobox
                     value={{ id: row.canonicalId, name: row.canonicalName }}
@@ -167,7 +193,8 @@ export function PantryBulkImport({ householdId }: { householdId: string }) {
                   />
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
 
           <div className="flex gap-2">
