@@ -65,13 +65,16 @@ export function PantryBulkImport({ householdId }: { householdId: string }) {
 
   if (!open) {
     return (
-      <button
-        type="button"
-        className="text-primary text-sm underline"
-        onClick={() => setOpen(true)}
-      >
-        Bulk add from a list
-      </button>
+      <div className="flex items-center gap-2">
+        <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+          📋 Bulk add from a list
+        </Button>
+        {added != null && (
+          <span className="text-sm text-emerald-700">
+            Added {added} item{added === 1 ? '' : 's'}.
+          </span>
+        )}
+      </div>
     );
   }
 
