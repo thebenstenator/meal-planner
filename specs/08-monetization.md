@@ -93,9 +93,14 @@ nothing but is the ambient, recurring value that justifies staying subscribed.
 - **Meal ideas** (`suggest-meals`) — pantry-aware dinner ideas, saved straight
   to the plan and list. Sell the *integration*, not raw generation (that's the
   moat vs. free ChatGPT).
-- **Receipt scanning → automatic price updates** — removes the one recurring
-  tedious step in keeping prices honest. *Not built yet; highest-value thing to
-  build (see below).*
+- **Receipt scanning → automatic price updates** — **BUILT (Phase 3).** Snap a
+  grocery receipt (`parse-receipt` vision fn, metered); review store/date/total
+  + canonical-matched lines; saving logs a **grocery_trip** (now the source of
+  truth for *actual spend* — folds into the month + 6-month history on the
+  spending page) and appends **price_record**s (`source 'receipt_ocr'`) for
+  matched lines with a price + chosen store. Removes the one recurring tedious
+  step in keeping prices honest. Code: `src/features/receipts/*`,
+  `routes/_authenticated/receipts.tsx`, migration `20260806140000_grocery_trips`.
 - **Smart reminders & surfacing** (zero AI cost): shopping-day and prep
   reminders ("thaw the chicken tonight"), expiration alerts, "haven't made this
   in a while," use-it-up suggestions, meal-type balance nudges. Individually
@@ -129,9 +134,9 @@ The gated tier has to actually drive sales. The honest read:
 1. ✅ `useEntitlement()` + tier the AI limit (Phase 0) — plumbing everything needs.
 2. ✅ **Auto-fill a balanced month** (Phase 2) — the flagship recurring hook,
    composing features already built (planner, suggest-meals, cook stats).
-3. **Receipt scanning** — *next.* The feature that decides whether this is a
+3. ✅ **Receipt scanning** (Phase 3) — the feature that decides whether this is a
    subscription business or a one-time-unlock business.
-4. Smart reminders / surfacing — cheap, recurring, ships incrementally.
+4. **Smart reminders / surfacing** — *next.* Cheap, recurring, ships incrementally.
 
 (Phase 1 = favorites + auto-maintained cook stats, the ranking signals auto-fill
 needs. Payment rails deferred — everyone grandfathered to premium during testing
