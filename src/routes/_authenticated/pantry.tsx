@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
+import { resolveOrCreateCanonical } from '@/features/ingredients/resolve';
 import type { PantryItem, PantryLocation } from '@/features/pantry/api';
 import { PantryBulkImport } from '@/features/pantry/components/bulk-import';
 import { usePantry, usePantryMutations } from '@/features/pantry/use-pantry';
@@ -24,64 +25,78 @@ function PantryPage() {
     id: null,
     name: null,
   });
+  const [typed, setTyped] = useState('');
   const [qty, setQty] = useState('');
   const [unit, setUnit] = useState('');
   const [location, setLocation] = useState<PantryLocation>('pantry');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
+  const [busy, setBusy] = useState(false);
+  // Bumped after each add to remount + clear the combobox (its text is internal).
+  const [formKey, setFormKey] = useState(0);
 
   const items = data ?? [];
   const byLocation = new Map<PantryLocation, PantryItem[]>();
   for (const loc of LOCATIONS) byLocation.set(loc, []);
   for (const item of items) byLocation.get(item.location)?.push(item);
 
-  function submitAdd(e: React.FormEvent) {
+  async function submitAdd(e: React.FormEvent) {
     e.preventDefault();
     setFeedback(null);
 
-    // The most common snag: typed a name but never picked/created it.
-    if (!picked.id) {
-      setFeedback({
-        type: 'error',
-        message: 'Choose an ingredient from the dropdown first — or tap “Create …” to add a new one.',
-      });
+    const text = typed.trim();
+    // Nothing to go on — no pick and an empty box.
+    if (!picked.id && text === '') {
+      setFeedback({ type: 'error', message: 'Type an ingredient to add (e.g. “milk”).' });
       return;
     }
-
     const blankQty = qty.trim() === '';
     if (!blankQty && (!Number.isFinite(Number(qty)) || Number(qty) < 0)) {
       setFeedback({ type: 'error', message: 'Enter a valid amount, or leave it blank.' });
       return;
     }
+    if (!householdId) return;
 
-    const name = picked.name ?? 'Item';
-    add.mutate(
-      {
-        canonicalId: picked.id,
+    setBusy(true);
+    try {
+      // Prefer an explicit dropdown pick that still matches the box; otherwise
+      // resolve the typed text (match an existing ingredient, or create one).
+      const usePick = picked.id && text.toLowerCase() === (picked.name ?? '').trim().toLowerCase();
+      const target = usePick
+        ? { canonicalId: picked.id as string, name: picked.name ?? 'Item', created: false }
+        : await resolveOrCreateCanonical(householdId, text || (picked.name ?? ''));
+
+      await add.mutateAsync({
+        canonicalId: target.canonicalId,
         quantity: blankQty ? 0 : Number(qty),
         amountUnknown: blankQty,
         unit: unit.trim() || null,
         location,
-      },
-      {
-        onSuccess: () => {
-          setPicked({ id: null, name: null });
-          setQty('');
-          setUnit('');
-          setFeedback({ type: 'success', message: `Added ${name} to your ${location}.` });
-        },
-        onError: (err) => {
-          setFeedback({
-            type: 'error',
-            message:
-              err instanceof Error
-                ? `Couldn’t add that: ${err.message}`
-                : 'Couldn’t add that — please try again.',
-          });
-        },
-      },
-    );
+      });
+
+      setPicked({ id: null, name: null });
+      setTyped('');
+      setQty('');
+      setUnit('');
+      setFormKey((k) => k + 1);
+      setFeedback({
+        type: 'success',
+        message: target.created
+          ? `Added ${target.name} (new ingredient) to your ${location}.`
+          : `Added ${target.name} to your ${location}.`,
+      });
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message:
+          err instanceof Error
+            ? `Couldn’t add that: ${err.message}`
+            : 'Couldn’t add that — please try again.',
+      });
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -96,12 +111,18 @@ function PantryPage() {
       <form onSubmit={submitAdd} className="space-y-2 rounded-lg border p-3">
         <span className="text-sm font-medium">Add an item</span>
         <CanonicalCombobox
+          key={formKey}
           value={picked}
           onSelect={(id, name) => {
             setPicked({ id, name });
+            setTyped(name ?? '');
             setFeedback(null);
           }}
-          placeholder="Search ingredient…"
+          onTextChange={(t) => {
+            setTyped(t);
+            setFeedback(null);
+          }}
+          placeholder="Type an ingredient…"
         />
         <div className="flex gap-2">
           <Input
@@ -131,8 +152,8 @@ function PantryPage() {
               </option>
             ))}
           </select>
-          <Button type="submit" disabled={add.isPending}>
-            {add.isPending ? 'Adding…' : 'Add'}
+          <Button type="submit" disabled={busy || add.isPending}>
+            {busy || add.isPending ? 'Adding…' : 'Add'}
           </Button>
         </div>
         <p className="text-muted-foreground text-xs">

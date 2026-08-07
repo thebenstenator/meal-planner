@@ -19,21 +19,29 @@ async function signUp(page: Page, email: string, password = 'password123') {
   await expect(page).toHaveURL(/\/app/);
 }
 
-// The single-item add form gives clear feedback: guidance when no ingredient is
-// picked (the common snag), and a confirmation when one is added.
-test('pantry add shows guidance when nothing is picked, then confirms', async ({ page }) => {
+// The single-item add form is "type and add": no dropdown click required. It
+// resolves the typed name to an existing ingredient or creates one, and gives
+// clear success / guidance feedback.
+test('pantry add: type and add without picking, with clear feedback', async ({ page }) => {
   await signUp(page, uniqueEmail('addfeedback'));
   await page.goto('/pantry');
 
-  // Tapping Add without choosing an ingredient explains what to do (no silent no-op).
+  // Tapping Add with an empty box explains what to do (no silent no-op).
   await page.getByRole('button', { name: 'Add', exact: true }).click({ force: true });
-  await expect(page.getByText(/Choose an ingredient from the dropdown/)).toBeVisible();
+  await expect(page.getByText(/Type an ingredient to add/)).toBeVisible();
 
-  // Pick a real ingredient and add → success confirmation.
-  await page.getByPlaceholder('Search ingredient…').fill('cream cheese');
-  await page.getByRole('button', { name: /cream cheese/ }).first().click();
-  await page.getByRole('button', { name: 'Add', exact: true }).click({ force: true });
-  await expect(page.getByText(/Added .* to your pantry/)).toBeVisible();
+  // Type an existing ingredient and press Enter — no dropdown selection needed.
+  const box = page.getByPlaceholder('Type an ingredient…');
+  await box.fill('cream cheese');
+  await box.press('Enter');
+  await expect(page.getByText(/Added .*cream cheese.* to your pantry/i)).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: 'cream cheese' })).toBeVisible();
+
+  // A made-up name is created on the fly and flagged as new.
+  const box2 = page.getByPlaceholder('Type an ingredient…');
+  await box2.fill('florbnak');
+  await box2.press('Enter');
+  await expect(page.getByText(/new ingredient/i)).toBeVisible();
 });
 
 // Checking a matched item off the shopping list adds it to the pantry.
@@ -93,7 +101,7 @@ test('cooking a meal removes its ingredients from the pantry', async ({ page }) 
 
   // Stock the pantry with 16 oz cream cheese.
   await page.goto('/pantry');
-  await page.getByPlaceholder('Search ingredient…').fill('cream cheese');
+  await page.getByPlaceholder('Type an ingredient…').fill('cream cheese');
   await page.getByRole('button', { name: /cream cheese/ }).first().click();
   await page.getByLabel('Quantity', { exact: true }).fill('16');
   await page.getByLabel('Unit', { exact: true }).fill('oz');
@@ -115,7 +123,7 @@ test('suggests restocking a low pantry item, and adds it', async ({ page }) => {
 
   // Stock a nearly-empty item: 0.5 oz cream cheese (pkg 8 oz => ~6% => low).
   await page.goto('/pantry');
-  await page.getByPlaceholder('Search ingredient…').fill('cream cheese');
+  await page.getByPlaceholder('Type an ingredient…').fill('cream cheese');
   await page.getByRole('button', { name: /cream cheese/ }).first().click();
   await page.getByLabel('Quantity', { exact: true }).fill('0.5');
   await page.getByLabel('Unit', { exact: true }).fill('oz');
@@ -158,7 +166,7 @@ test('list generation subtracts pantry stock', async ({ page }) => {
 
   // Already have 4 oz on hand.
   await page.goto('/pantry');
-  await page.getByPlaceholder('Search ingredient…').fill('cream cheese');
+  await page.getByPlaceholder('Type an ingredient…').fill('cream cheese');
   await page.getByRole('button', { name: /cream cheese/ }).first().click();
   await page.getByLabel('Quantity', { exact: true }).fill('4');
   await page.getByLabel('Unit', { exact: true }).fill('oz');
@@ -195,7 +203,7 @@ test('unquantified pantry stock keeps an item off the generated list', async ({ 
 
   // Add cream cheese to the pantry with NO amount → it's flagged "in stock".
   await page.goto('/pantry');
-  await page.getByPlaceholder('Search ingredient…').fill('cream cheese');
+  await page.getByPlaceholder('Type an ingredient…').fill('cream cheese');
   await page.getByRole('button', { name: /cream cheese/ }).first().click();
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByLabel('Quantity of cream cheese')).toHaveAttribute('placeholder', 'in stock');

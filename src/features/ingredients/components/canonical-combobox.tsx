@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,9 @@ interface Props {
    * name so searching / "Create" is one tap instead of re-typing. */
   seedName?: string | null;
   onSelect: (id: string | null, name: string | null) => void;
+  /** Raw text as the user types — lets a parent resolve "type + Add" without
+   * requiring a dropdown click. */
+  onTextChange?: (text: string) => void;
   placeholder?: string;
 }
 
@@ -19,12 +22,11 @@ interface Props {
  * result sets the canonical id; a "Create" option adds a household ingredient
  * on the fly. Used by the recipe ingredient editor.
  */
-export function CanonicalCombobox({ value, seedName, onSelect, placeholder }: Props) {
+export function CanonicalCombobox({ value, seedName, onSelect, onTextChange, placeholder }: Props) {
   const [text, setText] = useState(value.name ?? seedName ?? '');
   const [open, setOpen] = useState(false);
   const { data } = useCanonicalList(open ? text : '');
   const create = useCreateCanonical();
-  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reflect external changes (e.g. after parsing a pasted block): show the
   // matched name, or fall back to the parsed name for unmatched rows.
@@ -45,11 +47,13 @@ export function CanonicalCombobox({ value, seedName, onSelect, placeholder }: Pr
         onChange={(e) => {
           setText(e.target.value);
           setOpen(true);
+          onTextChange?.(e.target.value);
         }}
         onFocus={() => setOpen(true)}
-        onBlur={() => {
-          blurTimer.current = setTimeout(() => setOpen(false), 150);
-        }}
+        // Close as soon as focus leaves so the dropdown never sits over the
+        // adjacent controls (e.g. the pantry "Add" button). Result/Create items
+        // use preventDefault on mousedown, so selecting one doesn't blur here.
+        onBlur={() => setOpen(false)}
         className={value.id ? '' : 'border-amber-400'}
       />
       {open && (results.length > 0 || showCreate) && (
