@@ -291,23 +291,41 @@ function ReviewStep({
       <p className="text-muted-foreground text-xs">
         {lines.length} item{lines.length === 1 ? '' : 's'} · {matchedCount} matched.
         {storeId
-          ? ' Matched items with a price update your store prices.'
-          : ' Pick a store to also update prices.'}
+          ? ' Matched items with a price update your store prices; highlighted (unmatched) ones still count toward the total but won’t update prices.'
+          : ' Highlighted items are unmatched — pick a store and match them to also update prices.'}
       </p>
 
       <ul className="space-y-2">
-        {lines.map((line, i) => (
-          <li key={i} className="space-y-1 rounded border p-2">
+        {lines.map((line, i) => {
+          const needsMatch = !line.canonicalId;
+          return (
+          <li
+            key={i}
+            className={
+              needsMatch
+                ? 'space-y-1 rounded border border-amber-400 bg-amber-50 p-2'
+                : 'space-y-1 rounded border p-2'
+            }
+          >
             <div className="flex items-center justify-between gap-2">
               <span className="text-muted-foreground truncate text-xs">{line.raw}</span>
-              <button
-                type="button"
-                aria-label={`Remove ${line.raw}`}
-                className="text-muted-foreground shrink-0 text-xs"
-                onClick={() => onRemoveLine(i)}
-              >
-                ✕
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                {needsMatch ? (
+                  <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
+                    no price match
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium text-emerald-700">✓ {line.canonicalName}</span>
+                )}
+                <button
+                  type="button"
+                  aria-label={`Remove ${line.raw}`}
+                  className="text-muted-foreground text-xs"
+                  onClick={() => onRemoveLine(i)}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-[1fr_3.5rem_3.5rem_4.5rem] gap-1">
               <CanonicalCombobox
@@ -343,7 +361,8 @@ function ReviewStep({
               />
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       <div className="flex gap-2">
