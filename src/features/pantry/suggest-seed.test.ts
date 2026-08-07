@@ -9,11 +9,12 @@ function item(over: Partial<SeedItem> & { canonicalName: string }): SeedItem {
 }
 
 describe('pantrySuggestSeed', () => {
-  it('drops snacks, drinks, spices, and obvious staples', () => {
+  it('drops snacks, drinks, spices, non-food (other), and obvious staples', () => {
     const items = [
       item({ canonicalName: 'potato chips', category: 'snacks' }),
       item({ canonicalName: 'cola', category: 'beverages' }),
       item({ canonicalName: 'cumin', category: 'spices' }),
+      item({ canonicalName: 'paper towels', category: 'other' }),
       item({ canonicalName: 'salt', category: 'pantry' }),
       item({ canonicalName: 'chicken thighs', category: 'meat' }),
     ];

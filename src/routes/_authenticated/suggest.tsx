@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useEntitlement } from '@/features/billing/use-entitlement';
 import { useHousehold } from '@/features/household/use-household';
+import { useClassifyIngredients } from '@/features/ingredients/use-ingredients';
 import { toISO } from '@/features/planner/dates';
 import { usePantry } from '@/features/pantry/use-pantry';
 import { expiringSoonSeed, pantrySuggestSeed } from '@/features/pantry/suggest-seed';
@@ -49,6 +51,21 @@ function SuggestPage() {
     () => (pantry ? expiringSoonSeed(pantry, today) : []),
     [pantry, today],
   );
+
+  // Uncategorized pantry items (the free guesser couldn't place) — one AI pass
+  // can sort them so the seed stops treating them as neutral. Deduped by id.
+  const { isPremium } = useEntitlement();
+  const classify = useClassifyIngredients();
+  const uncategorized = useMemo(() => {
+    const seen = new Set<string>();
+    const out: { canonicalId: string; name: string }[] = [];
+    for (const p of pantry ?? []) {
+      if (p.category || seen.has(p.canonicalId)) continue;
+      seen.add(p.canonicalId);
+      out.push({ canonicalId: p.canonicalId, name: p.canonicalName });
+    }
+    return out;
+  }, [pantry]);
 
   async function getIdeas() {
     if (!householdId || ingredients.length === 0) return;
@@ -133,6 +150,36 @@ function SuggestPage() {
                 Focuses on fresh and soon-to-expire ingredients — snacks, drinks, and staples are
                 skipped.
               </p>
+            </div>
+          )}
+
+          {/* Premium: sort items the free guesser left uncategorized (kept a
+              sibling of the seed block so its feedback survives the pantry
+              refetch that follows). */}
+          {isPremium && (uncategorized.length > 0 || classify.isSuccess || classify.isError) && (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {uncategorized.length > 0 && (
+                <button
+                  type="button"
+                  className="text-primary underline disabled:opacity-50"
+                  disabled={classify.isPending}
+                  onClick={() => classify.mutate(uncategorized)}
+                >
+                  {classify.isPending
+                    ? 'Sorting…'
+                    : `✨ Auto-sort ${uncategorized.length} uncategorized item${uncategorized.length === 1 ? '' : 's'}`}
+                </button>
+              )}
+              {classify.isError && (
+                <span className="text-destructive">
+                  {classify.error instanceof ImportError && classify.error.limitReached
+                    ? 'Monthly AI limit reached.'
+                    : 'Couldn’t sort those — try again.'}
+                </span>
+              )}
+              {classify.isSuccess && !classify.isPending && (
+                <span className="text-emerald-700">Sorted {classify.data} items.</span>
+              )}
             </div>
           )}
           <div className="flex flex-wrap gap-2">

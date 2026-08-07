@@ -157,6 +157,15 @@ export async function updateCanonical(id: string, input: CanonicalInput): Promis
   if (error) throw error;
 }
 
+/** Set just an ingredient's category (RLS no-ops on read-only global rows). */
+export async function setCanonicalCategory(id: string, category: string | null): Promise<void> {
+  const { error } = await supabase
+    .from('canonical_ingredient')
+    .update({ category })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 /** Soft-merge: point `sourceId` at `targetId` (household rows only, per RLS). */
 export async function mergeCanonical(sourceId: string, targetId: string): Promise<void> {
   const { error } = await supabase

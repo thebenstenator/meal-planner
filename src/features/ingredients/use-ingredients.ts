@@ -12,6 +12,7 @@ import {
   type CanonicalInput,
   type MatchResult,
 } from '@/features/ingredients/api';
+import { classifyAndSave } from '@/features/ingredients/classify';
 
 export function useCanonicalList(search: string) {
   const { householdId } = useHousehold();
@@ -57,6 +58,23 @@ export function useMergeCanonical() {
   return useMutation<void, Error, { sourceId: string; targetId: string }>({
     mutationFn: ({ sourceId, targetId }) => mergeCanonical(sourceId, targetId),
     onSuccess: invalidate,
+  });
+}
+
+/**
+ * AI-classify a set of uncategorized ingredients and save the categories back
+ * (premium; metered). Refreshes the pantry + ingredient lists so the "what can
+ * I make?" seed immediately reflects the new categories.
+ */
+export function useClassifyIngredients() {
+  const { householdId } = useHousehold();
+  const qc = useQueryClient();
+  return useMutation<number, Error, { canonicalId: string; name: string }[]>({
+    mutationFn: (items) => classifyAndSave(householdId as string, items),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['canonical-ingredients'] });
+      void qc.invalidateQueries({ queryKey: ['pantry'] });
+    },
   });
 }
 

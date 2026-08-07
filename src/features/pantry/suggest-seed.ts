@@ -7,10 +7,11 @@ export interface SeedItem {
   expiresOn: string | null;
 }
 
-// Categories that aren't cooking ingredients (snacks, drinks) or that the meal
-// generator already assumes as free staples (spices) — dropped so they don't
-// crowd out real ingredients.
-const EXCLUDE_CATEGORIES = new Set(['snacks', 'beverages', 'spices']);
+// Categories that aren't cooking ingredients (snacks, drinks, non-food) or that
+// the meal generator already assumes as free staples (spices) — dropped so they
+// don't crowd out real ingredients. 'other' is what the AI classifier assigns to
+// non-food items (paper towels, etc.).
+const EXCLUDE_CATEGORIES = new Set(['snacks', 'beverages', 'spices', 'other']);
 
 // Perishable categories — the "cook it before it goes bad" items we bias toward.
 const PERISHABLE = new Set(['produce', 'meat', 'seafood', 'dairy', 'frozen', 'bakery']);
