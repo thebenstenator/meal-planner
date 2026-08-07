@@ -19,6 +19,23 @@ async function signUp(page: Page, email: string, password = 'password123') {
   await expect(page).toHaveURL(/\/app/);
 }
 
+// The single-item add form gives clear feedback: guidance when no ingredient is
+// picked (the common snag), and a confirmation when one is added.
+test('pantry add shows guidance when nothing is picked, then confirms', async ({ page }) => {
+  await signUp(page, uniqueEmail('addfeedback'));
+  await page.goto('/pantry');
+
+  // Tapping Add without choosing an ingredient explains what to do (no silent no-op).
+  await page.getByRole('button', { name: 'Add', exact: true }).click({ force: true });
+  await expect(page.getByText(/Choose an ingredient from the dropdown/)).toBeVisible();
+
+  // Pick a real ingredient and add → success confirmation.
+  await page.getByPlaceholder('Search ingredient…').fill('cream cheese');
+  await page.getByRole('button', { name: /cream cheese/ }).first().click();
+  await page.getByRole('button', { name: 'Add', exact: true }).click({ force: true });
+  await expect(page.getByText(/Added .* to your pantry/)).toBeVisible();
+});
+
 // Checking a matched item off the shopping list adds it to the pantry.
 test('buying a matched item adds it to the pantry', async ({ page }) => {
   await signUp(page, uniqueEmail('pantry'));

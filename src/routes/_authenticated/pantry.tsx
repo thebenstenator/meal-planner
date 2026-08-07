@@ -27,6 +27,9 @@ function PantryPage() {
   const [qty, setQty] = useState('');
   const [unit, setUnit] = useState('');
   const [location, setLocation] = useState<PantryLocation>('pantry');
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null,
+  );
 
   const items = data ?? [];
   const byLocation = new Map<PantryLocation, PantryItem[]>();
@@ -35,8 +38,24 @@ function PantryPage() {
 
   function submitAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!picked.id) return;
+    setFeedback(null);
+
+    // The most common snag: typed a name but never picked/created it.
+    if (!picked.id) {
+      setFeedback({
+        type: 'error',
+        message: 'Choose an ingredient from the dropdown first — or tap “Create …” to add a new one.',
+      });
+      return;
+    }
+
     const blankQty = qty.trim() === '';
+    if (!blankQty && (!Number.isFinite(Number(qty)) || Number(qty) < 0)) {
+      setFeedback({ type: 'error', message: 'Enter a valid amount, or leave it blank.' });
+      return;
+    }
+
+    const name = picked.name ?? 'Item';
     add.mutate(
       {
         canonicalId: picked.id,
@@ -50,6 +69,16 @@ function PantryPage() {
           setPicked({ id: null, name: null });
           setQty('');
           setUnit('');
+          setFeedback({ type: 'success', message: `Added ${name} to your ${location}.` });
+        },
+        onError: (err) => {
+          setFeedback({
+            type: 'error',
+            message:
+              err instanceof Error
+                ? `Couldn’t add that: ${err.message}`
+                : 'Couldn’t add that — please try again.',
+          });
         },
       },
     );
@@ -68,7 +97,10 @@ function PantryPage() {
         <span className="text-sm font-medium">Add an item</span>
         <CanonicalCombobox
           value={picked}
-          onSelect={(id, name) => setPicked({ id, name })}
+          onSelect={(id, name) => {
+            setPicked({ id, name });
+            setFeedback(null);
+          }}
           placeholder="Search ingredient…"
         />
         <div className="flex gap-2">
@@ -99,14 +131,23 @@ function PantryPage() {
               </option>
             ))}
           </select>
-          <Button type="submit" disabled={!picked.id || add.isPending}>
-            Add
+          <Button type="submit" disabled={add.isPending}>
+            {add.isPending ? 'Adding…' : 'Add'}
           </Button>
         </div>
         <p className="text-muted-foreground text-xs">
           Leave the amount blank if you have it but haven’t measured it — it’ll count as in stock
           and stay off your shopping list.
         </p>
+        {feedback && (
+          <p
+            role="status"
+            aria-live="polite"
+            className={feedback.type === 'success' ? 'text-sm text-emerald-700' : 'text-destructive text-sm'}
+          >
+            {feedback.message}
+          </p>
+        )}
       </form>
 
       {householdId && <PantryBulkImport householdId={householdId} />}
