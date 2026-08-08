@@ -35,7 +35,9 @@ export default defineConfig({
         theme_color: '#0f172a',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/',
+        // Launch straight into the app; `/` redirects by auth, but starting at
+        // /app skips that hop for the (usually signed-in) installed user.
+        start_url: '/app',
         icons: [
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },

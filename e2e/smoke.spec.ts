@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-test('landing page renders', async ({ page }) => {
+test('root redirects a signed-out visitor to login', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Mealplan' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Open the app' })).toBeVisible();
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 });
 
 test('health route reports ok', async ({ page }) => {
