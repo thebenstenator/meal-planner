@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { fromISO, weekRange } from '@/features/planner/dates';
+import { ScanButton } from '@/features/scanner/scan-button';
 import type { ShoppingListSummary } from '@/features/shopping-list/api';
 import {
   useAddToRunningList,
@@ -114,10 +115,19 @@ function RunningListCard({ running }: { running?: ShoppingListSummary }) {
     name: null,
   });
   const [typed, setTyped] = useState('');
+  const [seed, setSeed] = useState('');
   const [comboKey, setComboKey] = useState(0);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
+
+  function onScanned(name: string) {
+    setSeed(name);
+    setTyped(name);
+    setPicked({ id: null, name: null });
+    setComboKey((k) => k + 1);
+    setFeedback(null);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -134,6 +144,7 @@ function RunningListCard({ running }: { running?: ShoppingListSummary }) {
       });
       setPicked({ id: null, name: null });
       setTyped('');
+      setSeed('');
       setComboKey((k) => k + 1);
     } catch {
       setFeedback({ type: 'error', message: 'Couldn’t add that — please try again.' });
@@ -161,6 +172,7 @@ function RunningListCard({ running }: { running?: ShoppingListSummary }) {
             <CanonicalCombobox
               key={comboKey}
               value={picked}
+              seedName={seed || undefined}
               onSelect={(id, name) => {
                 setPicked({ id, name });
                 setTyped(name ?? '');
@@ -173,6 +185,7 @@ function RunningListCard({ running }: { running?: ShoppingListSummary }) {
               placeholder="Add something you need…"
             />
           </div>
+          <ScanButton size="default" onResult={onScanned} />
           <Button type="submit" disabled={add.isPending}>
             {add.isPending ? 'Adding…' : 'Add'}
           </Button>

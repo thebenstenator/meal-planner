@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { isLowStock } from '@/features/pantry/low-stock';
+import { ScanButton } from '@/features/scanner/scan-button';
 import {
   useApplyPurchaseToPantry,
   usePantry,
@@ -600,6 +601,7 @@ function AddItemForm({
     name: null,
   });
   const [typed, setTyped] = useState('');
+  const [seed, setSeed] = useState('');
   const [qty, setQty] = useState('');
   const [unit, setUnit] = useState('');
   const [comboKey, setComboKey] = useState(0);
@@ -607,6 +609,14 @@ function AddItemForm({
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
+
+  function onScanned(name: string) {
+    setSeed(name);
+    setTyped(name);
+    setPicked({ id: null, name: null });
+    setComboKey((k) => k + 1);
+    setFeedback(null);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -624,6 +634,7 @@ function AddItemForm({
       });
       setPicked({ id: null, name: null });
       setTyped('');
+      setSeed('');
       setQty('');
       setUnit('');
       setComboKey((k) => k + 1);
@@ -636,11 +647,12 @@ function AddItemForm({
 
   return (
     <form className="space-y-2 rounded-lg border p-3" onSubmit={submit}>
-      <div className="flex items-end gap-2">
+      <div className="flex flex-wrap items-end gap-2">
         <div className="flex-1">
           <CanonicalCombobox
             key={comboKey}
             value={picked}
+            seedName={seed || undefined}
             onSelect={(id, name) => {
               setPicked({ id, name });
               setTyped(name ?? '');
@@ -655,6 +667,7 @@ function AddItemForm({
         </div>
         <Input aria-label="Add item quantity" className="w-16" placeholder="qty" value={qty} onChange={(e) => setQty(e.target.value)} />
         <Input aria-label="Add item unit" className="w-16" placeholder="unit" value={unit} onChange={(e) => setUnit(e.target.value)} />
+        <ScanButton size="default" onResult={onScanned} />
         <Button type="submit" disabled={busy}>
           {busy ? 'Adding…' : 'Add'}
         </Button>

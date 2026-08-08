@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { resolveOrCreateCanonical } from '@/features/ingredients/resolve';
+import { ScanButton } from '@/features/scanner/scan-button';
 import type { PantryItem, PantryLocation } from '@/features/pantry/api';
 import { PantryBulkImport } from '@/features/pantry/components/bulk-import';
 import { usePantry, usePantryMutations } from '@/features/pantry/use-pantry';
@@ -33,8 +34,18 @@ function PantryPage() {
     null,
   );
   const [busy, setBusy] = useState(false);
-  // Bumped after each add to remount + clear the combobox (its text is internal).
+  // Seed text (e.g. from a barcode scan) to preload the combobox with.
+  const [seed, setSeed] = useState('');
+  // Bumped after each add / scan to remount the combobox (its text is internal).
   const [formKey, setFormKey] = useState(0);
+
+  function onScanned(name: string) {
+    setSeed(name);
+    setTyped(name);
+    setPicked({ id: null, name: null });
+    setFormKey((k) => k + 1);
+    setFeedback(null);
+  }
 
   const items = data ?? [];
   const byLocation = new Map<PantryLocation, PantryItem[]>();
@@ -77,6 +88,7 @@ function PantryPage() {
 
       setPicked({ id: null, name: null });
       setTyped('');
+      setSeed('');
       setQty('');
       setUnit('');
       setFormKey((k) => k + 1);
@@ -109,10 +121,14 @@ function PantryPage() {
       </div>
 
       <form onSubmit={submitAdd} className="space-y-2 rounded-lg border p-3">
-        <span className="text-sm font-medium">Add an item</span>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Add an item</span>
+          <ScanButton size="sm" onResult={onScanned} />
+        </div>
         <CanonicalCombobox
           key={formKey}
           value={picked}
+          seedName={seed || undefined}
           onSelect={(id, name) => {
             setPicked({ id, name });
             setTyped(name ?? '');
