@@ -49,6 +49,8 @@ export default defineConfig({
         // Serve the SPA shell for offline route navigations (deep links).
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/auth\//, /supabase/],
+        // Layer push + notification-click handlers onto the generated SW.
+        importScripts: ['push-sw.js'],
       },
       devOptions: {
         enabled: false,

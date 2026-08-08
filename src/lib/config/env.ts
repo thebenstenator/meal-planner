@@ -35,6 +35,10 @@ const envSchema = z.object({
 
   VITE_ENABLE_SENTRY: boolFromString,
   VITE_ENABLE_POSTHOG: boolFromString,
+
+  // Web Push VAPID public key (base64url). Empty until configured — the
+  // reminders UI stays off rather than erroring.
+  VITE_VAPID_PUBLIC_KEY: z.string().default(''),
 });
 
 const parsed = envSchema.safeParse(import.meta.env);

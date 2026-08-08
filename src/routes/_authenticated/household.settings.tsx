@@ -7,6 +7,7 @@ import { MembersCard } from '@/features/household/components/members-card';
 import { ProfileCard } from '@/features/household/components/profile-card';
 import { RenameCard } from '@/features/household/components/rename-card';
 import { useHousehold } from '@/features/household/use-household';
+import { RemindersCard } from '@/features/reminders/components/reminders-card';
 
 export const Route = createFileRoute('/_authenticated/household/settings')({
   component: HouseholdSettingsPage,
@@ -42,6 +43,7 @@ function HouseholdSettingsPage() {
             monthlyBudgetCents={household.monthlyBudgetCents}
             canEdit={role === 'owner'}
           />
+          <RemindersCard />
           <MembersCard householdId={householdId} />
           <InviteCard householdId={householdId} />
           <JoinCard />
