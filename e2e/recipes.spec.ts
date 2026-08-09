@@ -20,8 +20,9 @@ test('create a recipe by pasting ingredients, then soft-delete and restore', asy
   await expect(page.getByRole('heading', { name: 'Recipes' })).toBeVisible();
   await expect(page.getByText('No recipes yet')).toBeVisible();
 
-  // Create via the paste flow.
-  await page.getByRole('link', { name: 'New recipe' }).click();
+  // Create via the paste flow — through the consolidated "Add recipe" menu.
+  await page.getByRole('button', { name: 'Add recipe' }).click();
+  await page.getByRole('menuitem', { name: /Enter manually/ }).click();
   await page.getByLabel('Title').fill('Test Cheesecake');
   await page.getByLabel('Paste ingredients').fill(
     ['2 cups all-purpose flour', '1 (8 oz) package cream cheese, softened', '3 large eggs'].join(

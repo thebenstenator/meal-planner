@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
+import { AddMenu } from '@/components/add-menu';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ export const Route = createFileRoute('/_authenticated/recipes/')({
 });
 
 function RecipeLibrary() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [mealType, setMealType] = useState('');
   const [showTrash, setShowTrash] = useState(false);
@@ -29,17 +31,29 @@ function RecipeLibrary() {
     <main className="mx-auto max-w-2xl space-y-5 px-4 py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Recipes</h1>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link to="/recipes/import">Import</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/recipes/bulk-import">Bulk</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/recipes/new">New recipe</Link>
-          </Button>
-        </div>
+        <AddMenu
+          label="Add recipe"
+          methods={[
+            {
+              label: 'Enter manually',
+              icon: '✏️',
+              description: 'Type in a recipe yourself',
+              onSelect: () => void navigate({ to: '/recipes/new' }),
+            },
+            {
+              label: 'From photo, link, or PDF',
+              icon: '📷',
+              description: 'AI reads it for you (uses credits)',
+              onSelect: () => void navigate({ to: '/recipes/import' }),
+            },
+            {
+              label: 'Bulk paste or files',
+              icon: '📋',
+              description: 'Add several at once — free, no AI',
+              onSelect: () => void navigate({ to: '/recipes/bulk-import' }),
+            },
+          ]}
+        />
       </div>
 
       <div className="space-y-3">
