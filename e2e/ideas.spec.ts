@@ -38,7 +38,8 @@ test('AI auto-sorts uncategorized pantry items (stubbed)', async ({ page }) => {
 
   // Bulk-add a made-up item → created with no category (guesser can't place it).
   await page.goto('/pantry');
-  await page.getByRole('button', { name: 'Bulk add from a list' }).click();
+  await page.getByRole('button', { name: 'Add item' }).click();
+  await page.getByRole('menuitem', { name: /Bulk add from a list/ }).click();
   await page.getByLabel('Paste your inventory').fill('florbnak');
   await page.getByRole('button', { name: 'Preview' }).click();
   await page.getByRole('button', { name: /Add 1 item/ }).click();

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 
+import { AddMenu } from '@/components/add-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
@@ -30,6 +31,7 @@ function PantryPage() {
   const [qty, setQty] = useState('');
   const [unit, setUnit] = useState('');
   const [location, setLocation] = useState<PantryLocation>('pantry');
+  const [addMode, setAddMode] = useState<'single' | 'bulk'>('single');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
@@ -113,13 +115,33 @@ function PantryPage() {
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Pantry</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          What you have on hand. Set it up once — later it updates as you shop and cook.
-        </p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold">Pantry</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            What you have on hand. Set it up once — later it updates as you shop and cook.
+          </p>
+        </div>
+        <AddMenu
+          label="Add item"
+          methods={[
+            {
+              label: 'Add one item',
+              icon: '✏️',
+              description: 'Type or scan a single item',
+              onSelect: () => setAddMode('single'),
+            },
+            {
+              label: 'Bulk add from a list',
+              icon: '📋',
+              description: 'Paste a spreadsheet or list',
+              onSelect: () => setAddMode('bulk'),
+            },
+          ]}
+        />
       </div>
 
+      {addMode === 'single' && (
       <form onSubmit={submitAdd} className="space-y-2 rounded-lg border p-3">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Add an item</span>
@@ -186,8 +208,11 @@ function PantryPage() {
           </p>
         )}
       </form>
+      )}
 
-      {householdId && <PantryBulkImport householdId={householdId} />}
+      {addMode === 'bulk' && householdId && (
+        <PantryBulkImport householdId={householdId} onClose={() => setAddMode('single')} />
+      )}
 
       {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
       {isError && <p className="text-destructive text-sm">Couldn’t load your pantry.</p>}

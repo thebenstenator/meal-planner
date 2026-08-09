@@ -19,10 +19,15 @@ const LOCATIONS: PantryLocation[] = ['pantry', 'fridge', 'freezer'];
  * are added as a new household ingredient (using the parsed name) unless you pick
  * an existing one instead.
  */
-export function PantryBulkImport({ householdId }: { householdId: string }) {
+export function PantryBulkImport({
+  householdId,
+  onClose,
+}: {
+  householdId: string;
+  onClose?: () => void;
+}) {
   const { add } = usePantryMutations();
   const createCanonical = useCreateCanonical();
-  const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [location, setLocation] = useState<PantryLocation>('pantry');
   const [rows, setRows] = useState<PantryDraft[] | null>(null);
@@ -83,21 +88,6 @@ export function PantryBulkImport({ householdId }: { householdId: string }) {
     }
   }
 
-  if (!open) {
-    return (
-      <div className="flex items-center gap-2">
-        <Button type="button" variant="outline" onClick={() => setOpen(true)}>
-          📋 Bulk add from a list
-        </Button>
-        {added != null && (
-          <span className="text-sm text-emerald-700">
-            Added {added} item{added === 1 ? '' : 's'}.
-          </span>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-2 rounded-lg border p-3">
       <div className="flex items-center justify-between">
@@ -106,8 +96,8 @@ export function PantryBulkImport({ householdId }: { householdId: string }) {
           type="button"
           className="text-muted-foreground text-xs underline"
           onClick={() => {
-            setOpen(false);
             setRows(null);
+            onClose?.();
           }}
         >
           Close

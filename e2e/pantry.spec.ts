@@ -220,7 +220,8 @@ test('bulk-imports a pasted list into the pantry', async ({ page }) => {
   await signUp(page, uniqueEmail('bulk'));
 
   await page.goto('/pantry');
-  await page.getByRole('button', { name: 'Bulk add from a list' }).click();
+  await page.getByRole('button', { name: 'Add item' }).click();
+  await page.getByRole('menuitem', { name: /Bulk add from a list/ }).click();
   await page
     .getByLabel('Paste your inventory')
     .fill('2 cups flour\ncream cheese, 8 oz\neggs');
@@ -241,7 +242,8 @@ test('bulk import adds unmatched rows as new ingredients', async ({ page }) => {
   await signUp(page, uniqueEmail('bulknew'));
 
   await page.goto('/pantry');
-  await page.getByRole('button', { name: 'Bulk add from a list' }).click();
+  await page.getByRole('button', { name: 'Add item' }).click();
+  await page.getByRole('menuitem', { name: /Bulk add from a list/ }).click();
   await page.getByLabel('Paste your inventory').fill('eggs\nflorbnak');
   await page.getByRole('button', { name: 'Preview' }).click();
 
