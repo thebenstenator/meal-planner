@@ -52,7 +52,7 @@ test('buying a matched item adds it to the pantry', async ({ page }) => {
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill('Pantry Test');
   await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Pantry Test' })).toBeVisible();
@@ -69,7 +69,7 @@ test('buying a matched item adds it to the pantry', async ({ page }) => {
 
   // Generate the list (auto-navigates to the list detail), then buy it.
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
   await expect(page.getByText('cream cheese').first()).toBeVisible();
   await page.getByRole('checkbox', { name: 'Check off cream cheese' }).click({ force: true });
   await page.waitForLoadState('networkidle');
@@ -88,7 +88,7 @@ test('cooking a meal removes its ingredients from the pantry', async ({ page }) 
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill('Cook Test');
   await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Cook Test' })).toBeVisible();
@@ -132,7 +132,7 @@ test('suggests restocking a low pantry item, and adds it', async ({ page }) => {
 
   // Generate a list; the low item is suggested under "Running low".
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
   const low = page.getByRole('heading', { name: 'Running low' }).locator('..');
   await expect(low).toBeVisible();
   await expect(low.getByText('cream cheese')).toBeVisible();
@@ -153,7 +153,7 @@ test('list generation subtracts pantry stock', async ({ page }) => {
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill('Offset Test');
   await page.getByLabel('Paste ingredients').fill('12 oz cream cheese');
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Offset Test' })).toBeVisible();
@@ -175,7 +175,7 @@ test('list generation subtracts pantry stock', async ({ page }) => {
 
   // Generate with the pantry offset on (default) → need 12 - 4 = buy 8.
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
   await expect(page.getByText('cream cheese').first()).toBeVisible();
   await expect(page.getByText(/4 oz already in your pantry/)).toBeVisible();
 });
@@ -190,7 +190,7 @@ test('unquantified pantry stock keeps an item off the generated list', async ({ 
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill('Unknown Stock Test');
   await page.getByLabel('Paste ingredients').fill('12 oz cream cheese\n2 cups all-purpose flour');
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (2)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Unknown Stock Test' })).toBeVisible();
@@ -210,7 +210,7 @@ test('unquantified pantry stock keeps an item off the generated list', async ({ 
 
   // Generate → flour (not on hand) is listed; cream cheese (in stock) is not.
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
   await expect(page.getByText(/flour/i).first()).toBeVisible();
   await expect(page.getByText(/cream cheese/i)).toHaveCount(0);
 });
@@ -220,8 +220,7 @@ test('bulk-imports a pasted list into the pantry', async ({ page }) => {
   await signUp(page, uniqueEmail('bulk'));
 
   await page.goto('/pantry');
-  await page.getByRole('button', { name: 'Add item' }).click();
-  await page.getByRole('menuitem', { name: /Bulk add from a list/ }).click();
+  await page.getByRole('button', { name: 'Many items' }).click();
   await page
     .getByLabel('Paste your inventory')
     .fill('2 cups flour\ncream cheese, 8 oz\neggs');
@@ -242,8 +241,7 @@ test('bulk import adds unmatched rows as new ingredients', async ({ page }) => {
   await signUp(page, uniqueEmail('bulknew'));
 
   await page.goto('/pantry');
-  await page.getByRole('button', { name: 'Add item' }).click();
-  await page.getByRole('menuitem', { name: /Bulk add from a list/ }).click();
+  await page.getByRole('button', { name: 'Many items' }).click();
   await page.getByLabel('Paste your inventory').fill('eggs\nflorbnak');
   await page.getByRole('button', { name: 'Preview' }).click();
 

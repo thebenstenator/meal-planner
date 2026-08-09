@@ -75,7 +75,7 @@ function ShoppingListsPage() {
             <p className="text-destructive text-sm">Couldn’t generate. Try again.</p>
           )}
           <Button onClick={onGenerate} disabled={generate.isPending}>
-            {generate.isPending ? 'Generating…' : 'Generate consolidated list'}
+            {generate.isPending ? 'Generating…' : 'Generate list'}
           </Button>
         </CardContent>
       </Card>

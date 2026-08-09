@@ -55,7 +55,7 @@ export function EntryChip({
             className={cn(cooked ? 'text-emerald-600' : 'text-muted-foreground hover:text-foreground')}
             onClick={onToggleCooked}
           >
-            {cooked ? '✓' : '🍳'}
+            {cooked ? '✓' : '○'}
           </button>
         )}
         {costCents != null && (

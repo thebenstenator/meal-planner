@@ -148,8 +148,7 @@ function ImportRecipePage() {
               {images.map((img, i) => (
                 <li key={i} className="relative">
                   {img.media_type === 'application/pdf' ? (
-                    <div className="bg-muted text-muted-foreground flex h-28 w-full flex-col items-center justify-center rounded text-xs">
-                      <span className="text-lg">📄</span>
+                    <div className="bg-muted text-muted-foreground flex h-28 w-full items-center justify-center rounded text-xs font-medium">
                       PDF
                     </div>
                   ) : (
@@ -173,7 +172,7 @@ function ImportRecipePage() {
           )}
 
           <Button onClick={parse} disabled={step === 'parsing' || images.length === 0}>
-            {step === 'parsing' ? 'Reading recipe…' : 'Parse recipe'}
+            {step === 'parsing' ? 'Reading recipe…' : 'Read recipe'}
           </Button>
         </>
       )}
@@ -181,11 +180,11 @@ function ImportRecipePage() {
       {step === 'error' && error && (
         <div className="space-y-3 rounded-lg border p-4">
           <p className="font-medium">
-            {error.limitReached ? 'Monthly import limit reached' : 'Couldn’t read that recipe'}
+            {error.limitReached ? 'Monthly limit reached' : 'Couldn’t read that recipe'}
           </p>
           <p className="text-muted-foreground text-sm">
             {error.limitReached
-              ? 'You’ve used this month’s AI imports. You can still add recipes by hand.'
+              ? 'You’ve reached this month’s limit. You can still add recipes by hand.'
               : error.message}
           </p>
           <div className="flex gap-2">

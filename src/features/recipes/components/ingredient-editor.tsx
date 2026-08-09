@@ -64,7 +64,7 @@ export function IngredientEditor({ householdId, value, onChange }: Props) {
           rows={4}
         />
         <Button type="button" onClick={parseBlock} disabled={parsing || block.trim().length === 0}>
-          {parsing ? 'Parsing…' : 'Parse & add rows'}
+          {parsing ? 'Adding…' : 'Add rows'}
         </Button>
       </div>
 

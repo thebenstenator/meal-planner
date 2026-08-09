@@ -21,10 +21,11 @@ const LOCATIONS: PantryLocation[] = ['pantry', 'fridge', 'freezer'];
  */
 export function PantryBulkImport({
   householdId,
-  onClose,
+  embedded,
 }: {
   householdId: string;
-  onClose?: () => void;
+  /** Rendered inside an existing card (no border, no header/close). */
+  embedded?: boolean;
 }) {
   const { add } = usePantryMutations();
   const createCanonical = useCreateCanonical();
@@ -89,21 +90,7 @@ export function PantryBulkImport({
   }
 
   return (
-    <div className="space-y-2 rounded-lg border p-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">Bulk add from a list</span>
-        <button
-          type="button"
-          className="text-muted-foreground text-xs underline"
-          onClick={() => {
-            setRows(null);
-            onClose?.();
-          }}
-        >
-          Close
-        </button>
-      </div>
-
+    <div className={embedded ? 'space-y-2' : 'space-y-2 rounded-lg border p-3'}>
       {added != null && (
         <p className="text-sm text-emerald-700">Added {added} item{added === 1 ? '' : 's'}.</p>
       )}

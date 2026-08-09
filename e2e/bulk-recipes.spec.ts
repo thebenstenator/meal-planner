@@ -32,7 +32,7 @@ test('bulk-imports pasted text recipes (no AI)', async ({ page }) => {
 
   await page.goto('/recipes/bulk-import');
   await page.getByLabel('Paste recipes').fill(TWO_RECIPES);
-  await page.getByRole('button', { name: 'Parse recipes' }).click();
+  await page.getByRole('button', { name: 'Read recipes' }).click();
 
   await expect(page.getByText('2 recipes found')).toBeVisible();
   await page.getByRole('button', { name: /Save 2 recipes/ }).click();

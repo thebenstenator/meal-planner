@@ -29,7 +29,7 @@ test('shows a consumption-based recipe cost from a captured price', async ({ pag
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill('Cost Test');
   await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Cost Test' })).toBeVisible();
@@ -49,7 +49,7 @@ test('shows a consumption-based recipe cost from a captured price', async ({ pag
 
   // Generate the list and price cream cheese: $2.50 / 8 oz.
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
   await expect(page.getByText('cream cheese').first()).toBeVisible();
   await page.getByRole('button', { name: 'set an estimate price' }).click();
   await page.getByLabel('Package price').fill('2.50');

@@ -27,7 +27,7 @@ test('check off an item offline, then sync on reconnect', async ({ page, context
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill('Dip');
   await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Dip' })).toBeVisible();
@@ -39,7 +39,7 @@ test('check off an item offline, then sync on reconnect', async ({ page, context
   await panel.getByRole('button', { name: 'Dip' }).click();
 
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
   const checkbox = page.getByRole('checkbox', { name: 'Check off cream cheese' });
   await expect(checkbox).toBeVisible();
 

@@ -27,7 +27,7 @@ test('records an actual price and reflects it in Spent', async ({ page }) => {
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill('Actual Test');
   await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Actual Test' })).toBeVisible();
@@ -44,7 +44,7 @@ test('records an actual price and reflects it in Spent', async ({ page }) => {
   await page.getByRole('button', { name: 'Set default' }).click();
 
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
   await expect(page.getByText('cream cheese').first()).toBeVisible();
   await page.getByRole('button', { name: 'set an estimate price' }).click();
   await page.getByLabel('Package price').fill('2.50');

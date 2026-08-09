@@ -167,13 +167,13 @@ function SuggestPage() {
                 >
                   {classify.isPending
                     ? 'Sorting…'
-                    : `✨ Auto-sort ${uncategorized.length} uncategorized item${uncategorized.length === 1 ? '' : 's'}`}
+                    : `Auto-sort ${uncategorized.length} uncategorized item${uncategorized.length === 1 ? '' : 's'}`}
                 </button>
               )}
               {classify.isError && (
                 <span className="text-destructive">
                   {classify.error instanceof ImportError && classify.error.limitReached
-                    ? 'Monthly AI limit reached.'
+                    ? 'Monthly limit reached.'
                     : 'Couldn’t sort those — try again.'}
                 </span>
               )}
@@ -227,7 +227,7 @@ function SuggestPage() {
       {step === 'error' && error && (
         <div className="space-y-3 rounded-lg border p-4">
           <p className="font-medium">
-            {error.limitReached ? 'Monthly AI limit reached' : 'Couldn’t come up with ideas'}
+            {error.limitReached ? 'Monthly limit reached' : 'Couldn’t come up with ideas'}
           </p>
           <p className="text-muted-foreground text-sm">{error.message}</p>
           <div className="flex gap-2">

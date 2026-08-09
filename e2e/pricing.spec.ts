@@ -27,7 +27,7 @@ test('prices an item and shows a projected total', async ({ page }) => {
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill('Big Dip');
   await page.getByLabel('Paste ingredients').fill('12 oz cream cheese');
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Big Dip' })).toBeVisible();
@@ -47,7 +47,7 @@ test('prices an item and shows a projected total', async ({ page }) => {
 
   // Generate the list.
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
   await expect(page.getByText('cream cheese').first()).toBeVisible();
 
   // Price it: $2.50 for an 8 oz package. Need 12 oz => buy 2 => $5.00.

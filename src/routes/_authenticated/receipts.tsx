@@ -202,7 +202,7 @@ function CaptureStep({
       {error && (
         <div className="space-y-1 rounded-lg border p-4">
           <p className="font-medium">
-            {error.limitReached ? 'Monthly AI limit reached' : 'Couldn’t read that receipt'}
+            {error.limitReached ? 'Monthly limit reached' : 'Couldn’t read that receipt'}
           </p>
           <p className="text-muted-foreground text-sm">{error.message}</p>
         </div>
@@ -423,8 +423,8 @@ function Paywall() {
     <div className="space-y-2 rounded-lg border p-4">
       <p className="font-medium">Receipt scanning is a premium feature</p>
       <p className="text-muted-foreground text-sm">
-        Tracking spend by hand is always free. Scanning a receipt to log a trip and update your
-        prices automatically is part of premium.
+        Scanning a receipt to log a trip and update your prices automatically is a premium
+        feature.
       </p>
     </div>
   );

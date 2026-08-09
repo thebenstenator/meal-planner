@@ -102,7 +102,7 @@ function BulkImportPage() {
       <div>
         <h1 className="text-2xl font-semibold">Bulk import recipes</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Paste recipes or links and add them all at once — no AI credits used.
+          Paste recipes or links and add them all at once.
         </p>
       </div>
 
@@ -147,7 +147,7 @@ function BulkImportPage() {
               />
               <div className="flex flex-wrap items-center gap-2">
                 <Button onClick={() => parseText()} disabled={busy || text.trim() === ''}>
-                  {busy ? 'Reading…' : 'Parse recipes'}
+                  {busy ? 'Reading…' : 'Read recipes'}
                 </Button>
                 <label className="text-primary cursor-pointer text-sm underline">
                   <input
@@ -171,7 +171,7 @@ function BulkImportPage() {
                 onChange={(e) => setUrls(e.target.value)}
               />
               <p className="text-muted-foreground text-xs">
-                Uses each site’s structured recipe data (schema.org) — free, no AI. Links without it
+                Reads each site’s recipe data. Links without it
                 are skipped and listed.
               </p>
               <Button onClick={importUrls} disabled={busy || urls.trim() === ''}>

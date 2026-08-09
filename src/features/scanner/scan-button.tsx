@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { BarcodeIcon } from '@/components/icons/barcode';
 import { Button } from '@/components/ui/button';
 import { BarcodeScanner } from '@/features/scanner/barcode-scanner';
 import { lookupBarcode } from '@/features/scanner/open-food-facts';
@@ -44,7 +45,14 @@ export function ScanButton({ onResult, size = 'default' }: Props) {
     <>
       <div className="flex items-center gap-2">
         <Button type="button" variant="outline" size={size} disabled={busy} onClick={() => setOpen(true)}>
-          {busy ? 'Looking up…' : '📷 Scan'}
+          {busy ? (
+            'Looking up…'
+          ) : (
+            <span className="inline-flex items-center gap-1.5">
+              <BarcodeIcon className="h-4 w-4" />
+              Scan
+            </span>
+          )}
         </Button>
         {message && (
           <span role="status" aria-live="polite" className="text-muted-foreground text-xs">

@@ -36,20 +36,17 @@ function RecipeLibrary() {
           methods={[
             {
               label: 'Enter manually',
-              icon: '✏️',
               description: 'Type in a recipe yourself',
               onSelect: () => void navigate({ to: '/recipes/new' }),
             },
             {
               label: 'From photo, link, or PDF',
-              icon: '📷',
-              description: 'AI reads it for you (uses credits)',
+              description: 'We read it and let you review',
               onSelect: () => void navigate({ to: '/recipes/import' }),
             },
             {
               label: 'Bulk paste or files',
-              icon: '📋',
-              description: 'Add several at once — free, no AI',
+              description: 'Add several at once from text or files',
               onSelect: () => void navigate({ to: '/recipes/bulk-import' }),
             },
           ]}

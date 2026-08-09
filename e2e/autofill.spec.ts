@@ -17,7 +17,7 @@ async function createRecipe(page: Page, title: string, ingredient: string) {
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill(title);
   await page.getByLabel('Paste ingredients').fill(ingredient);
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText(/Ingredients \(\d+\)/)).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: title })).toBeVisible();

@@ -26,7 +26,7 @@ function SpendingPage() {
           </p>
         </div>
         <Button asChild size="sm">
-          <Link to="/receipts">📷 Scan receipt</Link>
+          <Link to="/receipts">Scan receipt</Link>
         </Button>
       </div>
 

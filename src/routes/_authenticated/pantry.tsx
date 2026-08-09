@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { AddMenu } from '@/components/add-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils/cn';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { resolveOrCreateCanonical } from '@/features/ingredients/resolve';
 import { ScanButton } from '@/features/scanner/scan-button';
@@ -31,7 +31,7 @@ function PantryPage() {
   const [qty, setQty] = useState('');
   const [unit, setUnit] = useState('');
   const [location, setLocation] = useState<PantryLocation>('pantry');
-  const [addMode, setAddMode] = useState<'single' | 'bulk'>('single');
+  const [addMode, setAddMode] = useState<'single' | 'many'>('single');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
@@ -115,38 +115,35 @@ function PantryPage() {
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold">Pantry</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            What you have on hand. Set it up once — later it updates as you shop and cook.
-          </p>
-        </div>
-        <AddMenu
-          label="Add item"
-          methods={[
-            {
-              label: 'Add one item',
-              icon: '✏️',
-              description: 'Type or scan a single item',
-              onSelect: () => setAddMode('single'),
-            },
-            {
-              label: 'Bulk add from a list',
-              icon: '📋',
-              description: 'Paste a spreadsheet or list',
-              onSelect: () => setAddMode('bulk'),
-            },
-          ]}
-        />
+      <div>
+        <h1 className="text-2xl font-semibold">Pantry</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          What you have on hand. Set it up once — later it updates as you shop and cook.
+        </p>
       </div>
 
-      {addMode === 'single' && (
-      <form onSubmit={submitAdd} className="space-y-2 rounded-lg border p-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Add an item</span>
-          <ScanButton size="sm" onResult={onScanned} />
+      <div className="space-y-3 rounded-lg border p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex rounded-md border p-0.5 text-sm">
+            {(['single', 'many'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setAddMode(m)}
+                className={cn(
+                  'rounded px-3 py-1',
+                  addMode === m ? 'bg-primary text-primary-foreground' : '',
+                )}
+              >
+                {m === 'single' ? 'One item' : 'Many items'}
+              </button>
+            ))}
+          </div>
+          {addMode === 'single' && <ScanButton size="sm" onResult={onScanned} />}
         </div>
+
+      {addMode === 'single' && (
+      <form onSubmit={submitAdd} className="space-y-2">
         <CanonicalCombobox
           key={formKey}
           value={picked}
@@ -210,9 +207,10 @@ function PantryPage() {
       </form>
       )}
 
-      {addMode === 'bulk' && householdId && (
-        <PantryBulkImport householdId={householdId} onClose={() => setAddMode('single')} />
+      {addMode === 'many' && householdId && (
+        <PantryBulkImport householdId={householdId} embedded />
       )}
+      </div>
 
       {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
       {isError && <p className="text-destructive text-sm">Couldn’t load your pantry.</p>}

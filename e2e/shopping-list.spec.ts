@@ -23,7 +23,7 @@ async function createRecipe(page: Page, title: string, ingredientLine: string) {
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill(title);
   await page.getByLabel('Paste ingredients').fill(ingredientLine);
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
@@ -49,7 +49,7 @@ test('generates one consolidated, rounded line from two recipes', async ({ page 
   await planRecipe(page, iso, 'lunch', 'Cheese Dip B');
 
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate consolidated list' }).click({ force: true });
+  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
 
   // 8 oz + 4 oz => 12 oz => buy 2 x 8 oz.
   await expect(page.getByText('cream cheese').first()).toBeVisible();

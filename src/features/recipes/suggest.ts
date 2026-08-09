@@ -43,7 +43,7 @@ export async function suggestMeals(
  * that exact path: engine-parse the lines and match each to a canonical one.
  */
 export function ideaToDetail(householdId: string, idea: MealIdea): Promise<RecipeDetail> {
-  return urlImportToDetail(householdId, idea, 'AI suggestion');
+  return urlImportToDetail(householdId, idea, 'Suggested');
 }
 
 /**

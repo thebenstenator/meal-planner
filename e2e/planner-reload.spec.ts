@@ -29,7 +29,7 @@ test('planner survives a reload with a persisted cost cache', async ({ page }) =
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill('Reload Test');
   await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Reload Test' })).toBeVisible();

@@ -29,7 +29,7 @@ test('create a recipe by pasting ingredients, then soft-delete and restore', asy
       '\n',
     ),
   );
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (3)')).toBeVisible();
 
   // Force-click: on mobile emulation the actionability hit-test intermittently

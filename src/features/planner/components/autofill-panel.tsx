@@ -110,7 +110,7 @@ export function AutofillPanel({ monthLabel, days, occupied, onClose, onDone }: P
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
       <div className="bg-background w-full max-w-2xl rounded-lg border shadow-lg">
         <div className="flex items-center justify-between border-b px-5 py-3">
-          <h2 className="font-semibold">✨ Auto-fill {monthLabel}</h2>
+          <h2 className="font-semibold">Auto-fill {monthLabel}</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             Close
           </Button>
@@ -217,7 +217,7 @@ function ConfigStep({
 
       {error && (
         <p className="text-destructive text-sm">
-          {error.limitReached ? 'You’ve hit this month’s AI limit — try “All favorites”.' : error.message}
+          {error.limitReached ? 'You’ve hit this month’s limit — try “All favorites”.' : error.message}
         </p>
       )}
 
@@ -300,7 +300,7 @@ function ReviewStep({
                       value={isSkipped ? 'skip' : row.source === 'ai' ? 'ai' : `lib:${row.recipeId}`}
                       onChange={(e) => reassign(row, e.target.value)}
                     >
-                      {row.source === 'ai' && <option value="ai">✨ {row.title} (new)</option>}
+                      {row.source === 'ai' && <option value="ai">{row.title} (new)</option>}
                       <optgroup label="Your recipes">
                         {proposal.library.map((r) => (
                           <option key={r.id} value={`lib:${r.id}`}>
@@ -335,8 +335,8 @@ function Paywall() {
     <div className="space-y-2 rounded-lg border p-4">
       <p className="font-medium">Auto-fill is a premium feature</p>
       <p className="text-muted-foreground text-sm">
-        Planning, shopping lists, budgeting, and unlimited recipes are always free. Auto-filling a
-        balanced month — favorites, fresh AI ideas, and variety in one tap — is part of premium.
+        Auto-filling a balanced month — favorites, fresh ideas, and variety in one tap — is a
+        premium feature.
       </p>
     </div>
   );

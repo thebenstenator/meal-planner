@@ -27,7 +27,7 @@ test('scales recipe amounts and sets a planned-meal serving override', async ({ 
   await page.goto('/recipes/new');
   await page.getByLabel('Title').fill('Scale Recipe');
   await page.getByLabel('Paste ingredients').fill('2 cups flour');
-  await page.getByRole('button', { name: 'Parse & add rows' }).click();
+  await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
   await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Scale Recipe' })).toBeVisible();

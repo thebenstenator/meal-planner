@@ -116,7 +116,7 @@ function PlannerPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={() => setAutofillOpen(true)}>
-            ✨ Auto-fill month
+            Auto-fill month
           </Button>
           <div className="flex rounded-md border p-0.5">
             {(['week', 'month'] as Mode[]).map((m) => (
