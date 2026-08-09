@@ -33,6 +33,27 @@ Bake at 350.`;
     expect(r?.ingredientLines).toEqual(['2 avocados', '1 lime']);
     expect(r?.instructions).toContain('Mash the avocados');
   });
+
+  it('finds headers prefixed with PDF glyphs, so intro text is not ingredients', () => {
+    // Mirrors a real PDF: title, byline/intro, prep block, then glyph-prefixed
+    // "Ingredients" and "Directions" headers.
+    const text = [
+      'Simple Moist Chocolate Cake Recipe',
+      '□ July 8, 2019 By Yummy_treats Difficulty: Medium',
+      'This is the most loved recipe in my channel, easy and moist and dense.',
+      'Prep Time Cook Time Serving',
+      '5 Mins 45 Mins 12 People',
+      '□ Ingredients',
+      '2 cups flour',
+      '1 cup sugar',
+      '□ Directions',
+      'Mix and bake at 350.',
+    ].join('\n');
+    const r = parseOneRecipe(text);
+    expect(r?.title).toBe('Simple Moist Chocolate Cake Recipe');
+    expect(r?.ingredientLines).toEqual(['2 cups flour', '1 cup sugar']);
+    expect(r?.instructions).toBe('Mix and bake at 350.');
+  });
 });
 
 describe('parseRecipesText', () => {

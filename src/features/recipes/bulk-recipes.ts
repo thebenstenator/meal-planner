@@ -5,8 +5,12 @@ export interface RecipeCandidate {
   ingredientLines: string[];
 }
 
-const STEP_HEADER = /^\s*(instructions?|directions?|method|steps|preparation)\s*:?\s*$/i;
-const ING_HEADER = /^\s*ingredients?\s*:?\s*$/i;
+// Tolerate leading/trailing noise around an otherwise bare section header —
+// PDF extraction often prefixes headers with an unrenderable glyph or bullet
+// (e.g. "□ Ingredients", "• Directions:"). Anything that isn't a letter is
+// allowed on either side; the line's only word must be the header keyword.
+const STEP_HEADER = /^[^a-z]*(instructions?|directions?|method|steps|preparation)[^a-z]*$/i;
+const ING_HEADER = /^[^a-z]*ingredients?[^a-z]*$/i;
 
 /**
  * Parse one recipe's text into a candidate — no AI. Title is the first line;
