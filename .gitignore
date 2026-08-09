@@ -44,3 +44,4 @@ test-results/
 # Supabase local
 supabase/.branches/
 supabase/.temp/
+.vapid-keys.local.json

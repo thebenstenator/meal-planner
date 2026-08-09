@@ -1,6 +1,8 @@
 import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
+import { stripControlChars } from '@/lib/utils/sanitize-text';
+
 // pdf.js parses in a web worker. Point it at the bundled worker asset. This
 // whole module is dynamically imported (see the bulk-import page) so pdf.js only
 // loads when someone actually processes a PDF.
@@ -41,5 +43,6 @@ export async function extractPdfText(file: File): Promise<string> {
     }
   }
 
-  return lines.join('\n').trim();
+  // Strip NUL/control bytes the text layer can carry — Postgres text rejects them.
+  return stripControlChars(lines.join('\n').trim());
 }

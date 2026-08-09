@@ -2,6 +2,7 @@ import { saveRecipe, type RecipeIngredientDraft } from '@/features/recipes/api';
 import { parseOneRecipe, parseRecipesText, type RecipeCandidate } from '@/features/recipes/bulk-recipes';
 import { parseRecipeUrl } from '@/features/recipes/import';
 import { parseIngredientBlock } from '@/features/recipes/parse-block';
+import { stripControlChars } from '@/lib/utils/sanitize-text';
 
 export interface DraftRecipe {
   title: string;
@@ -18,13 +19,16 @@ async function candidateToDraft(
   candidate: RecipeCandidate,
   source: string | null,
 ): Promise<DraftRecipe> {
-  const ingredients = candidate.ingredientLines.length
-    ? await parseIngredientBlock(householdId, candidate.ingredientLines.join('\n'))
+  // Extracted PDF text can carry NUL/control bytes that Postgres rejects (22P05).
+  // Every import path funnels through here, so clean the text once, before parse.
+  const lines = candidate.ingredientLines.map(stripControlChars);
+  const ingredients = lines.length
+    ? await parseIngredientBlock(householdId, lines.join('\n'))
     : [];
   return {
-    title: candidate.title,
+    title: stripControlChars(candidate.title),
     servings: candidate.servings,
-    instructions: candidate.instructions,
+    instructions: candidate.instructions ? stripControlChars(candidate.instructions) : null,
     source,
     ingredients,
     unmatched: ingredients.filter((i) => !i.canonicalId).length,
