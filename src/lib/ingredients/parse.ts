@@ -248,7 +248,7 @@ export function parse(raw: string): ParsedIngredient {
       raw: original,
       quantity: null,
       unit: vague ? 'to_taste' : null,
-      name: cleaned.name,
+      name: firstOption(cleaned.name),
       descriptor: cleaned.descriptor,
       isOptional,
       confidence: vague ? 0.9 : 0.4,
@@ -295,7 +295,7 @@ export function parse(raw: string): ParsedIngredient {
     raw: original,
     quantity,
     unit,
-    name,
+    name: firstOption(name),
     descriptor: cleaned.descriptor,
     isOptional,
     confidence: Number(confidence.toFixed(4)),
@@ -304,6 +304,16 @@ export function parse(raw: string): ParsedIngredient {
 
 function stripLeadingOf(s: string): string {
   return s.replace(/^\s*of\s+/i, '').trim();
+}
+
+/**
+ * Recipes often bake a substitution into one line ("molasses or dark honey").
+ * Keep the first option as the ingredient we match/price on; the full text still
+ * lives in `raw` so the substitution stays visible to the cook.
+ */
+function firstOption(name: string): string {
+  const primary = name.split(/\s+or\s+/i)[0]?.trim();
+  return primary && primary.length > 0 ? primary : name;
 }
 
 /** Parse many lines at once. */

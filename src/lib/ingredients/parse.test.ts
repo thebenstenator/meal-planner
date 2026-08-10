@@ -110,3 +110,20 @@ describe('parse — compounds and vague', () => {
     });
   });
 });
+
+describe('parse — substitutions (X or Y)', () => {
+  it('matches the first option and keeps the full text in raw', () => {
+    const p = parse('2 tablespoons molasses or dark honey');
+    expect(p).toMatchObject({ quantity: 2, unit: 'tbsp', name: 'molasses' });
+    expect(p.raw).toBe('2 tablespoons molasses or dark honey');
+  });
+
+  it('handles multi-word options', () => {
+    expect(parse('1/2 cup white vinegar or apple cider vinegar').name).toBe('white vinegar');
+  });
+
+  it('leaves plain lines (and non-substitution "and") untouched', () => {
+    expect(parse('2 cups ketchup').name).toBe('ketchup');
+    expect(parse('salt and pepper to taste').name).toContain('salt and pepper');
+  });
+});
