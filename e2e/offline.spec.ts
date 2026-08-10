@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openAddEntry } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -33,8 +34,7 @@ test('check off an item offline, then sync on reconnect', async ({ page, context
   await expect(page.getByRole('heading', { name: 'Dip' })).toBeVisible();
 
   await page.goto('/planner');
-  await page.getByRole('button', { name: `Add to dinner on ${iso}` }).click({ force: true });
-  const panel = page.getByTestId('add-entry-panel');
+  const panel = await openAddEntry(page, `Add to dinner on ${iso}`);
   await panel.getByLabel('Search recipes to add').fill('Dip');
   await panel.getByRole('button', { name: 'Dip' }).click();
 

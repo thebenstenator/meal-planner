@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openAddEntry } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -35,8 +36,7 @@ test('planner survives a reload with a persisted cost cache', async ({ page }) =
   await expect(page.getByRole('heading', { name: 'Reload Test' })).toBeVisible();
 
   await page.goto('/planner');
-  await page.getByRole('button', { name: `Add to dinner on ${iso}` }).click({ force: true });
-  const panel = page.getByTestId('add-entry-panel');
+  const panel = await openAddEntry(page, `Add to dinner on ${iso}`);
   await panel.getByLabel('Search recipes to add').fill('Reload Test');
   await panel.getByRole('button', { name: 'Reload Test' }).click();
   await expect(page.getByText('Reload Test')).toBeVisible();

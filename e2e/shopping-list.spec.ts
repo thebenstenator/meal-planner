@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openAddEntry } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -31,8 +32,7 @@ async function createRecipe(page: Page, title: string, ingredientLine: string) {
 
 async function planRecipe(page: Page, iso: string, slot: string, title: string) {
   await page.goto('/planner');
-  await page.getByRole('button', { name: `Add to ${slot} on ${iso}` }).click({ force: true });
-  const panel = page.getByTestId('add-entry-panel');
+  const panel = await openAddEntry(page, `Add to ${slot} on ${iso}`);
   await panel.getByLabel('Search recipes to add').fill(title);
   await panel.getByRole('button', { name: title }).click();
   await expect(page.getByText(title).first()).toBeVisible();

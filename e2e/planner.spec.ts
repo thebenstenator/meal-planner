@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openAddEntry } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -49,8 +50,8 @@ test('plan entries sync across two sessions in realtime', async ({ browser }) =>
   await Promise.all([pageA.waitForTimeout(2500), pageB.waitForTimeout(2500)]);
 
   // A adds an "eating out" entry to today's dinner.
-  await pageA.getByRole('button', { name: `Add to dinner on ${iso}` }).click({ force: true });
-  await pageA.getByTestId('add-entry-panel').getByRole('button', { name: 'Eating out' }).click();
+  const panelA = await openAddEntry(pageA, `Add to dinner on ${iso}`);
+  await panelA.getByRole('button', { name: 'Eating out' }).click();
   await pageA.getByRole('button', { name: 'Add eating out' }).click();
 
   // It shows for A, and appears for B via realtime (no reload).

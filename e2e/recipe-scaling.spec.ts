@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openAddEntry } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -40,8 +41,7 @@ test('scales recipe amounts and sets a planned-meal serving override', async ({ 
 
   // Plan it with a serving override of 6.
   await page.goto('/planner');
-  await page.getByRole('button', { name: `Add to dinner on ${iso}` }).click({ force: true });
-  const panel = page.getByTestId('add-entry-panel');
+  const panel = await openAddEntry(page, `Add to dinner on ${iso}`);
   await panel.getByLabel('Servings for this meal').fill('6');
   await panel.getByLabel('Search recipes to add').fill('Scale Recipe');
   await panel.getByRole('button', { name: 'Scale Recipe' }).click();

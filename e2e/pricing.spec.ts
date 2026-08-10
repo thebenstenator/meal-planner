@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openAddEntry } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -34,8 +35,7 @@ test('prices an item and shows a projected total', async ({ page }) => {
 
   // Plan it for today.
   await page.goto('/planner');
-  await page.getByRole('button', { name: `Add to dinner on ${iso}` }).click({ force: true });
-  const panel = page.getByTestId('add-entry-panel');
+  const panel = await openAddEntry(page, `Add to dinner on ${iso}`);
   await panel.getByLabel('Search recipes to add').fill('Big Dip');
   await panel.getByRole('button', { name: 'Big Dip' }).click();
 
