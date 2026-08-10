@@ -103,7 +103,7 @@ function SuggestPage() {
         <p className="text-muted-foreground mt-1 mb-6 text-sm">
           Review the ingredients — nothing is stored until you save.
         </p>
-        <RecipeForm initial={detail} />
+        <RecipeForm initial={detail} showPaste={false} />
       </main>
     );
   }

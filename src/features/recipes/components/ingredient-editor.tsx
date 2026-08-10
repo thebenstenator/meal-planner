@@ -13,6 +13,8 @@ interface Props {
   householdId: string;
   value: RecipeIngredientDraft[];
   onChange: (rows: RecipeIngredientDraft[]) => void;
+  /** Show the "paste a block" box. Off on import review, where rows already exist. */
+  showPaste?: boolean;
 }
 
 const EMPTY_ROW: RecipeIngredientDraft = {
@@ -27,7 +29,7 @@ const EMPTY_ROW: RecipeIngredientDraft = {
   needsReview: false,
 };
 
-export function IngredientEditor({ householdId, value, onChange }: Props) {
+export function IngredientEditor({ householdId, value, onChange, showPaste = true }: Props) {
   const [block, setBlock] = useState('');
   const [parsing, setParsing] = useState(false);
 
@@ -54,19 +56,21 @@ export function IngredientEditor({ householdId, value, onChange }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2 rounded-lg border p-3">
-        <Label htmlFor="paste-block">Paste ingredients</Label>
-        <Textarea
-          id="paste-block"
-          value={block}
-          onChange={(e) => setBlock(e.target.value)}
-          placeholder={'2 cups flour\n1 (8 oz) package cream cheese, softened\n3 large eggs'}
-          rows={4}
-        />
-        <Button type="button" onClick={parseBlock} disabled={parsing || block.trim().length === 0}>
-          {parsing ? 'Adding…' : 'Add rows'}
-        </Button>
-      </div>
+      {showPaste && (
+        <div className="space-y-2 rounded-lg border p-3">
+          <Label htmlFor="paste-block">Paste ingredients</Label>
+          <Textarea
+            id="paste-block"
+            value={block}
+            onChange={(e) => setBlock(e.target.value)}
+            placeholder={'2 cups flour\n1 (8 oz) package cream cheese, softened\n3 large eggs'}
+            rows={4}
+          />
+          <Button type="button" onClick={parseBlock} disabled={parsing || block.trim().length === 0}>
+            {parsing ? 'Adding…' : 'Add rows'}
+          </Button>
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">
@@ -82,7 +86,7 @@ export function IngredientEditor({ householdId, value, onChange }: Props) {
 
       {value.length === 0 && (
         <p className="text-muted-foreground text-sm">
-          Paste a block above, or add rows one at a time.
+          {showPaste ? 'Paste a block above, or add rows one at a time.' : 'Add rows one at a time.'}
         </p>
       )}
 

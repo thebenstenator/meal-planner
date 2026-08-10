@@ -82,7 +82,7 @@ function ImportRecipePage() {
         <p className="text-muted-foreground mt-1 mb-6 text-sm">
           Check the highlighted rows, then save. Nothing is stored until you do.
         </p>
-        <RecipeForm initial={detail} />
+        <RecipeForm initial={detail} showPaste={false} />
       </main>
     );
   }

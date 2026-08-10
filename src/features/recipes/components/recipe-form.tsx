@@ -27,9 +27,12 @@ interface ScalarFields {
 interface Props {
   recipeId?: string;
   initial?: RecipeDetail;
+  /** Show the "paste ingredients" box. Off on the import/suggestion review,
+   * where the ingredients are already parsed into rows. */
+  showPaste?: boolean;
 }
 
-export function RecipeForm({ recipeId, initial }: Props) {
+export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
   const { householdId } = useHousehold();
   const navigate = useNavigate();
   const save = useSaveRecipe();
@@ -146,6 +149,7 @@ export function RecipeForm({ recipeId, initial }: Props) {
             householdId={householdId}
             value={ingredients}
             onChange={setIngredients}
+            showPaste={showPaste}
           />
         </div>
       )}
