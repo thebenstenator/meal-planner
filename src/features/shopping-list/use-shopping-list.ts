@@ -3,14 +3,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useHousehold } from '@/features/household/use-household';
 import {
   addSmartItem,
+  createShoppingList,
   deleteItem,
   deleteShoppingList,
   generateList,
-  generateTripList,
   getOrCreateRunningList,
   getShoppingList,
   listKeys,
   listShoppingLists,
+  renameShoppingList,
   setCanonicalConversion,
   setItemActualCost,
   setItemChecked,
@@ -51,22 +52,25 @@ export function useGenerateList() {
   });
 }
 
-/**
- * Generate a new shopping trip from the plan + running list + low-stock items.
- * Invalidates the lists so the new one shows up on the list page.
- */
-export function useGenerateTripList() {
+/** Create a new named list (a store/custom tab). Returns the new list id. */
+export function useCreateList() {
   const { householdId } = useHousehold();
   const qc = useQueryClient();
-  return useMutation<
-    string,
-    Error,
-    { name: string; start: string; end: string; subtractPantry?: boolean }
-  >({
-    mutationFn: (opts) => generateTripList(householdId as string, opts),
-    onSuccess: (id) => {
+  return useMutation<string, Error, { name: string }>({
+    mutationFn: ({ name }) => createShoppingList(householdId as string, name),
+    onSuccess: () => qc.invalidateQueries({ queryKey: listKeys.all(householdId ?? 'none') }),
+  });
+}
+
+/** Rename a list (fix a mistyped store name). */
+export function useRenameList() {
+  const { householdId } = useHousehold();
+  const qc = useQueryClient();
+  return useMutation<void, Error, { listId: string; name: string }>({
+    mutationFn: ({ listId, name }) => renameShoppingList(listId, name),
+    onSuccess: (_v, { listId }) => {
       void qc.invalidateQueries({ queryKey: listKeys.all(householdId ?? 'none') });
-      void qc.invalidateQueries({ queryKey: listKeys.detail(id) });
+      void qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
     },
   });
 }

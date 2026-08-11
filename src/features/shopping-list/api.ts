@@ -16,6 +16,7 @@ export interface ShoppingListSummary {
   dateRangeStart: string | null;
   dateRangeEnd: string | null;
   generatedAt: string;
+  createdAt: string;
   isRunning: boolean;
 }
 
@@ -56,9 +57,11 @@ export interface ShoppingItem {
 export async function listShoppingLists(householdId: string): Promise<ShoppingListSummary[]> {
   const { data, error } = await supabase
     .from('shopping_list')
-    .select('id, name, status, date_range_start, date_range_end, generated_at, is_running')
+    .select('id, name, status, date_range_start, date_range_end, generated_at, created_at, is_running')
     .eq('household_id', householdId)
-    .order('generated_at', { ascending: false });
+    // Stable left-to-right tab order: oldest list first, so tabs don't reshuffle
+    // when you generate into one (which bumps generated_at).
+    .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []).map((l) => ({
     id: l.id,
@@ -67,8 +70,28 @@ export async function listShoppingLists(householdId: string): Promise<ShoppingLi
     dateRangeStart: l.date_range_start,
     dateRangeEnd: l.date_range_end,
     generatedAt: l.generated_at,
+    createdAt: l.created_at,
     isRunning: l.is_running,
   }));
+}
+
+/** Create a new standing list (a store/custom tab) you can jot into. */
+export async function createShoppingList(householdId: string, name: string): Promise<string> {
+  const { data, error } = await supabase
+    .from('shopping_list')
+    .insert({ household_id: householdId, name: name.trim() || 'New list', is_running: true })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function renameShoppingList(listId: string, name: string): Promise<void> {
+  const { error } = await supabase
+    .from('shopping_list')
+    .update({ name: name.trim() || 'List' })
+    .eq('id', listId);
+  if (error) throw error;
 }
 
 /**
@@ -105,22 +128,6 @@ export async function getOrCreateRunningList(householdId: string): Promise<strin
     throw insErr;
   }
   return data.id;
-}
-
-/**
- * The running list's id if the household has one, without creating it. Used by
- * trip generation to fold in jotted items — a household that's never jotted
- * anything simply has nothing to fold in.
- */
-export async function runningListId(householdId: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('shopping_list')
-    .select('id')
-    .eq('household_id', householdId)
-    .eq('is_running', true)
-    .limit(1);
-  if (error) throw error;
-  return data?.[0]?.id ?? null;
 }
 
 export interface CheckedItem {
@@ -217,7 +224,7 @@ export async function getShoppingList(
   const { data, error } = await supabase
     .from('shopping_list')
     .select(
-      'id, name, status, date_range_start, date_range_end, generated_at, is_running, shopping_list_item(*, shopping_list_item_source(contributed_quantity, recipe_ingredient(recipe(title))))',
+      'id, name, status, date_range_start, date_range_end, generated_at, created_at, is_running, shopping_list_item(*, shopping_list_item_source(contributed_quantity, recipe_ingredient(recipe(title))))',
     )
     .eq('id', listId)
     .order('position', { referencedTable: 'shopping_list_item', ascending: true })
@@ -255,6 +262,7 @@ export async function getShoppingList(
       dateRangeStart: data.date_range_start,
       dateRangeEnd: data.date_range_end,
       generatedAt: data.generated_at,
+      createdAt: data.created_at,
       isRunning: data.is_running,
     },
     items,
@@ -281,35 +289,6 @@ export async function generateList(
   });
   if (error) throw error;
   return data as string;
-}
-
-/**
- * Generate a shopping trip: the meal plan for the selected dates (with pantry
- * subtraction) plus whatever's already jotted on your running list, layered on
- * via the smart add so it dedupes by canonical ingredient. Low-stock pantry
- * items are surfaced separately as "Running low" suggestions on the list itself,
- * not folded in here — the shopper decides which to restock.
- */
-export async function generateTripList(
-  householdId: string,
-  opts: { name: string; start: string; end: string; subtractPantry?: boolean },
-): Promise<string> {
-  const listId = await generateList(householdId, opts);
-
-  // Fold in anything already jotted on the running list.
-  const runningId = await runningListId(householdId);
-  if (runningId && runningId !== listId) {
-    const { items } = await getShoppingList(runningId);
-    for (const it of items) {
-      await addSmartItem(householdId, listId, {
-        name: it.displayName,
-        quantity: it.totalQuantity,
-        unit: it.unit,
-      });
-    }
-  }
-
-  return listId;
 }
 
 export async function setItemChecked(itemId: string, checked: boolean): Promise<void> {

@@ -73,25 +73,53 @@ test('generates one consolidated, rounded line from two recipes', async ({ page 
   await expect(page.getByText('12 oz')).toBeVisible();
 });
 
-// The standing "running list": jot items anytime with no plan; items are
-// smart-matched and deduped, and the list persists.
-test('running list captures ad-hoc items, deduped', async ({ page }) => {
+// Jot items anytime with no plan; the first item starts a list, items are
+// smart-matched and deduped, and they show inline on the page.
+test('lists capture ad-hoc items inline, deduped', async ({ page }) => {
   await signUp(page, uniqueEmail('running'));
   await page.goto('/shopping-list');
 
-  // Quick-add from the index — no meal plan or generated list needed.
+  // First item starts the household's first list and shows inline.
   const box = page.getByPlaceholder('Add something you need…');
   await box.fill('dish soap');
   await box.press('Enter');
-  await expect(page.getByText(/Added dish soap/)).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: /check off dish soap/i })).toBeVisible();
 
   // Adding the same thing again is recognized, not duplicated.
   const box2 = page.getByPlaceholder('Add something you need…');
   await box2.fill('dish soap');
   await box2.press('Enter');
-  await expect(page.getByText(/already on your list/)).toBeVisible();
+  await expect(page.getByText(/already on this list/i)).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: /check off dish soap/i })).toHaveCount(1);
+});
 
-  // The item shows inline on the list page, held once (one checkable row).
+// You can keep several named lists (e.g. one per store) and switch between them
+// as tabs; each item lands on the tab that's selected when you add it.
+test('multiple lists as tabs; items land on the selected tab', async ({ page }) => {
+  await signUp(page, uniqueEmail('tabs'));
+  await page.goto('/shopping-list');
+
+  // Start the first list, then create a second one ("Costco").
+  const box = page.getByPlaceholder('Add something you need…');
+  await box.fill('dish soap');
+  await box.press('Enter');
   await expect(page.getByRole('checkbox', { name: /check off dish soap/i })).toBeVisible();
-  await expect(page.getByText(/dish soap/i).first()).toBeVisible();
+
+  await page.getByRole('button', { name: '+ New list' }).click();
+  await page.getByLabel('New list name').fill('Costco');
+  await page.getByRole('button', { name: 'Create list' }).click();
+
+  // The Costco tab is now selected and empty — add something to it.
+  await expect(page.getByRole('tab', { name: 'Costco', selected: true })).toBeVisible();
+  const box2 = page.getByPlaceholder('Add something you need…');
+  await box2.fill('rotisserie chicken');
+  await box2.press('Enter');
+  await expect(page.getByRole('checkbox', { name: /check off rotisserie chicken/i })).toBeVisible();
+  // The first list's item isn't on this tab.
+  await expect(page.getByRole('checkbox', { name: /check off dish soap/i })).toHaveCount(0);
+
+  // Switch back to the first tab — dish soap is there, chicken isn't.
+  await page.getByRole('tab', { name: 'Things we need' }).click();
+  await expect(page.getByRole('checkbox', { name: /check off dish soap/i })).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: /check off rotisserie chicken/i })).toHaveCount(0);
 });
