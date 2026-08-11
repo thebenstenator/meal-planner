@@ -116,8 +116,8 @@ test('cooking a meal removes its ingredients from the pantry', async ({ page }) 
   await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('8');
 });
 
-// A low pantry item is folded straight into a generated list.
-test('folds a low pantry item into a generated list', async ({ page }) => {
+// A low pantry item is suggested for restock on the shopping list.
+test('suggests restocking a low pantry item, and adds it', async ({ page }) => {
   await signUp(page, uniqueEmail('lowstock'));
 
   // Stock a nearly-empty item: 0.5 oz cream cheese (pkg 8 oz => ~6% => low).
@@ -129,11 +129,18 @@ test('folds a low pantry item into a generated list', async ({ page }) => {
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('0.5');
 
-  // Generate a list with no meal plan — the low pantry item is pulled in on its
-  // own, so it's already a list item (not a separate "Running low" suggestion).
+  // Generate a list; the low item is suggested under "Running low".
   await page.goto('/shopping-list');
   await generateList(page);
-  await expect(page.getByText('cream cheese').first()).toBeVisible();
+  const low = page.getByRole('heading', { name: 'Running low' }).locator('..');
+  await expect(low).toBeVisible();
+  await expect(low.getByText('cream cheese')).toBeVisible();
+
+  // Add it → the suggestion clears (muted until restocked). Reload to assert the
+  // committed state rather than racing the optimistic invalidations under load.
+  await low.getByRole('button', { name: 'Add' }).click();
+  await page.waitForLoadState('networkidle');
+  await page.reload();
   await expect(page.getByRole('heading', { name: 'Running low' })).toBeHidden();
 });
 

@@ -260,8 +260,8 @@ function GenerateModal({
         </div>
         <div className="space-y-3 p-5">
           <p className="text-muted-foreground text-sm">
-            Pulls in your meal plan for these dates, whatever’s on your ongoing list, and pantry
-            items running low.
+            Pulls in your meal plan for these dates and whatever’s on your ongoing list. Pantry
+            items running low are suggested on the list so you can add what you want.
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">

@@ -1,6 +1,4 @@
 import { resolveOrCreateCanonical } from '@/features/ingredients/resolve';
-import { listPantry } from '@/features/pantry/api';
-import { isLowStock } from '@/features/pantry/low-stock';
 import { buildShoppingItems } from '@/features/shopping-list/generate';
 import { supabase } from '@/lib/supabase/client';
 import type { Json } from '@/lib/supabase/database.types';
@@ -286,11 +284,11 @@ export async function generateList(
 }
 
 /**
- * Generate a shopping trip that pulls together everything you'd actually buy for
- * the period: the meal plan for the selected dates, whatever's already jotted on
- * your running list, and pantry items that are running low. The plan drives the
- * base list (with pantry subtraction); jotted and low-stock items are layered on
- * via the smart add, which dedupes by canonical ingredient so nothing lands twice.
+ * Generate a shopping trip: the meal plan for the selected dates (with pantry
+ * subtraction) plus whatever's already jotted on your running list, layered on
+ * via the smart add so it dedupes by canonical ingredient. Low-stock pantry
+ * items are surfaced separately as "Running low" suggestions on the list itself,
+ * not folded in here — the shopper decides which to restock.
  */
 export async function generateTripList(
   householdId: string,
@@ -309,19 +307,6 @@ export async function generateTripList(
         unit: it.unit,
       });
     }
-  }
-
-  // Suggest restocking pantry items that are running low (unless muted). The
-  // smart add skips anything the plan or running list already put on the list.
-  const pantry = await listPantry(householdId);
-  for (const p of pantry) {
-    if (p.amountUnknown || p.restockMuted) continue;
-    if (!isLowStock(p)) continue;
-    await addSmartItem(householdId, listId, {
-      name: p.canonicalName,
-      quantity: p.packageQuantity,
-      unit: p.packageUnit,
-    });
   }
 
   return listId;
