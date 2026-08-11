@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openAddEntry } from './helpers';
+import { generateList, openAddEntry } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -49,7 +49,7 @@ test('shows a consumption-based recipe cost from a captured price', async ({ pag
 
   // Generate the list and price cream cheese: $2.50 / 8 oz.
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
+  await generateList(page);
   await expect(page.getByText('cream cheese').first()).toBeVisible();
   await page.getByRole('button', { name: 'set an estimate price' }).click();
   await page.getByLabel('Package price').fill('2.50');

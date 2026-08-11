@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openAddEntry } from './helpers';
+import { generateList, openAddEntry } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -39,7 +39,7 @@ test('check off an item offline, then sync on reconnect', async ({ page, context
   await panel.getByRole('button', { name: 'Dip' }).click();
 
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
+  await generateList(page);
   const checkbox = page.getByRole('checkbox', { name: 'Check off cream cheese' });
   await expect(checkbox).toBeVisible();
 

@@ -1,4 +1,6 @@
 import { resolveOrCreateCanonical } from '@/features/ingredients/resolve';
+import { listPantry } from '@/features/pantry/api';
+import { isLowStock } from '@/features/pantry/low-stock';
 import { buildShoppingItems } from '@/features/shopping-list/generate';
 import { supabase } from '@/lib/supabase/client';
 import type { Json } from '@/lib/supabase/database.types';
@@ -105,6 +107,22 @@ export async function getOrCreateRunningList(householdId: string): Promise<strin
     throw insErr;
   }
   return data.id;
+}
+
+/**
+ * The running list's id if the household has one, without creating it. Used by
+ * trip generation to fold in jotted items — a household that's never jotted
+ * anything simply has nothing to fold in.
+ */
+export async function runningListId(householdId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('shopping_list')
+    .select('id')
+    .eq('household_id', householdId)
+    .eq('is_running', true)
+    .limit(1);
+  if (error) throw error;
+  return data?.[0]?.id ?? null;
 }
 
 export interface CheckedItem {
@@ -265,6 +283,48 @@ export async function generateList(
   });
   if (error) throw error;
   return data as string;
+}
+
+/**
+ * Generate a shopping trip that pulls together everything you'd actually buy for
+ * the period: the meal plan for the selected dates, whatever's already jotted on
+ * your running list, and pantry items that are running low. The plan drives the
+ * base list (with pantry subtraction); jotted and low-stock items are layered on
+ * via the smart add, which dedupes by canonical ingredient so nothing lands twice.
+ */
+export async function generateTripList(
+  householdId: string,
+  opts: { name: string; start: string; end: string; subtractPantry?: boolean },
+): Promise<string> {
+  const listId = await generateList(householdId, opts);
+
+  // Fold in anything already jotted on the running list.
+  const runningId = await runningListId(householdId);
+  if (runningId && runningId !== listId) {
+    const { items } = await getShoppingList(runningId);
+    for (const it of items) {
+      await addSmartItem(householdId, listId, {
+        name: it.displayName,
+        quantity: it.totalQuantity,
+        unit: it.unit,
+      });
+    }
+  }
+
+  // Suggest restocking pantry items that are running low (unless muted). The
+  // smart add skips anything the plan or running list already put on the list.
+  const pantry = await listPantry(householdId);
+  for (const p of pantry) {
+    if (p.amountUnknown || p.restockMuted) continue;
+    if (!isLowStock(p)) continue;
+    await addSmartItem(householdId, listId, {
+      name: p.canonicalName,
+      quantity: p.packageQuantity,
+      unit: p.packageUnit,
+    });
+  }
+
+  return listId;
 }
 
 export async function setItemChecked(itemId: string, checked: boolean): Promise<void> {

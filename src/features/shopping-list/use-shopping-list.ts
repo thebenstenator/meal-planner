@@ -6,6 +6,7 @@ import {
   deleteItem,
   deleteShoppingList,
   generateList,
+  generateTripList,
   getOrCreateRunningList,
   getShoppingList,
   listKeys,
@@ -43,6 +44,26 @@ export function useGenerateList() {
     { name: string; start: string; end: string; listId?: string; subtractPantry?: boolean }
   >({
     mutationFn: (opts) => generateList(householdId as string, opts),
+    onSuccess: (id) => {
+      void qc.invalidateQueries({ queryKey: listKeys.all(householdId ?? 'none') });
+      void qc.invalidateQueries({ queryKey: listKeys.detail(id) });
+    },
+  });
+}
+
+/**
+ * Generate a new shopping trip from the plan + running list + low-stock items.
+ * Invalidates the lists so the new one shows up on the list page.
+ */
+export function useGenerateTripList() {
+  const { householdId } = useHousehold();
+  const qc = useQueryClient();
+  return useMutation<
+    string,
+    Error,
+    { name: string; start: string; end: string; subtractPantry?: boolean }
+  >({
+    mutationFn: (opts) => generateTripList(householdId as string, opts),
     onSuccess: (id) => {
       void qc.invalidateQueries({ queryKey: listKeys.all(householdId ?? 'none') });
       void qc.invalidateQueries({ queryKey: listKeys.detail(id) });

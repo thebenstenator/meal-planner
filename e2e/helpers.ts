@@ -15,3 +15,13 @@ export async function openAddEntry(page: Page, buttonName: string) {
   }).toPass({ timeout: 20_000 });
   return panel;
 }
+
+/**
+ * Generate a list from the shopping-list page. Generation now lives behind a
+ * modal ("Generate a list" opens it; "Generate list" runs it), so this opens the
+ * modal then triggers generation.
+ */
+export async function generateList(page: Page) {
+  await page.getByRole('button', { name: 'Generate a list' }).click();
+  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
+}

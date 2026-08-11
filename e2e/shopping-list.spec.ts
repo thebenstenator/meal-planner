@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openAddEntry } from './helpers';
+import { generateList, openAddEntry } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -49,7 +49,7 @@ test('generates one consolidated, rounded line from two recipes', async ({ page 
   await planRecipe(page, iso, 'lunch', 'Cheese Dip B');
 
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
+  await generateList(page);
 
   // 8 oz + 4 oz => 12 oz => buy 2 x 8 oz.
   await expect(page.getByText('cream cheese').first()).toBeVisible();
@@ -91,8 +91,7 @@ test('running list captures ad-hoc items, deduped', async ({ page }) => {
   await box2.press('Enter');
   await expect(page.getByText(/already on your list/)).toBeVisible();
 
-  // Open the standing list → it's ongoing and holds the item once.
-  await page.getByRole('link', { name: 'Open list' }).click();
-  await expect(page.getByText(/Ongoing/)).toBeVisible();
-  await expect(page.getByText('dish soap')).toBeVisible();
+  // The item shows inline on the list page, held once (one checkable row).
+  await expect(page.getByRole('checkbox', { name: /check off dish soap/i })).toBeVisible();
+  await expect(page.getByText(/dish soap/i).first()).toBeVisible();
 });

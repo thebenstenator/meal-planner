@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openAddEntry } from './helpers';
+import { generateList, openAddEntry } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -69,7 +69,7 @@ test('buying a matched item adds it to the pantry', async ({ page }) => {
 
   // Generate the list (auto-navigates to the list detail), then buy it.
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
+  await generateList(page);
   await expect(page.getByText('cream cheese').first()).toBeVisible();
   await page.getByRole('checkbox', { name: 'Check off cream cheese' }).click({ force: true });
   await page.waitForLoadState('networkidle');
@@ -116,8 +116,8 @@ test('cooking a meal removes its ingredients from the pantry', async ({ page }) 
   await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('8');
 });
 
-// A low pantry item is suggested for restock on the shopping list.
-test('suggests restocking a low pantry item, and adds it', async ({ page }) => {
+// A low pantry item is folded straight into a generated list.
+test('folds a low pantry item into a generated list', async ({ page }) => {
   await signUp(page, uniqueEmail('lowstock'));
 
   // Stock a nearly-empty item: 0.5 oz cream cheese (pkg 8 oz => ~6% => low).
@@ -129,18 +129,11 @@ test('suggests restocking a low pantry item, and adds it', async ({ page }) => {
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('0.5');
 
-  // Generate a list; the low item is suggested under "Running low".
+  // Generate a list with no meal plan — the low pantry item is pulled in on its
+  // own, so it's already a list item (not a separate "Running low" suggestion).
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
-  const low = page.getByRole('heading', { name: 'Running low' }).locator('..');
-  await expect(low).toBeVisible();
-  await expect(low.getByText('cream cheese')).toBeVisible();
-
-  // Add it → the suggestion clears (muted until restocked). Reload to assert the
-  // committed state rather than racing the optimistic invalidations under load.
-  await low.getByRole('button', { name: 'Add' }).click();
-  await page.waitForLoadState('networkidle');
-  await page.reload();
+  await generateList(page);
+  await expect(page.getByText('cream cheese').first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Running low' })).toBeHidden();
 });
 
@@ -173,7 +166,7 @@ test('list generation subtracts pantry stock', async ({ page }) => {
 
   // Generate with the pantry offset on (default) → need 12 - 4 = buy 8.
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
+  await generateList(page);
   await expect(page.getByText('cream cheese').first()).toBeVisible();
   await expect(page.getByText(/4 oz already in your pantry/)).toBeVisible();
 });
@@ -207,7 +200,7 @@ test('unquantified pantry stock keeps an item off the generated list', async ({ 
 
   // Generate → flour (not on hand) is listed; cream cheese (in stock) is not.
   await page.goto('/shopping-list');
-  await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
+  await generateList(page);
   await expect(page.getByText(/flour/i).first()).toBeVisible();
   await expect(page.getByText(/cream cheese/i)).toHaveCount(0);
 });
