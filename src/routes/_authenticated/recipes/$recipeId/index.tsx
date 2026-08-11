@@ -170,7 +170,7 @@ function RecipeDetailPage() {
               disabled={del.isPending}
               onClick={async () => {
                 await del.mutateAsync(recipeId);
-                await navigate({ to: '/recipes' });
+                await navigate({ to: '/recipes', replace: true });
               }}
             >
               {del.isPending ? 'Deleting…' : 'Delete'}

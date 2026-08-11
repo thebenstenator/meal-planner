@@ -85,7 +85,9 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
     }
     try {
       const id = await save.mutateAsync({ form: parsed.data, ingredients, recipeId });
-      await navigate({ to: '/recipes/$recipeId', params: { recipeId: id } });
+      // replace: don't leave the edit/create form in history, so the back button
+      // returns to where you were (the recipe or the list), not the form.
+      await navigate({ to: '/recipes/$recipeId', params: { recipeId: id }, replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save');
     }
@@ -181,8 +183,8 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
           variant="ghost"
           onClick={() =>
             recipeId
-              ? navigate({ to: '/recipes/$recipeId', params: { recipeId } })
-              : navigate({ to: '/recipes' })
+              ? navigate({ to: '/recipes/$recipeId', params: { recipeId }, replace: true })
+              : navigate({ to: '/recipes', replace: true })
           }
         >
           Cancel

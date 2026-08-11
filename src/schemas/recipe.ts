@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const MEAL_TYPES = ['main', 'side', 'dessert', 'snack', 'breakfast', 'drink'] as const;
+export const MEAL_TYPES = ['main', 'side', 'sauce', 'dessert', 'snack', 'breakfast', 'drink'] as const;
 export const mealTypeSchema = z.enum(MEAL_TYPES);
 export type MealType = z.infer<typeof mealTypeSchema>;
 
