@@ -67,7 +67,7 @@ export async function listRecipes(
     .select(LIST_SELECT)
     .eq('household_id', householdId)
     .is('deleted_at', null)
-    .order('updated_at', { ascending: false })
+    .order('title', { ascending: true })
     .limit(200);
 
   const search = opts.search?.trim();
@@ -77,16 +77,19 @@ export async function listRecipes(
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data ?? []).map((r) => ({
-    id: r.id,
-    title: r.title,
-    mealTypes: r.meal_types ?? [],
-    servings: r.servings,
-    tags: r.tags ?? [],
-    timesCooked: r.times_cooked,
-    ingredientCount: r.recipe_ingredient?.[0]?.count ?? 0,
-    updatedAt: r.updated_at,
-  }));
+  return (data ?? [])
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      mealTypes: r.meal_types ?? [],
+      servings: r.servings,
+      tags: r.tags ?? [],
+      timesCooked: r.times_cooked,
+      ingredientCount: r.recipe_ingredient?.[0]?.count ?? 0,
+      updatedAt: r.updated_at,
+    }))
+    // Case-insensitive alphabetical, so "apple" and "Banana" sort naturally.
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
 }
 
 export async function getRecipe(id: string): Promise<RecipeDetail> {
