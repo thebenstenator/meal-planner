@@ -36,6 +36,12 @@ async function jot(page: Page, name: string) {
   await expect(page.getByRole('status')).toContainText(`Added ${name}.`);
 }
 
+/** Row actions live behind the row's "⋮" menu, one tap target per row. */
+async function openCategoryEditor(page: Page, name: string) {
+  await page.getByRole('button', { name: `Actions for ${name}` }).click();
+  await page.getByRole('menuitem', { name: 'Change category' }).click();
+}
+
 // Items land in a deduced store section; anything unrecognizable goes to Other.
 test('added items are filed into store categories', async ({ page }) => {
   await signUp(page, uniqueEmail('categories'));
@@ -61,13 +67,13 @@ test('an item can be recategorized, into a category you create', async ({ page }
   await expect(page.getByRole('heading', { name: 'Household' })).toBeVisible();
 
   // Move it to an existing section.
-  await page.getByRole('button', { name: 'edit' }).first().click();
+  await openCategoryEditor(page, 'paper towels');
   await page.getByLabel('Category for paper towels').selectOption('snacks');
   await expect(page.getByRole('heading', { name: 'Snacks' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Household' })).toHaveCount(0);
 
   // …or into one that doesn't exist yet.
-  await page.getByRole('button', { name: 'edit' }).first().click();
+  await openCategoryEditor(page, 'paper towels');
   await page.getByLabel('Category for paper towels').selectOption('__new__');
   const newCategory = page.getByLabel('New category for paper towels');
   await newCategory.fill('Bulk bins');

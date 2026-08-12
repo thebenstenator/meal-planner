@@ -5,12 +5,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RowMenu } from '@/components/ui/row-menu';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { useApplyPurchaseToPantry } from '@/features/pantry/use-pantry';
 import { fromISO, weekRange } from '@/features/planner/dates';
 import { ScanButton } from '@/features/scanner/scan-button';
-import type { ShoppingListSummary } from '@/features/shopping-list/api';
-import { groupByCategory } from '@/features/shopping-list/categories';
+import type { ShoppingItem, ShoppingListSummary } from '@/features/shopping-list/api';
+import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
+import { CategorySelect } from '@/features/shopping-list/components/category-select';
 import { useShoppingCategories } from '@/features/shopping-list/use-categories';
 import {
   useAddToRunningList,
@@ -19,6 +21,7 @@ import {
   useGenerateList,
   useItemEdits,
   useRenameList,
+  useSetItemCategory,
   useShoppingList,
   useShoppingLists,
   useToggleItem,
@@ -214,6 +217,7 @@ function ListPanel({
   const rename = useRenameList();
   const del = useDeleteShoppingList();
   const applyToPantry = useApplyPurchaseToPantry();
+  const setCategory = useSetItemCategory(listId);
   const { categories } = useShoppingCategories();
 
   const [picked, setPicked] = useState<{ id: string | null; name: string | null }>({
@@ -367,43 +371,25 @@ function ListPanel({
               {section.name}
             </h3>
             <ul className="divide-y rounded-lg border">
-              {section.items.map((item) => {
-                const quantityText =
-                  item.totalQuantity != null
-                    ? `${trim(item.totalQuantity)} ${item.unit ?? ''}`.trim()
-                    : null;
-                return (
-                  <li key={item.id} className="flex items-center gap-3 p-3">
-                    <input
-                      type="checkbox"
-                      checked={item.isChecked}
-                      onChange={(e) => {
-                        toggle.mutate({ itemId: item.id, checked: e.target.checked });
-                        applyToPantry.mutate({ item, checked: e.target.checked });
-                      }}
-                      aria-label={`Check off ${item.displayName}`}
-                    />
-                    <span
-                      className={cn(
-                        'min-w-0 flex-1 truncate text-sm',
-                        item.isChecked && 'text-muted-foreground line-through',
-                      )}
-                    >
-                      {item.displayName}
-                      {quantityText && (
-                        <span className="text-muted-foreground"> · {quantityText}</span>
-                      )}
-                    </span>
-                    <button
-                      type="button"
-                      className="text-destructive shrink-0 text-xs underline"
-                      onClick={() => edits.removeItem.mutate(item.id)}
-                    >
-                      remove
-                    </button>
-                  </li>
-                );
-              })}
+              {section.items.map((item) => (
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  categories={categories}
+                  onToggle={(checked) => {
+                    toggle.mutate({ itemId: item.id, checked });
+                    applyToPantry.mutate({ item, checked });
+                  }}
+                  onSetCategory={(category) =>
+                    setCategory.mutate({
+                      itemId: item.id,
+                      canonicalId: item.canonicalId,
+                      category,
+                    })
+                  }
+                  onRemove={() => edits.removeItem.mutate(item.id)}
+                />
+              ))}
             </ul>
           </div>
         ))
@@ -446,6 +432,70 @@ function ListPanel({
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * One line on the list: check it off, or reach the row's actions behind "⋮".
+ * Changing the category reveals the picker underneath rather than opening a
+ * dialog — you're usually re-filing several items in a row while standing in
+ * the store, and a dialog per item would be miserable.
+ */
+function ItemRow({
+  item,
+  categories,
+  onToggle,
+  onSetCategory,
+  onRemove,
+}: {
+  item: ShoppingItem;
+  categories: ShoppingCategory[];
+  onToggle: (checked: boolean) => void;
+  onSetCategory: (category: string) => void;
+  onRemove: () => void;
+}) {
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const quantityText =
+    item.totalQuantity != null ? `${trim(item.totalQuantity)} ${item.unit ?? ''}`.trim() : null;
+
+  return (
+    <li className="p-3">
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={item.isChecked}
+          onChange={(e) => onToggle(e.target.checked)}
+          aria-label={`Check off ${item.displayName}`}
+        />
+        <span
+          className={cn(
+            'min-w-0 flex-1 truncate text-sm',
+            item.isChecked && 'text-muted-foreground line-through',
+          )}
+        >
+          {item.displayName}
+          {quantityText && <span className="text-muted-foreground"> · {quantityText}</span>}
+        </span>
+        <RowMenu
+          label={`Actions for ${item.displayName}`}
+          actions={[
+            { label: 'Change category', onSelect: () => setCategoryOpen((v) => !v) },
+            { label: 'Remove', onSelect: onRemove, destructive: true },
+          ]}
+        />
+      </div>
+      {categoryOpen && (
+        <CategorySelect
+          itemName={item.displayName}
+          value={item.category}
+          categories={categories}
+          onChange={(slug) => {
+            onSetCategory(slug);
+            setCategoryOpen(false);
+          }}
+        />
+      )}
+    </li>
   );
 }
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { RowMenu } from '@/components/ui/row-menu';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { isLowStock } from '@/features/pantry/low-stock';
 import { ScanButton } from '@/features/scanner/scan-button';
@@ -287,7 +288,9 @@ function ItemRow({
   onSetConversion: (density: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
+  // Only one row panel is open at a time — they'd otherwise stack up and push
+  // the rest of the list off screen.
+  const [panel, setPanel] = useState<'none' | 'quantity' | 'category'>('none');
   const [qty, setQty] = useState(item.totalQuantity?.toString() ?? '');
   const [unit, setUnit] = useState(item.unit ?? '');
   const [dismissed, setDismissed] = useState(false);
@@ -322,6 +325,22 @@ function ItemRow({
                 needs conversion
               </Badge>
             )}
+            <span className="ml-auto">
+              <RowMenu
+                label={`Actions for ${item.displayName}`}
+                actions={[
+                  {
+                    label: 'Edit quantity',
+                    onSelect: () => setPanel((p) => (p === 'quantity' ? 'none' : 'quantity')),
+                  },
+                  {
+                    label: 'Change category',
+                    onSelect: () => setPanel((p) => (p === 'category' ? 'none' : 'category')),
+                  },
+                  { label: 'Remove', onSelect: onDelete, destructive: true },
+                ]}
+              />
+            </span>
           </div>
 
           {quantityText && <div className="text-sm">{quantityText}</div>}
@@ -399,60 +418,59 @@ function ItemRow({
             </div>
           )}
 
-          {/* Manual quantity override + which aisle it belongs in */}
-          {editing && (
-            <div className="mt-2 space-y-1">
-              <div className="flex items-center gap-2">
-                <Input
-                  aria-label={`Quantity for ${item.displayName}`}
-                  inputMode="decimal"
-                  value={qty}
-                  onChange={(e) => setQty(e.target.value)}
-                  className="h-8 w-20"
-                />
-                <Input
-                  aria-label={`Unit for ${item.displayName}`}
-                  value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
-                  className="h-8 w-20"
-                />
-                <Button
-                  size="sm"
-                  className="h-8"
-                  onClick={() => {
-                    onOverride(qty.trim() === '' ? null : Number(qty), unit || null);
-                    setEditing(false);
-                  }}
-                >
-                  Save
-                </Button>
-              </div>
-              <CategorySelect
-                itemName={item.displayName}
-                value={item.category}
-                categories={categories}
-                onChange={onSetCategory}
+          {/* Manual quantity override */}
+          {panel === 'quantity' && (
+            <div className="mt-2 flex items-center gap-2">
+              <Input
+                aria-label={`Quantity for ${item.displayName}`}
+                inputMode="decimal"
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                className="h-8 w-20"
               />
+              <Input
+                aria-label={`Unit for ${item.displayName}`}
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                className="h-8 w-20"
+              />
+              <Button
+                size="sm"
+                className="h-8"
+                onClick={() => {
+                  onOverride(qty.trim() === '' ? null : Number(qty), unit || null);
+                  setPanel('none');
+                }}
+              >
+                Save
+              </Button>
             </div>
           )}
 
-          <div className="mt-1 flex items-center gap-3 text-xs">
-            {item.sources.length > 0 && (
-              <button type="button" className="text-muted-foreground underline" onClick={() => setOpen((v) => !v)}>
+          {/* Which aisle it belongs in */}
+          {panel === 'category' && (
+            <CategorySelect
+              itemName={item.displayName}
+              value={item.category}
+              categories={categories}
+              onChange={(slug) => {
+                onSetCategory(slug);
+                setPanel('none');
+              }}
+            />
+          )}
+
+          {item.sources.length > 0 && (
+            <div className="mt-1 text-xs">
+              <button
+                type="button"
+                className="text-muted-foreground underline"
+                onClick={() => setOpen((v) => !v)}
+              >
                 {open ? 'hide' : 'why?'} ({item.sources.length})
               </button>
-            )}
-            <button
-              type="button"
-              className="text-muted-foreground underline"
-              onClick={() => setEditing((v) => !v)}
-            >
-              edit
-            </button>
-            <button type="button" className="text-destructive underline" onClick={onDelete}>
-              remove
-            </button>
-          </div>
+            </div>
+          )}
 
           {open && (
             <ul className="text-muted-foreground mt-1 space-y-0.5 text-xs">

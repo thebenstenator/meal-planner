@@ -85,12 +85,15 @@ test('pantry expiry: set on add, edit on the row, drives the use-it-up nudge', a
     'expires today',
   );
 
-  // Clearing it returns the row to the "+ expiry" affordance.
+  // Clearing it leaves the row bare — the way back in is the "⋮" menu, which now
+  // offers to add a date rather than change one.
   await page.getByRole('button', { name: 'Change expiry for cream cheese' }).click();
   await page.getByRole('button', { name: 'Clear expiry for cream cheese' }).click();
   await expect(
-    page.getByRole('button', { name: 'Add an expiry date for cream cheese' }),
-  ).toBeVisible();
+    page.getByRole('button', { name: 'Change expiry for cream cheese' }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: 'Actions for cream cheese' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Add expiry' })).toBeVisible();
 });
 
 // Checking a matched item off the shopping list adds it to the pantry.

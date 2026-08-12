@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { RowMenu } from '@/components/ui/row-menu';
 import { cn } from '@/lib/utils/cn';
 import { daysBetween, expiryLabel } from '@/features/insights/insights';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
@@ -266,6 +267,8 @@ function PantryPage() {
 function PantryRow({ item }: { item: PantryItem }) {
   const { update, remove } = usePantryMutations();
   const [qty, setQty] = useState(item.amountUnknown ? '' : String(item.quantity));
+  // Owned here so the row's "⋮" menu can open the expiry editor.
+  const [editingExpiry, setEditingExpiry] = useState(false);
 
   function commitQty() {
     // Cleared → back to "have some, amount unknown" (kept off the shopping list).
@@ -284,7 +287,7 @@ function PantryRow({ item }: { item: PantryItem }) {
     <li className="flex items-center justify-between gap-2 p-3">
       <div className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{item.canonicalName}</span>
-        <ExpiryControl item={item} />
+        <ExpiryControl item={item} editing={editingExpiry} setEditing={setEditingExpiry} />
       </div>
       <div className="flex items-center gap-1">
         <Input
@@ -303,27 +306,37 @@ function PantryRow({ item }: { item: PantryItem }) {
           className="h-8 w-16"
         />
         <span className="text-muted-foreground w-10 text-xs">{item.unit ?? ''}</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => remove.mutate(item.id)}
-          aria-label={`Remove ${item.canonicalName}`}
-        >
-          ✕
-        </Button>
+        <RowMenu
+          label={`Actions for ${item.canonicalName}`}
+          actions={[
+            {
+              label: item.expiresOn ? 'Change expiry' : 'Add expiry',
+              onSelect: () => setEditingExpiry(true),
+            },
+            { label: 'Remove', onSelect: () => remove.mutate(item.id), destructive: true },
+          ]}
+        />
       </div>
     </li>
   );
 }
 
 /**
- * The expiry date on a pantry row: a quiet "expires in 3d" you can tap to change,
- * or a "+ expiry" affordance when it's unset. Kept secondary to the name and
- * quantity — most items never get a date, and that's fine.
+ * The expiry date on a pantry row: a quiet "expires in 3d" you can tap to change.
+ * Rows without a date show nothing at all — most items never get one, and the
+ * row's "⋮" menu is where you add it. Open state is owned by the row so the menu
+ * can drive it.
  */
-function ExpiryControl({ item }: { item: PantryItem }) {
+function ExpiryControl({
+  item,
+  editing,
+  setEditing,
+}: {
+  item: PantryItem;
+  editing: boolean;
+  setEditing: (open: boolean) => void;
+}) {
   const { update } = usePantryMutations();
-  const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(item.expiresOn ?? '');
 
   // Same idiom as the quantity field above: commit on blur or Enter, so a
@@ -373,18 +386,7 @@ function ExpiryControl({ item }: { item: PantryItem }) {
     );
   }
 
-  if (!item.expiresOn) {
-    return (
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        aria-label={`Add an expiry date for ${item.canonicalName}`}
-        className="text-muted-foreground hover:text-foreground mt-0.5 text-xs underline-offset-2 hover:underline"
-      >
-        + expiry
-      </button>
-    );
-  }
+  if (!item.expiresOn) return null;
 
   const daysLeft = daysBetween(toISO(new Date()), item.expiresOn);
   return (
