@@ -5,6 +5,29 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Shopping list categories (store sections)
+
+- Lists are grouped into **store sections** — Produce, Bakery, Meat, Dairy &
+  eggs, Frozen, Pantry, Baking, Household… — in the order you walk the store,
+  on both the list page and the compact panel on the shopping-list index.
+- **Anything you add is filed automatically.** The category comes from the
+  matched ingredient, else a keyword guess from the name ("paper towels" →
+  Household, "frozen peas" → Frozen, "canned tuna" → Canned goods), else
+  **Other**. Ad-hoc items used to land in "other" unconditionally.
+- **Categories are yours:** a "Categories" panel on the list page renames them,
+  reorders them to match your store, adds your own ("Bulk bins"), and deletes the
+  ones you don't use — deleted sections move their items to Other rather than
+  losing them. "Other" itself can be renamed but not deleted.
+- **Move an item, and it sticks:** "edit" on a row has a category picker (with
+  "+ New category…" inline). For an item backed by a real ingredient the choice
+  is remembered for the household — including for global seed ingredients — so
+  the same item lands there next time and **survives regenerating the list**.
+- New `shopping_category` + `household_ingredient_category` tables with RLS; every
+  household (existing ones too) is seeded with the 17 default sections. Pure
+  helpers with unit tests (grouping, ordering, slugs, deduction); e2e covers
+  filing, recategorizing and managing categories. See
+  `docs/decisions/0014-shopping-categories.md`.
+
 ### Bulk recipe import (no AI credits)
 
 - New **Bulk import** page (Recipes → Bulk): add many recipes at once, free.

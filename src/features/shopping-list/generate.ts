@@ -1,4 +1,6 @@
 import { toCanonicalInfo } from '@/features/ingredients/api';
+import { deduceCategory } from '@/features/shopping-list/categories';
+import { fetchIngredientCategories } from '@/features/shopping-list/categories-api';
 import {
   cleanName,
   consolidate,
@@ -114,6 +116,16 @@ export async function buildShoppingItems(
 
   const items = consolidate(inputs, (id) => lookup.get(id));
 
+  // Where this household files these ingredients, if they've said. Applied over
+  // the ingredient's own category so a recategorized item stays put across
+  // regenerations.
+  const categoryOverrides =
+    canonicalIds.size > 0
+      ? await fetchIngredientCategories(householdId, [...canonicalIds]).catch(
+          () => new Map<string, string>(),
+        )
+      : new Map<string, string>();
+
   // Pantry offset: how much of each canonical is already on hand (summed across
   // locations, converted into a common unit per item at map time).
   const pantryByCanonical = new Map<string, { quantity: number; unit: string | null }[]>();
@@ -185,7 +197,8 @@ export async function buildShoppingItems(
         display_name: displayName,
         total_quantity: totalQuantity,
         unit: item.unit,
-        category: item.category ?? null,
+        category:
+          categoryOverrides.get(item.canonicalId) ?? item.category ?? deduceCategory(displayName),
         unresolved: item.unresolved,
         sub_totals: item.subTotals.length > 0 ? item.subTotals : null,
         purchase,

@@ -23,6 +23,32 @@ describe('guessCategory', () => {
     expect(guessCategory('')).toBeNull();
   });
 
+  it('classifies the aisles a shopping list needs', () => {
+    expect(guessCategory('frozen peas')).toBe('frozen');
+    expect(guessCategory('vanilla ice cream')).toBe('frozen');
+    expect(guessCategory('canned black beans')).toBe('canned');
+    expect(guessCategory('chicken broth')).toBe('canned');
+    expect(guessCategory('paper towels')).toBe('household');
+    expect(guessCategory('dish soap')).toBe('household');
+    expect(guessCategory('bran cereal')).toBe('breakfast');
+    expect(guessCategory('all-purpose flour')).toBe('baking');
+    expect(guessCategory('jasmine rice')).toBe('pantry');
+  });
+
+  it('prefers the aisle a modifier implies over the ingredient itself', () => {
+    // Shopped in the freezer/canned aisles, not with the fresh stuff.
+    expect(guessCategory('frozen chicken tenders')).toBe('frozen');
+    expect(guessCategory('canned tuna')).toBe('canned');
+    // …but the unmodified ingredient is unchanged.
+    expect(guessCategory('chicken tenders')).toBe('meat');
+    expect(guessCategory('tuna steak')).toBe('seafood');
+  });
+
+  it('keeps snack bars in snacks, not breakfast', () => {
+    expect(guessCategory('granola bar')).toBe('snacks');
+    expect(guessCategory('granola')).toBe('breakfast');
+  });
+
   it('matches whole words, so lookalikes do not leak in', () => {
     // "pepperoni" must be meat, not produce via "pepper".
     expect(guessCategory('pepperoni')).toBe('meat');

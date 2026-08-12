@@ -14,10 +14,12 @@ import {
   renameShoppingList,
   setCanonicalConversion,
   setItemActualCost,
+  setItemCategory,
   setItemChecked,
   updateItemQuantity,
   type SmartAddResult,
 } from '@/features/shopping-list/api';
+import { setIngredientCategory } from '@/features/shopping-list/categories-api';
 
 export function useShoppingLists() {
   const { householdId } = useHousehold();
@@ -119,6 +121,51 @@ export function useSetActualCost(listId: string) {
         return {
           ...data,
           items: data.items.map((i) => (i.id === itemId ? { ...i, actualCostCents: cents } : i)),
+        };
+      });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      const prev = (ctx as { prev?: unknown } | undefined)?.prev;
+      if (prev !== undefined) qc.setQueryData(listKeys.detail(listId), prev);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
+    },
+  });
+}
+
+/**
+ * Move an item to another category. For an item backed by a canonical
+ * ingredient the choice is also remembered for the household, so the same
+ * ingredient lands there next time — and stays there when the list is
+ * regenerated.
+ */
+export function useSetItemCategory(listId: string) {
+  const { householdId } = useHousehold();
+  const qc = useQueryClient();
+  return useMutation<
+    void,
+    Error,
+    { itemId: string; canonicalId: string | null; category: string }
+  >({
+    mutationFn: async ({ itemId, canonicalId, category }) => {
+      await setItemCategory(itemId, category);
+      if (canonicalId && householdId) {
+        await setIngredientCategory(householdId, canonicalId, category);
+      }
+    },
+    // Optimistic: the item jumps to its new section immediately.
+    onMutate: ({ itemId, category }) => {
+      const prev = qc.getQueryData(listKeys.detail(listId));
+      qc.setQueryData(listKeys.detail(listId), (old: unknown) => {
+        const data = old as
+          | { summary: unknown; items: Array<{ id: string; category: string | null }> }
+          | undefined;
+        if (!data) return old;
+        return {
+          ...data,
+          items: data.items.map((i) => (i.id === itemId ? { ...i, category } : i)),
         };
       });
       return { prev };

@@ -15,11 +15,16 @@ import {
 import { useAddPrice } from '@/features/pricing/use-pricing';
 import { useListPricing, type ItemPricing } from '@/features/pricing/use-list-pricing';
 import type { ShoppingItem } from '@/features/shopping-list/api';
+import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
+import { CategoryManager } from '@/features/shopping-list/components/category-manager';
+import { CategorySelect } from '@/features/shopping-list/components/category-select';
+import { useShoppingCategories } from '@/features/shopping-list/use-categories';
 import {
   useGenerateList,
   useItemEdits,
   useSetActualCost,
   useSetConversion,
+  useSetItemCategory,
   useShoppingList,
   useToggleItem,
 } from '@/features/shopping-list/use-shopping-list';
@@ -43,6 +48,9 @@ function ShoppingListDetail() {
   const regenerate = useGenerateList();
   const addPrice = useAddPrice();
   const setActual = useSetActualCost(listId);
+  const setCategory = useSetItemCategory(listId);
+  const { categories, isLoading: categoriesLoading } = useShoppingCategories();
+  const [managingCategories, setManagingCategories] = useState(false);
   const applyToPantry = useApplyPurchaseToPantry();
   const { data: pantry } = usePantry();
   const pantryMut = usePantryMutations();
@@ -52,13 +60,8 @@ function ShoppingListDetail() {
   if (isError || !data) return <Centered>Couldn’t load this list.</Centered>;
 
   const { summary, items } = data;
-  const byCategory = new Map<string, ShoppingItem[]>();
-  for (const item of items) {
-    const cat = item.category ?? 'other';
-    const bucket = byCategory.get(cat) ?? [];
-    bucket.push(item);
-    byCategory.set(cat, bucket);
-  }
+  // Grouped into the household's store sections, in the order they shop them.
+  const sections = groupByCategory(items, categories);
 
   // Running low: pantry items below the restock line, not muted, and not already
   // on this list (you're already buying those).
@@ -103,12 +106,34 @@ function ShoppingListDetail() {
             · {items.length} items
           </p>
         </div>
-        {!summary.isRunning && (
-          <Button variant="outline" size="sm" onClick={onRegenerate} disabled={regenerate.isPending}>
-            {regenerate.isPending ? 'Regenerating…' : 'Regenerate'}
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setManagingCategories((v) => !v)}
+            aria-expanded={managingCategories}
+          >
+            Categories
           </Button>
-        )}
+          {!summary.isRunning && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRegenerate}
+              disabled={regenerate.isPending}
+            >
+              {regenerate.isPending ? 'Regenerating…' : 'Regenerate'}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {managingCategories &&
+        (categoriesLoading ? (
+          <p className="text-muted-foreground text-sm">Loading categories…</p>
+        ) : (
+          <CategoryManager categories={categories} onClose={() => setManagingCategories(false)} />
+        ))}
 
       <div className="bg-muted/40 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
         <div className="flex gap-6">
@@ -184,16 +209,20 @@ function ShoppingListDetail() {
         </p>
       )}
 
-      {[...byCategory.entries()].sort().map(([cat, catItems]) => (
-        <section key={cat}>
+      {sections.map((section) => (
+        <section key={section.slug}>
           <h2 className="text-muted-foreground mb-1 text-xs font-semibold uppercase tracking-wide">
-            {cat}
+            {section.name}
           </h2>
           <ul className="divide-y rounded-lg border">
-            {catItems.map((item) => (
+            {section.items.map((item) => (
               <ItemRow
                 key={item.id}
                 item={item}
+                categories={categories}
+                onSetCategory={(category) =>
+                  setCategory.mutate({ itemId: item.id, canonicalId: item.canonicalId, category })
+                }
                 pricing={pricing.byItemId.get(item.id)}
                 canAddPrice={!!pricing.storeId && !!item.canonicalId}
                 onAddPrice={(priceCents, packageQuantity, packageUnit) =>
@@ -234,9 +263,11 @@ function ShoppingListDetail() {
 
 function ItemRow({
   item,
+  categories,
   pricing,
   canAddPrice,
   onAddPrice,
+  onSetCategory,
   onToggle,
   onSetActualCost,
   onOverride,
@@ -244,9 +275,11 @@ function ItemRow({
   onSetConversion,
 }: {
   item: ShoppingItem;
+  categories: ShoppingCategory[];
   pricing: ItemPricing | undefined;
   canAddPrice: boolean;
   onAddPrice: (priceCents: number, packageQuantity: number, packageUnit: string) => void;
+  onSetCategory: (category: string) => void;
   onToggle: (checked: boolean) => void;
   onSetActualCost: (cents: number | null) => void;
   onOverride: (quantity: number | null, unit: string | null) => void;
@@ -366,32 +399,40 @@ function ItemRow({
             </div>
           )}
 
-          {/* Manual quantity override */}
+          {/* Manual quantity override + which aisle it belongs in */}
           {editing && (
-            <div className="mt-2 flex items-center gap-2">
-              <Input
-                aria-label={`Quantity for ${item.displayName}`}
-                inputMode="decimal"
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
-                className="h-8 w-20"
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center gap-2">
+                <Input
+                  aria-label={`Quantity for ${item.displayName}`}
+                  inputMode="decimal"
+                  value={qty}
+                  onChange={(e) => setQty(e.target.value)}
+                  className="h-8 w-20"
+                />
+                <Input
+                  aria-label={`Unit for ${item.displayName}`}
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  className="h-8 w-20"
+                />
+                <Button
+                  size="sm"
+                  className="h-8"
+                  onClick={() => {
+                    onOverride(qty.trim() === '' ? null : Number(qty), unit || null);
+                    setEditing(false);
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+              <CategorySelect
+                itemName={item.displayName}
+                value={item.category}
+                categories={categories}
+                onChange={onSetCategory}
               />
-              <Input
-                aria-label={`Unit for ${item.displayName}`}
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                className="h-8 w-20"
-              />
-              <Button
-                size="sm"
-                className="h-8"
-                onClick={() => {
-                  onOverride(qty.trim() === '' ? null : Number(qty), unit || null);
-                  setEditing(false);
-                }}
-              >
-                Save
-              </Button>
             </div>
           )}
 

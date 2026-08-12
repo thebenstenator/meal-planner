@@ -1,4 +1,6 @@
 import { resolveOrCreateCanonical } from '@/features/ingredients/resolve';
+import { deduceCategory } from '@/features/shopping-list/categories';
+import { fetchIngredientCategories } from '@/features/shopping-list/categories-api';
 import { buildShoppingItems } from '@/features/shopping-list/generate';
 import { supabase } from '@/lib/supabase/client';
 import type { Json } from '@/lib/supabase/database.types';
@@ -313,10 +315,13 @@ export async function deleteShoppingList(listId: string): Promise<void> {
   if (error) throw error;
 }
 
-/** Add a manual item ("paper towels") that survives regeneration. */
+/**
+ * Add a manual item ("paper towels") that survives regeneration. Its category is
+ * deduced from the name, falling back to "other".
+ */
 export async function addAdHocItem(
   listId: string,
-  input: { name: string; quantity: number | null; unit: string | null },
+  input: { name: string; quantity: number | null; unit: string | null; category?: string },
 ): Promise<void> {
   const { error } = await supabase.from('shopping_list_item').insert({
     shopping_list_id: listId,
@@ -324,7 +329,7 @@ export async function addAdHocItem(
     display_name: input.name,
     total_quantity: input.quantity,
     unit: input.unit,
-    category: 'other',
+    category: input.category ?? deduceCategory(input.name),
     is_manual: true,
   });
   if (error) throw error;
@@ -361,11 +366,14 @@ export async function addSmartItem(
   if (exErr) throw exErr;
   if (existing && existing.length > 0) return 'exists';
 
-  const { data: canon } = await supabase
-    .from('canonical_ingredient')
-    .select('category')
-    .eq('id', resolved.canonicalId)
-    .single();
+  // Category, most specific first: what this household filed the ingredient
+  // under, then the ingredient's own category, then a guess from the name.
+  const [{ data: canon }, overrides] = await Promise.all([
+    supabase.from('canonical_ingredient').select('category').eq('id', resolved.canonicalId).single(),
+    fetchIngredientCategories(householdId, [resolved.canonicalId]).catch(
+      () => new Map<string, string>(),
+    ),
+  ]);
 
   const { error } = await supabase.from('shopping_list_item').insert({
     shopping_list_id: listId,
@@ -373,11 +381,25 @@ export async function addSmartItem(
     display_name: resolved.name,
     total_quantity: input.quantity,
     unit: input.unit,
-    category: canon?.category ?? 'other',
+    category:
+      overrides.get(resolved.canonicalId) ?? canon?.category ?? deduceCategory(resolved.name),
     is_manual: true,
   });
   if (error) throw error;
   return 'added';
+}
+
+/**
+ * File an item under a category. Remembering it for the ingredient (so the
+ * choice survives regeneration and applies next time) is a separate,
+ * best-effort step — see `setIngredientCategory`.
+ */
+export async function setItemCategory(itemId: string, category: string): Promise<void> {
+  const { error } = await supabase
+    .from('shopping_list_item')
+    .update({ category })
+    .eq('id', itemId);
+  if (error) throw error;
 }
 
 /** Manual override of an item's quantity/unit (lasts until regeneration). */
