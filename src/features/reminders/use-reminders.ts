@@ -8,6 +8,7 @@ import {
   isPushConfigured,
   isPushSupported,
   notificationPermission,
+  showTestNotification,
   subscribe,
   unsubscribe,
   type PermissionState,
@@ -22,6 +23,7 @@ export interface RemindersState {
   error: string | null;
   enable: () => Promise<void>;
   disable: () => Promise<void>;
+  sendTest: () => Promise<void>;
 }
 
 /** Device-local reminder subscription state + enable/disable actions. */
@@ -81,6 +83,15 @@ export function useReminders(): RemindersState {
     }
   }
 
+  async function sendTest() {
+    setError(null);
+    try {
+      await showTestNotification();
+    } catch {
+      setError('Couldn’t show a test notification on this device.');
+    }
+  }
+
   return {
     supported: isPushSupported(),
     configured: isPushConfigured(),
@@ -90,5 +101,6 @@ export function useReminders(): RemindersState {
     error,
     enable,
     disable,
+    sendTest,
   };
 }

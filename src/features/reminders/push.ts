@@ -66,6 +66,25 @@ export async function unsubscribe(): Promise<string | null> {
   return endpoint;
 }
 
+/**
+ * Show a notification from the service worker right now, so you can confirm
+ * reminders actually surface on this device without waiting for the daily cron
+ * (which only fires when something is expiring). This is a local display test —
+ * it exercises permission and the SW's notification handling, not the server
+ * push round-trip.
+ */
+export async function showTestNotification(): Promise<void> {
+  if (!isPushSupported()) return;
+  const reg = await navigator.serviceWorker.ready;
+  await reg.showNotification('Reminders are on', {
+    body: 'This is what an expiring-item nudge will look like.',
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
+    tag: 'reminder-test',
+    data: { url: '/app' },
+  });
+}
+
 function toKeys(sub: PushSubscription): SubscriptionKeys {
   const json = sub.toJSON();
   return {
