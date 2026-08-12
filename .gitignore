@@ -45,3 +45,8 @@ test-results/
 supabase/.branches/
 supabase/.temp/
 .vapid-keys.local.json
+
+# Vercel CLI link + the VERCEL_OIDC_TOKEN it writes to .env.local (covered by
+# the .env.* rule above; don't re-add a bare `.env*` — it would defeat the
+# !.env.example negation).
+.vercel
