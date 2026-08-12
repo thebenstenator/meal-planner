@@ -3,7 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { useEntitlement } from '@/features/billing/use-entitlement';
 import { useHousehold } from '@/features/household/use-household';
-import type { ExpiringItem } from '@/features/insights/insights';
+import { expiryLabel, type ExpiringItem } from '@/features/insights/insights';
 import { useInsights } from '@/features/insights/use-insights';
 import type { LibraryRecipe } from '@/features/planner/autofill';
 
@@ -146,11 +146,4 @@ function MixItUpCard({ repeats }: { repeats: { title: string; count: number }[] 
       </Button>
     </Card>
   );
-}
-
-function expiryLabel(daysLeft: number): string {
-  if (daysLeft < 0) return `expired ${-daysLeft}d ago`;
-  if (daysLeft === 0) return 'expires today';
-  if (daysLeft === 1) return 'expires tomorrow';
-  return `expires in ${daysLeft}d`;
 }

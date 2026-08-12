@@ -6,7 +6,13 @@ function uniqueEmail(prefix: string): string {
 }
 
 function todayISO(): string {
+  return offsetISO(0);
+}
+
+/** yyyy-MM-dd `days` from today, in local time (matching what the UI renders). */
+function offsetISO(days: number): string {
   const d = new Date();
+  d.setDate(d.getDate() + days);
   const p = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
@@ -43,6 +49,48 @@ test('pantry add: type and add without picking, with clear feedback', async ({ p
   await box2.fill('florbnak');
   await box2.press('Enter');
   await expect(page.getByText(/new ingredient/i)).toBeVisible();
+});
+
+// An expiry date is optional on add, reads back in plain language on the row,
+// is editable in place, and is what feeds the "use it up" nudge. Without this
+// field nothing can ever populate expires_on, so the nudge and the daily
+// reminder push both stay dark.
+test('pantry expiry: set on add, edit on the row, drives the use-it-up nudge', async ({ page }) => {
+  await signUp(page, uniqueEmail('expiry'));
+
+  await page.goto('/pantry');
+  await page.getByPlaceholder('Type an ingredient…').fill('cream cheese');
+  await page.getByRole('button', { name: /cream cheese/ }).first().click();
+  await page.getByLabel('Quantity', { exact: true }).fill('8');
+  await page.getByLabel('Unit', { exact: true }).fill('oz');
+  await page.getByLabel('Expires').fill(offsetISO(1));
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+
+  // The row states it in human terms, not as a raw date.
+  const expiry = page.getByRole('button', { name: 'Change expiry for cream cheese' });
+  await expect(expiry).toHaveText('expires tomorrow');
+
+  // The dashboard "use it up" card picks it up.
+  await page.goto('/app');
+  await expect(page.getByText('Use it up')).toBeVisible();
+  await expect(page.getByText('expires tomorrow')).toBeVisible();
+
+  // Tap the date to change it in place.
+  await page.goto('/pantry');
+  await page.getByRole('button', { name: 'Change expiry for cream cheese' }).click();
+  const field = page.getByLabel('Expiry date for cream cheese');
+  await field.fill(offsetISO(0));
+  await field.press('Enter');
+  await expect(page.getByRole('button', { name: 'Change expiry for cream cheese' })).toHaveText(
+    'expires today',
+  );
+
+  // Clearing it returns the row to the "+ expiry" affordance.
+  await page.getByRole('button', { name: 'Change expiry for cream cheese' }).click();
+  await page.getByRole('button', { name: 'Clear expiry for cream cheese' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Add an expiry date for cream cheese' }),
+  ).toBeVisible();
 });
 
 // Checking a matched item off the shopping list adds it to the pantry.

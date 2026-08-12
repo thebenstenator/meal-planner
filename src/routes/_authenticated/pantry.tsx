@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils/cn';
+import { daysBetween, expiryLabel } from '@/features/insights/insights';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { resolveOrCreateCanonical } from '@/features/ingredients/resolve';
 import { ScanButton } from '@/features/scanner/scan-button';
 import type { PantryItem, PantryLocation } from '@/features/pantry/api';
 import { PantryBulkImport } from '@/features/pantry/components/bulk-import';
 import { usePantry, usePantryMutations } from '@/features/pantry/use-pantry';
+import { toISO } from '@/features/planner/dates';
 import { useHousehold } from '@/features/household/use-household';
 
 export const Route = createFileRoute('/_authenticated/pantry')({
@@ -31,6 +33,7 @@ function PantryPage() {
   const [qty, setQty] = useState('');
   const [unit, setUnit] = useState('');
   const [location, setLocation] = useState<PantryLocation>('pantry');
+  const [expires, setExpires] = useState('');
   const [addMode, setAddMode] = useState<'single' | 'many'>('single');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
@@ -86,6 +89,7 @@ function PantryPage() {
         amountUnknown: blankQty,
         unit: unit.trim() || null,
         location,
+        expiresOn: expires || null,
       });
 
       setPicked({ id: null, name: null });
@@ -93,6 +97,7 @@ function PantryPage() {
       setSeed('');
       setQty('');
       setUnit('');
+      setExpires('');
       setFormKey((k) => k + 1);
       setFeedback({
         type: 'success',
@@ -191,9 +196,23 @@ function PantryPage() {
             {busy || add.isPending ? 'Adding…' : 'Add'}
           </Button>
         </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="pantry-expires" className="text-muted-foreground text-xs">
+            Expires
+          </label>
+          <Input
+            id="pantry-expires"
+            type="date"
+            value={expires}
+            onChange={(e) => setExpires(e.target.value)}
+            className="h-9 w-40"
+          />
+          <span className="text-muted-foreground text-xs">optional</span>
+        </div>
         <p className="text-muted-foreground text-xs">
           Leave the amount blank if you have it but haven’t measured it — it’ll count as in stock
-          and stay off your shopping list.
+          and stay off your shopping list. An expiry date is what powers “use it up” nudges and
+          reminders.
         </p>
         {feedback && (
           <p
@@ -263,7 +282,10 @@ function PantryRow({ item }: { item: PantryItem }) {
 
   return (
     <li className="flex items-center justify-between gap-2 p-3">
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.canonicalName}</span>
+      <div className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium">{item.canonicalName}</span>
+        <ExpiryControl item={item} />
+      </div>
       <div className="flex items-center gap-1">
         <Input
           aria-label={`Quantity of ${item.canonicalName}`}
@@ -291,5 +313,91 @@ function PantryRow({ item }: { item: PantryItem }) {
         </Button>
       </div>
     </li>
+  );
+}
+
+/**
+ * The expiry date on a pantry row: a quiet "expires in 3d" you can tap to change,
+ * or a "+ expiry" affordance when it's unset. Kept secondary to the name and
+ * quantity — most items never get a date, and that's fine.
+ */
+function ExpiryControl({ item }: { item: PantryItem }) {
+  const { update } = usePantryMutations();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(item.expiresOn ?? '');
+
+  // Same idiom as the quantity field above: commit on blur or Enter, so a
+  // half-typed date never lands and the native mobile picker works normally.
+  function commit(next: string) {
+    const expiresOn = next || null;
+    if (expiresOn !== (item.expiresOn ?? null)) update.mutate({ id: item.id, expiresOn });
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <span className="mt-1 flex items-center gap-1">
+        <Input
+          type="date"
+          autoFocus
+          aria-label={`Expiry date for ${item.canonicalName}`}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={() => commit(value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit(value);
+            }
+            if (e.key === 'Escape') setEditing(false);
+          }}
+          className="h-7 w-36 text-xs"
+        />
+        {item.expiresOn && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-1 text-xs"
+            aria-label={`Clear expiry for ${item.canonicalName}`}
+            // Beat the input's blur, which would otherwise commit and unmount us first.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setValue('');
+              commit('');
+            }}
+          >
+            clear
+          </Button>
+        )}
+      </span>
+    );
+  }
+
+  if (!item.expiresOn) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        aria-label={`Add an expiry date for ${item.canonicalName}`}
+        className="text-muted-foreground hover:text-foreground mt-0.5 text-xs underline-offset-2 hover:underline"
+      >
+        + expiry
+      </button>
+    );
+  }
+
+  const daysLeft = daysBetween(toISO(new Date()), item.expiresOn);
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      aria-label={`Change expiry for ${item.canonicalName}`}
+      className={cn(
+        'mt-0.5 text-xs underline-offset-2 hover:underline',
+        daysLeft <= 0 ? 'text-destructive' : 'text-muted-foreground',
+      )}
+    >
+      {expiryLabel(daysLeft)}
+    </button>
   );
 }

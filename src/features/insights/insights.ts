@@ -3,8 +3,20 @@ import { differenceInCalendarDays, parseISO } from 'date-fns';
 import type { LibraryRecipe } from '@/features/planner/autofill';
 
 /** Calendar days from `from` to `to` (both yyyy-MM-dd). Positive = to is later. */
-function daysBetween(from: string, to: string): number {
+export function daysBetween(from: string, to: string): number {
   return differenceInCalendarDays(parseISO(to), parseISO(from));
+}
+
+/**
+ * How an expiry reads to a person: "expires tomorrow", not a date. Shared by the
+ * "use it up" dashboard card and the pantry rows so the same item never reads two
+ * different ways in two places.
+ */
+export function expiryLabel(daysLeft: number): string {
+  if (daysLeft < 0) return `expired ${-daysLeft}d ago`;
+  if (daysLeft === 0) return 'expires today';
+  if (daysLeft === 1) return 'expires tomorrow';
+  return `expires in ${daysLeft}d`;
 }
 
 // A recipe cooked within this many days is "recent" — not a candidate for the
