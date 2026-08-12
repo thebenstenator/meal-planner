@@ -250,6 +250,48 @@ export type Database = {
           },
         ]
       }
+      household_ingredient_category: {
+        Row: {
+          canonical_ingredient_id: string
+          category: string
+          created_at: string
+          household_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          canonical_ingredient_id: string
+          category: string
+          created_at?: string
+          household_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          canonical_ingredient_id?: string
+          category?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_ingredient_category_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_ingredient_category_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_ingredient_map: {
         Row: {
           canonical_ingredient_id: string
@@ -746,6 +788,47 @@ export type Database = {
           },
         ]
       }
+      shopping_category: {
+        Row: {
+          created_at: string
+          household_id: string
+          id: string
+          is_fallback: boolean
+          name: string
+          position: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          household_id: string
+          id?: string
+          is_fallback?: boolean
+          name: string
+          position?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string
+          id?: string
+          is_fallback?: boolean
+          name?: string
+          position?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_category_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopping_list: {
         Row: {
           created_at: string
@@ -1056,6 +1139,10 @@ export type Database = {
         }
       }
       gen_invite_code: { Args: never; Returns: string }
+      delete_shopping_category: {
+        Args: { p_id: string; p_reassign_to?: string }
+        Returns: undefined
+      }
       generate_shopping_list: {
         Args: {
           p_end: string

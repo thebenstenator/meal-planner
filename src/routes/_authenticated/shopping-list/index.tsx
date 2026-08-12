@@ -10,6 +10,8 @@ import { useApplyPurchaseToPantry } from '@/features/pantry/use-pantry';
 import { fromISO, weekRange } from '@/features/planner/dates';
 import { ScanButton } from '@/features/scanner/scan-button';
 import type { ShoppingListSummary } from '@/features/shopping-list/api';
+import { groupByCategory } from '@/features/shopping-list/categories';
+import { useShoppingCategories } from '@/features/shopping-list/use-categories';
 import {
   useAddToRunningList,
   useCreateList,
@@ -212,6 +214,7 @@ function ListPanel({
   const rename = useRenameList();
   const del = useDeleteShoppingList();
   const applyToPantry = useApplyPurchaseToPantry();
+  const { categories } = useShoppingCategories();
 
   const [picked, setPicked] = useState<{ id: string | null; name: string | null }>({
     id: null,
@@ -228,6 +231,8 @@ function ListPanel({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const items = data?.items ?? [];
+  // Same store sections as the full list, so the aisle order carries over.
+  const sections = groupByCategory(items, categories);
 
   function onScanned(name: string) {
     setSeed(name);
@@ -356,41 +361,52 @@ function ListPanel({
       {items.length === 0 ? (
         <p className="text-muted-foreground text-sm">Nothing on this list yet.</p>
       ) : (
-        <ul className="divide-y rounded-lg border">
-          {items.map((item) => {
-            const quantityText =
-              item.totalQuantity != null ? `${trim(item.totalQuantity)} ${item.unit ?? ''}`.trim() : null;
-            return (
-              <li key={item.id} className="flex items-center gap-3 p-3">
-                <input
-                  type="checkbox"
-                  checked={item.isChecked}
-                  onChange={(e) => {
-                    toggle.mutate({ itemId: item.id, checked: e.target.checked });
-                    applyToPantry.mutate({ item, checked: e.target.checked });
-                  }}
-                  aria-label={`Check off ${item.displayName}`}
-                />
-                <span
-                  className={cn(
-                    'min-w-0 flex-1 truncate text-sm',
-                    item.isChecked && 'text-muted-foreground line-through',
-                  )}
-                >
-                  {item.displayName}
-                  {quantityText && <span className="text-muted-foreground"> · {quantityText}</span>}
-                </span>
-                <button
-                  type="button"
-                  className="text-destructive shrink-0 text-xs underline"
-                  onClick={() => edits.removeItem.mutate(item.id)}
-                >
-                  remove
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        sections.map((section) => (
+          <div key={section.slug} className="space-y-1">
+            <h3 className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
+              {section.name}
+            </h3>
+            <ul className="divide-y rounded-lg border">
+              {section.items.map((item) => {
+                const quantityText =
+                  item.totalQuantity != null
+                    ? `${trim(item.totalQuantity)} ${item.unit ?? ''}`.trim()
+                    : null;
+                return (
+                  <li key={item.id} className="flex items-center gap-3 p-3">
+                    <input
+                      type="checkbox"
+                      checked={item.isChecked}
+                      onChange={(e) => {
+                        toggle.mutate({ itemId: item.id, checked: e.target.checked });
+                        applyToPantry.mutate({ item, checked: e.target.checked });
+                      }}
+                      aria-label={`Check off ${item.displayName}`}
+                    />
+                    <span
+                      className={cn(
+                        'min-w-0 flex-1 truncate text-sm',
+                        item.isChecked && 'text-muted-foreground line-through',
+                      )}
+                    >
+                      {item.displayName}
+                      {quantityText && (
+                        <span className="text-muted-foreground"> · {quantityText}</span>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-destructive shrink-0 text-xs underline"
+                      onClick={() => edits.removeItem.mutate(item.id)}
+                    >
+                      remove
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))
       )}
 
       <div className="pt-1">

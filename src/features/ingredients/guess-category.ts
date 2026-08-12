@@ -11,7 +11,37 @@ interface Rule {
 // Ordered most-specific → most-generic; the first rule with a whole-word hit
 // wins. Multi-word keywords (e.g. "chili powder") are listed before the generic
 // single word ("chili") so the specific reading takes precedence.
+//
+// The first two rules are aisle *modifiers*: "frozen peas" and "canned tuna" are
+// shopped where the store keeps them, not with the fresh produce or seafood, so
+// they're checked before the ingredient-name rules below.
 const RULES: Rule[] = [
+  {
+    category: 'frozen',
+    keywords: [
+      'frozen', 'ice cream', 'popsicle', 'popsicles', 'freezer pop', 'frozen pizza',
+      'ice cubes', 'sorbet', 'gelato', 'frozen waffles', 'tater tots', 'french fries',
+    ],
+  },
+  {
+    category: 'canned',
+    keywords: [
+      'canned', 'can of', 'tinned', 'jarred', 'tomato paste', 'tomato sauce',
+      'crushed tomatoes', 'diced tomatoes', 'coconut milk', 'broth', 'stock',
+      'refried beans', 'black beans', 'kidney beans', 'chickpeas', 'garbanzo beans',
+      'baked beans', 'olives', 'pickles', 'evaporated milk', 'condensed milk',
+    ],
+  },
+  {
+    category: 'household',
+    keywords: [
+      'paper towel', 'paper towels', 'toilet paper', 'napkin', 'napkins', 'dish soap',
+      'dishwasher', 'detergent', 'laundry', 'bleach', 'sponge', 'sponges', 'trash bag',
+      'trash bags', 'garbage bags', 'foil', 'aluminum foil', 'plastic wrap', 'parchment paper',
+      'ziploc', 'freezer bags', 'cleaner', 'disinfectant', 'soap', 'shampoo', 'toothpaste',
+      'deodorant', 'tissues', 'batteries', 'light bulb', 'light bulbs', 'diapers',
+    ],
+  },
   {
     category: 'beverages',
     keywords: [
@@ -28,6 +58,14 @@ const RULES: Rule[] = [
       'snacks', 'jerky', 'marshmallow', 'marshmallows', 'oreo', 'oreos', 'doritos',
       'cheetos', 'skittles', 'trail mix', 'fruit snacks', 'chocolate bar', 'nutella',
       'pop tart', 'pop tarts', 'twizzlers', 'goldfish', 'wafer', 'wafers',
+    ],
+  },
+  // After snacks, so "granola bar" stays a snack.
+  {
+    category: 'breakfast',
+    keywords: [
+      'cereal', 'granola', 'pancake mix', 'waffle mix', 'oatmeal packets', 'instant oatmeal',
+      'grits', 'breakfast bar', 'breakfast bars', 'toaster pastries', 'muesli',
     ],
   },
   {
@@ -90,6 +128,23 @@ const RULES: Rule[] = [
       'cabbage', 'cauliflower', 'ginger', 'cilantro', 'parsley', 'melon', 'watermelon',
       'peach', 'peaches', 'pear', 'pears', 'asparagus', 'squash', 'eggplant', 'radish',
       'scallion', 'scallions', 'bell pepper', 'jalapeno', 'jalapeño',
+    ],
+  },
+  {
+    category: 'baking',
+    keywords: [
+      'flour', 'sugar', 'baking soda', 'baking powder', 'yeast', 'cocoa', 'vanilla extract',
+      'vanilla', 'chocolate chips', 'cornstarch', 'corn starch', 'sprinkles', 'food coloring',
+      'shortening', 'molasses', 'pie crust', 'cake mix', 'brownie mix',
+    ],
+  },
+  {
+    category: 'pantry',
+    keywords: [
+      'rice', 'pasta', 'spaghetti', 'macaroni', 'penne', 'noodle', 'noodles', 'quinoa',
+      'couscous', 'lentil', 'lentils', 'olive oil', 'vegetable oil', 'oil', 'vinegar',
+      'soy sauce', 'honey', 'peanut butter', 'almond butter', 'almonds', 'walnuts', 'pecans',
+      'cashews', 'raisins', 'salt', 'cornmeal', 'breadcrumbs', 'bread crumbs',
     ],
   },
 ];
