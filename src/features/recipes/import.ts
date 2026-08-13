@@ -1,5 +1,6 @@
 import { matchCanonical } from '@/features/ingredients/api';
 import type { RecipeDetail, RecipeIngredientDraft } from '@/features/recipes/api';
+import { guessMealTypes } from '@/features/recipes/guess-meal-type';
 import { parseIngredientBlock } from '@/features/recipes/parse-block';
 import { supabase } from '@/lib/supabase/client';
 
@@ -110,7 +111,9 @@ function buildDetail(
     id: '',
     title: meta.title,
     description: null,
-    mealTypes: [],
+    // Pre-fill the meal type from the title so the review form starts on the
+    // right category; the user can still adjust it before saving.
+    mealTypes: guessMealTypes(meta.title),
     servings: meta.servings ?? 4,
     prepMinutes: meta.prep_minutes,
     cookMinutes: meta.cook_minutes,

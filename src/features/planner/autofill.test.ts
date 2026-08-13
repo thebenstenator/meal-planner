@@ -11,6 +11,7 @@ function lib(n: number): LibraryRecipe[] {
     isFavorite: false,
     timesCooked: 0,
     lastCookedOn: null,
+    mealTypes: ['main' as const],
   }));
 }
 
@@ -18,9 +19,9 @@ const days7 = Array.from({ length: 7 }, (_, i) => `2026-09-0${i + 1}`);
 
 describe('libraryScore', () => {
   it('boosts favorites and staleness', () => {
-    const fav: LibraryRecipe = { id: 'a', title: 'A', isFavorite: true, timesCooked: 3, lastCookedOn: '2026-08-29' };
-    const stale: LibraryRecipe = { id: 'b', title: 'B', isFavorite: false, timesCooked: 0, lastCookedOn: null };
-    const fresh: LibraryRecipe = { id: 'c', title: 'C', isFavorite: false, timesCooked: 0, lastCookedOn: '2026-08-29' };
+    const fav: LibraryRecipe = { id: 'a', title: 'A', isFavorite: true, timesCooked: 3, lastCookedOn: '2026-08-29', mealTypes: ['main'] };
+    const stale: LibraryRecipe = { id: 'b', title: 'B', isFavorite: false, timesCooked: 0, lastCookedOn: null, mealTypes: ['main'] };
+    const fresh: LibraryRecipe = { id: 'c', title: 'C', isFavorite: false, timesCooked: 0, lastCookedOn: '2026-08-29', mealTypes: ['main'] };
     expect(libraryScore(fav, today)).toBeGreaterThan(libraryScore(stale, today));
     expect(libraryScore(stale, today)).toBeGreaterThan(libraryScore(fresh, today));
   });
@@ -43,8 +44,8 @@ describe('buildMonthPlan', () => {
 
   it('favorites are ranked first', () => {
     const library: LibraryRecipe[] = [
-      { id: 'plain', title: 'Plain', isFavorite: false, timesCooked: 0, lastCookedOn: '2026-08-29' },
-      { id: 'fav', title: 'Fav', isFavorite: true, timesCooked: 0, lastCookedOn: '2026-08-29' },
+      { id: 'plain', title: 'Plain', isFavorite: false, timesCooked: 0, lastCookedOn: '2026-08-29', mealTypes: ['main'] },
+      { id: 'fav', title: 'Fav', isFavorite: true, timesCooked: 0, lastCookedOn: '2026-08-29', mealTypes: ['main'] },
     ];
     const plan = buildMonthPlan({ days: ['2026-09-01'], slots: ['dinner'], library, aiIdeaCount: 0, novelty: 'all-favorites', today });
     expect(plan[0]?.recipeId).toBe('fav');
@@ -70,10 +71,41 @@ describe('buildMonthPlan', () => {
   });
 
   it('fills dinner-only vs all slots correctly', () => {
-    const dinnerOnly = buildMonthPlan({ days: days7, slots: ['dinner'], library: lib(5), aiIdeaCount: 0, novelty: 'all-favorites', today });
+    // A library that can cover every slot: mains for lunch/dinner, breakfast
+    // dishes for breakfast — otherwise the breakfast cells would stay empty.
+    const mixed: LibraryRecipe[] = [
+      ...lib(5),
+      { id: 'b1', title: 'Pancakes', isFavorite: false, timesCooked: 0, lastCookedOn: null, mealTypes: ['breakfast'] },
+      { id: 'b2', title: 'Waffles', isFavorite: false, timesCooked: 0, lastCookedOn: null, mealTypes: ['breakfast'] },
+    ];
+    const dinnerOnly = buildMonthPlan({ days: days7, slots: ['dinner'], library: mixed, aiIdeaCount: 0, novelty: 'all-favorites', today });
     expect(dinnerOnly).toHaveLength(7);
-    const allSlots = buildMonthPlan({ days: days7, slots: ['breakfast', 'lunch', 'dinner'], library: lib(5), aiIdeaCount: 0, novelty: 'all-favorites', today });
+    const allSlots = buildMonthPlan({ days: days7, slots: ['breakfast', 'lunch', 'dinner'], library: mixed, aiIdeaCount: 0, novelty: 'all-favorites', today });
     expect(allSlots).toHaveLength(21);
+  });
+
+  it('fills dinner only from mains, never a sauce or dessert', () => {
+    const library: LibraryRecipe[] = [
+      { id: 'main1', title: 'Bulgogi', isFavorite: false, timesCooked: 0, lastCookedOn: null, mealTypes: ['main'] },
+      { id: 'main2', title: 'Orange Chicken', isFavorite: false, timesCooked: 0, lastCookedOn: null, mealTypes: ['main'] },
+      { id: 'sauce', title: 'Gochujang Sauce', isFavorite: true, timesCooked: 9, lastCookedOn: null, mealTypes: ['sauce'] },
+      { id: 'sweet', title: 'Eggnog Cheesecake', isFavorite: true, timesCooked: 9, lastCookedOn: null, mealTypes: ['dessert'] },
+    ];
+    const plan = buildMonthPlan({ days: days7, slots: ['dinner'], library, aiIdeaCount: 0, novelty: 'all-favorites', today });
+    const ids = new Set(plan.map((a) => a.recipeId));
+    // Sauce and dessert are favorited + most-cooked (top of the ranking), so if
+    // they show up it's because the slot filter let them through.
+    expect(ids.has('sauce')).toBe(false);
+    expect(ids.has('sweet')).toBe(false);
+    expect(plan.every((a) => a.recipeId === 'main1' || a.recipeId === 'main2')).toBe(true);
+  });
+
+  it('leaves a slot empty when nothing is eligible and no AI is left', () => {
+    const library: LibraryRecipe[] = [
+      { id: 'sauce', title: 'Buffalo Sauce', isFavorite: false, timesCooked: 0, lastCookedOn: null, mealTypes: ['sauce'] },
+    ];
+    const plan = buildMonthPlan({ days: days7, slots: ['dinner'], library, aiIdeaCount: 0, novelty: 'all-favorites', today });
+    expect(plan).toHaveLength(0);
   });
 
   it('with no library, fills from AI ideas only', () => {

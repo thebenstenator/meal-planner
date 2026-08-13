@@ -12,7 +12,7 @@ import type { LibraryRecipe } from '@/features/planner/autofill';
 const today = '2026-08-30';
 
 function recipe(over: Partial<LibraryRecipe> & { id: string }): LibraryRecipe {
-  return { title: over.id, isFavorite: false, timesCooked: 0, lastCookedOn: null, ...over };
+  return { title: over.id, isFavorite: false, timesCooked: 0, lastCookedOn: null, mealTypes: [], ...over };
 }
 
 describe('staleRecipes', () => {

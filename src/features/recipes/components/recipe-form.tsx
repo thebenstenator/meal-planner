@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useHousehold } from '@/features/household/use-household';
 import type { RecipeDetail, RecipeIngredientDraft } from '@/features/recipes/api';
 import { IngredientEditor } from '@/features/recipes/components/ingredient-editor';
+import { guessMealTypes } from '@/features/recipes/guess-meal-type';
 import { useSaveRecipe } from '@/features/recipes/use-recipes';
 import { cn } from '@/lib/utils/cn';
 import { MEAL_TYPES, recipeFormSchema, type MealType } from '@/schemas/recipe';
@@ -65,10 +66,14 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
     const numberOrNull = (v: string) => (v.trim() === '' ? null : Number(v));
+    // No meal type picked → guess one from the title, so the recipe is eligible
+    // for a slot (an uncategorized recipe never gets auto-filled). Same fallback
+    // the importers use.
+    const effectiveMealTypes = mealTypes.length > 0 ? mealTypes : guessMealTypes(values.title);
     const parsed = recipeFormSchema.safeParse({
       title: values.title,
       description: values.description || undefined,
-      mealTypes,
+      mealTypes: effectiveMealTypes,
       servings: values.servings,
       prepMinutes: numberOrNull(values.prepMinutes),
       cookMinutes: numberOrNull(values.cookMinutes),

@@ -1,5 +1,6 @@
 import type { LibraryRecipe } from '@/features/planner/autofill';
-import type { RecipeFormInput } from '@/schemas/recipe';
+import { guessMealTypes } from '@/features/recipes/guess-meal-type';
+import type { MealType, RecipeFormInput } from '@/schemas/recipe';
 import { supabase } from '@/lib/supabase/client';
 
 export const recipeKeys = {
@@ -193,7 +194,7 @@ export async function restoreRecipe(id: string): Promise<void> {
 export async function listLibraryForAutofill(householdId: string): Promise<LibraryRecipe[]> {
   const { data, error } = await supabase
     .from('recipe')
-    .select('id, title, is_favorite, times_cooked, last_cooked_on')
+    .select('id, title, meal_types, is_favorite, times_cooked, last_cooked_on')
     .eq('household_id', householdId)
     .is('deleted_at', null)
     .limit(500);
@@ -204,12 +205,43 @@ export async function listLibraryForAutofill(householdId: string): Promise<Libra
     isFavorite: r.is_favorite,
     timesCooked: r.times_cooked,
     lastCookedOn: r.last_cooked_on,
+    // Untagged recipes stay eligible for nothing on purpose: dinner draws only
+    // from real mains. The recipe library's "Categorize" nudge backfills these.
+    mealTypes: (r.meal_types ?? []) as MealType[],
   }));
 }
 
 export async function setRecipeFavorite(id: string, favorite: boolean): Promise<void> {
   const { error } = await supabase.from('recipe').update({ is_favorite: favorite }).eq('id', id);
   if (error) throw error;
+}
+
+/**
+ * Give every still-uncategorized recipe a meal type guessed from its title, so
+ * the month auto-fill's slot filter has something to work with (and the library
+ * shows the right badges). One-off cleanup for recipes imported before meal
+ * types were assigned; returns how many were categorized. Titles that don't
+ * match a keyword rule become mains — the guess's sensible default.
+ */
+export async function categorizeUncategorizedRecipes(householdId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('recipe')
+    .select('id, title')
+    .eq('household_id', householdId)
+    .is('deleted_at', null)
+    .or('meal_types.is.null,meal_types.eq.{}')
+    .limit(1000);
+  if (error) throw error;
+
+  const untagged = data ?? [];
+  for (const r of untagged) {
+    const { error: updateError } = await supabase
+      .from('recipe')
+      .update({ meal_types: guessMealTypes(r.title) })
+      .eq('id', r.id);
+    if (updateError) throw updateError;
+  }
+  return untagged.length;
 }
 
 export async function listDeletedRecipes(householdId: string): Promise<RecipeSummary[]> {

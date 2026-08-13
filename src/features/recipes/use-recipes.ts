@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useHousehold } from '@/features/household/use-household';
 import {
+  categorizeUncategorizedRecipes,
   getRecipe,
   listDeletedRecipes,
   listRecipes,
@@ -92,6 +93,16 @@ export function useRestoreRecipe() {
   const invalidate = useInvalidateRecipes();
   return useMutation<void, Error, string>({
     mutationFn: (id) => restoreRecipe(id),
+    onSuccess: invalidate,
+  });
+}
+
+/** Backfill meal types onto recipes imported before they were categorized. */
+export function useCategorizeUncategorized() {
+  const { householdId } = useHousehold();
+  const invalidate = useInvalidateRecipes();
+  return useMutation<number, Error, void>({
+    mutationFn: () => categorizeUncategorizedRecipes(householdId as string),
     onSuccess: invalidate,
   });
 }

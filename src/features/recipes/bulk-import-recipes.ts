@@ -1,4 +1,5 @@
 import { saveRecipe, type RecipeIngredientDraft } from '@/features/recipes/api';
+import { guessMealTypes } from '@/features/recipes/guess-meal-type';
 import { parseOneRecipe, parseRecipesText, type RecipeCandidate } from '@/features/recipes/bulk-recipes';
 import { parseRecipeUrl } from '@/features/recipes/import';
 import { parseIngredientBlock } from '@/features/recipes/parse-block';
@@ -93,7 +94,9 @@ export function saveDraft(householdId: string, d: DraftRecipe): Promise<string> 
     {
       title: d.title,
       servings: d.servings ?? 4,
-      mealTypes: [],
+      // Bulk import has no category to work from, so guess one from the title —
+      // otherwise every imported recipe would be eligible for dinner.
+      mealTypes: guessMealTypes(d.title),
       tags: [],
       instructions: d.instructions ?? undefined,
       source: d.source ?? undefined,

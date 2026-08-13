@@ -1,4 +1,5 @@
 import type { Slot } from '@/schemas/plan';
+import type { MealType } from '@/schemas/recipe';
 
 export interface LibraryRecipe {
   id: string;
@@ -6,6 +7,27 @@ export interface LibraryRecipe {
   isFavorite: boolean;
   timesCooked: number;
   lastCookedOn: string | null; // yyyy-MM-dd
+  /** What this recipe can fill. Never empty in practice — the autofill query
+   * falls back to a title guess so an untagged recipe still lands somewhere. */
+  mealTypes: MealType[];
+}
+
+/**
+ * Which recipe meal types are allowed to fill each planner slot. Dinner and
+ * lunch draw strictly from mains, so a sauce, dessert or drink can never be
+ * proposed for them; the sweeter/lighter types have their own homes. A recipe is
+ * eligible for a slot if any of its meal types appears here.
+ */
+export const SLOT_MEAL_TYPES: Record<Slot, MealType[]> = {
+  breakfast: ['breakfast'],
+  lunch: ['main'],
+  dinner: ['main'],
+  snack: ['snack', 'dessert', 'drink'],
+};
+
+function eligibleFor(recipe: LibraryRecipe, slot: Slot): boolean {
+  const allowed = SLOT_MEAL_TYPES[slot];
+  return recipe.mealTypes.some((t) => allowed.includes(t));
 }
 
 export type NoveltyLevel = 'all-favorites' | 'few-new' | 'many-new';
@@ -61,10 +83,12 @@ export function aiTargetForDays(days: number, novelty: NoveltyLevel): number {
 
 /**
  * Propose a balanced set of meals for the given days + slots — no AI here, this
- * is pure placement. Ranks the library by favorite / most-cooked / haven't-made-
- * in-a-while, spreads a target number of fresh AI ideas evenly through the month,
- * and avoids repeating the same recipe on adjacent slots. Deterministic (stable
- * tiebreak by id) so it's testable and a re-run is predictable.
+ * is pure placement. Each slot draws only from recipes eligible for it (dinner
+ * from mains, never a sauce or dessert — see SLOT_MEAL_TYPES). Ranks the library
+ * by favorite / most-cooked / haven't-made-in-a-while, spreads a target number of
+ * fresh AI ideas evenly through the month, and avoids repeating the same recipe
+ * on adjacent slots. Deterministic (stable tiebreak by id) so it's testable and a
+ * re-run is predictable.
  */
 export function buildMonthPlan(p: AutofillParams): Assignment[] {
   const cells: { date: string; slot: Slot }[] = [];
@@ -92,33 +116,47 @@ export function buildMonthPlan(p: AutofillParams): Assignment[] {
     return d !== 0 ? d : a.id.localeCompare(b.id);
   });
 
+  // Each slot draws from its own pool of eligible recipes (dinner from mains,
+  // etc.), with its own cursor so a small pool doesn't stall the whole month.
+  const poolBySlot = new Map<Slot, LibraryRecipe[]>();
+  const cursorBySlot = new Map<Slot, number>();
+  for (const slot of p.slots) {
+    poolBySlot.set(
+      slot,
+      ranked.filter((r) => eligibleFor(r, slot)),
+    );
+    cursorBySlot.set(slot, 0);
+  }
+
   const out: Assignment[] = [];
-  let libCursor = 0;
   let aiCursor = 0;
   const recent: string[] = [];
   const window = Math.min(Math.max(0, ranked.length - 1), p.slots.length + 1);
 
   for (let i = 0; i < total; i++) {
     const cell = cells[i] as { date: string; slot: Slot };
+    const pool = poolBySlot.get(cell.slot) ?? [];
     const wantAi = aiAt.has(i) && aiCursor < newTarget;
 
-    if (wantAi || ranked.length === 0) {
+    if (wantAi || pool.length === 0) {
       if (aiCursor < p.aiIdeaCount) {
         out.push({ date: cell.date, slot: cell.slot, source: 'ai', aiIndex: aiCursor++ });
       }
-      continue; // no library and no AI left -> leave the slot empty
+      continue; // nothing eligible and no AI left -> leave the slot empty
     }
 
-    // Next ranked recipe not used in the recent window (cycle if all are recent).
-    let pick = ranked[libCursor % ranked.length] as LibraryRecipe;
-    for (let k = 0; k < ranked.length; k++) {
-      const cand = ranked[(libCursor + k) % ranked.length] as LibraryRecipe;
+    // Next recipe in this slot's pool not used in the recent window (cycle if
+    // all are recent).
+    const cursor = cursorBySlot.get(cell.slot) ?? 0;
+    let pick = pool[cursor % pool.length] as LibraryRecipe;
+    for (let k = 0; k < pool.length; k++) {
+      const cand = pool[(cursor + k) % pool.length] as LibraryRecipe;
       if (!recent.includes(cand.id)) {
         pick = cand;
-        libCursor = (libCursor + k + 1) % ranked.length;
+        cursorBySlot.set(cell.slot, (cursor + k + 1) % pool.length);
         break;
       }
-      if (k === ranked.length - 1) libCursor = (libCursor + 1) % ranked.length;
+      if (k === pool.length - 1) cursorBySlot.set(cell.slot, (cursor + 1) % pool.length);
     }
     out.push({ date: cell.date, slot: cell.slot, source: 'library', recipeId: pick.id });
     recent.push(pick.id);

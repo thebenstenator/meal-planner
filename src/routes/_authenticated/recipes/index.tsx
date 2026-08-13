@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
+  useCategorizeUncategorized,
   useDeletedRecipes,
   useRecipeList,
   useRestoreRecipe,
@@ -72,6 +73,8 @@ function RecipeLibrary() {
         </div>
       </div>
 
+      <CategorizeBanner uncategorized={recipes.filter((r) => r.mealTypes.length === 0).length} />
+
       {isLoading && <p className="text-muted-foreground text-sm">Loading recipes…</p>}
       {isError && <p className="text-destructive text-sm">Couldn’t load recipes.</p>}
 
@@ -114,6 +117,38 @@ function RecipeLibrary() {
 
       <TrashSection open={showTrash} onToggle={() => setShowTrash((v) => !v)} />
     </main>
+  );
+}
+
+/**
+ * Nudge to categorize recipes imported before meal types existed. Uncategorized
+ * recipes are eligible for nothing, so the month auto-fill silently skips them —
+ * one tap tags them all (guessed from their titles) so they can be planned again.
+ */
+function CategorizeBanner({ uncategorized }: { uncategorized: number }) {
+  const categorize = useCategorizeUncategorized();
+  if (uncategorized === 0 && !categorize.isSuccess) return null;
+
+  if (categorize.isSuccess) {
+    return (
+      <p className="rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        Categorized {categorize.data} recipe{categorize.data === 1 ? '' : 's'}. You can fine-tune
+        any of them from the recipe’s edit page.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-600/30 bg-amber-50 px-3 py-2">
+      <p className="min-w-0 flex-1 text-sm text-amber-900">
+        {uncategorized} recipe{uncategorized === 1 ? " isn't" : "s aren't"} categorized, so auto-fill
+        skips {uncategorized === 1 ? 'it' : 'them'}. Sort {uncategorized === 1 ? 'it' : 'them'} by
+        type?
+      </p>
+      <Button size="sm" onClick={() => categorize.mutate()} disabled={categorize.isPending}>
+        {categorize.isPending ? 'Sorting…' : 'Categorize'}
+      </Button>
+    </div>
   );
 }
 
