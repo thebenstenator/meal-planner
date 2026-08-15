@@ -81,8 +81,9 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
-  # Auto-deploy to cloud Supabase once tests pass on main. Applies pending
-  # migrations and (re)deploys Edge Functions — only the ones that changed.
+  # Auto-deploy to cloud Supabase once tests pass on main. Always runs
+  # `supabase db push` (idempotent — it only applies migrations missing from the
+  # remote history), and (re)deploys the Edge Functions that changed in this push.
   # Needs two repo secrets: SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD.
   # Until they're set, the job no-ops (stays green) so nothing breaks meanwhile.
   deploy:
@@ -112,19 +113,21 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Detect what changed
+      # Migrations always push (db push is idempotent), so we only diff to decide
+      # which Edge Functions to redeploy. Guarding migrations on the diff was a
+      # trap: a migration whose commit failed CI never redeployed if the fixup
+      # commit didn't also touch supabase/migrations/.
+      - name: Detect changed functions
         id: diff
         if: steps.guard.outputs.ready == 'true'
         run: |
-          # Manual runs have no diff base — deploy everything to be safe.
+          # Manual runs have no diff base — redeploy all functions to be safe.
           BEFORE="${{ github.event.before }}"
           if [ "${{ github.event_name }}" != "push" ] || [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-            echo "migrations=true" >> "$GITHUB_OUTPUT"
             echo "functions=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           CHANGED="$(git diff --name-only "$BEFORE" "${{ github.sha }}")"
-          echo "$CHANGED" | grep -q '^supabase/migrations/' && echo "migrations=true" >> "$GITHUB_OUTPUT" || echo "migrations=false" >> "$GITHUB_OUTPUT"
           echo "$CHANGED" | grep -q '^supabase/functions/' && echo "functions=true" >> "$GITHUB_OUTPUT" || echo "functions=false" >> "$GITHUB_OUTPUT"
 
       - uses: supabase/setup-cli@v1
@@ -136,8 +139,10 @@ jobs:
         if: steps.guard.outputs.ready == 'true'
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
+      # Always push — supabase db push only applies migrations not yet in the
+      # remote history, so it's a no-op when there's nothing pending.
       - name: Push database migrations
-        if: steps.guard.outputs.ready == 'true' && steps.diff.outputs.migrations == 'true'
+        if: steps.guard.outputs.ready == 'true'
         run: supabase db push
 
       - name: Deploy Edge Functions
