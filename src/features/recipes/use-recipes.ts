@@ -53,10 +53,15 @@ export function useSaveRecipe() {
   return useMutation<
     string,
     Error,
-    { form: RecipeFormInput; ingredients: RecipeIngredientDraft[]; recipeId?: string }
+    {
+      form: RecipeFormInput;
+      ingredients: RecipeIngredientDraft[];
+      recipeId?: string;
+      poolId?: string | null;
+    }
   >({
-    mutationFn: ({ form, ingredients, recipeId }) =>
-      saveRecipe(householdId as string, form, ingredients, recipeId),
+    mutationFn: ({ form, ingredients, recipeId, poolId }) =>
+      saveRecipe(householdId as string, form, ingredients, recipeId, poolId),
     onSuccess: (id) => {
       invalidate();
       void qc.invalidateQueries({ queryKey: recipeKeys.detail(id) });

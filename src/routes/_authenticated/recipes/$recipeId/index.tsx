@@ -3,8 +3,11 @@ import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useHousehold } from '@/features/household/use-household';
 import { useRecipeCost } from '@/features/pricing/use-recipe-cost';
+import { canDeleteRecipe, canEditRecipe, canFavoriteRecipe } from '@/features/recipes/permissions';
 import { scaledAmount } from '@/features/recipes/scale';
+import { usePool } from '@/features/recipes/use-pool';
 import { useRecipe, useSetFavorite, useSoftDeleteRecipe } from '@/features/recipes/use-recipes';
 import { formatCurrency } from '@/lib/utils/format-currency';
 
@@ -16,6 +19,8 @@ function RecipeDetailPage() {
   const { recipeId } = Route.useParams();
   const navigate = useNavigate();
   const { data: recipe, isLoading, isError } = useRecipe(recipeId);
+  const { householdId } = useHousehold();
+  const { data: pool } = usePool();
   const del = useSoftDeleteRecipe();
   const favorite = useSetFavorite(recipeId);
   const [confirming, setConfirming] = useState(false);
@@ -27,6 +32,15 @@ function RecipeDetailPage() {
   if (isError || !recipe) {
     return <Centered>Couldn’t load this recipe.</Centered>;
   }
+
+  const perm = {
+    ownedByMe: recipe.householdId === householdId,
+    recipePoolId: recipe.poolId,
+    myPool: pool ? { id: pool.id, role: pool.role } : null,
+  };
+  const canEdit = canEditRecipe(perm);
+  const canDelete = canDeleteRecipe(perm);
+  const canFavorite = canFavoriteRecipe(perm);
 
   const targetServings = servings ?? recipe.servings;
   const scaled = targetServings !== recipe.servings;
@@ -51,21 +65,30 @@ function RecipeDetailPage() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            aria-label={recipe.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-            aria-pressed={recipe.isFavorite}
-            title={recipe.isFavorite ? 'Favorited' : 'Add to favorites'}
-            className={recipe.isFavorite ? 'text-amber-500' : 'text-muted-foreground hover:text-foreground'}
-            onClick={() => favorite.mutate(!recipe.isFavorite)}
-          >
-            <span className="text-xl leading-none">{recipe.isFavorite ? '★' : '☆'}</span>
-          </button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/recipes/$recipeId/edit" params={{ recipeId }}>
-              Edit
-            </Link>
-          </Button>
+          {recipe.poolId && (
+            <Badge variant="outline" className="text-emerald-700">
+              {perm.ownedByMe ? 'Shared' : 'From pool'}
+            </Badge>
+          )}
+          {canFavorite && (
+            <button
+              type="button"
+              aria-label={recipe.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              aria-pressed={recipe.isFavorite}
+              title={recipe.isFavorite ? 'Favorited' : 'Add to favorites'}
+              className={recipe.isFavorite ? 'text-amber-500' : 'text-muted-foreground hover:text-foreground'}
+              onClick={() => favorite.mutate(!recipe.isFavorite)}
+            >
+              <span className="text-xl leading-none">{recipe.isFavorite ? '★' : '☆'}</span>
+            </button>
+          )}
+          {canEdit && (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/recipes/$recipeId/edit" params={{ recipeId }}>
+                Edit
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -157,7 +180,13 @@ function RecipeDetailPage() {
       )}
 
       <div className="border-t pt-4">
-        {!confirming ? (
+        {!canDelete ? (
+          <p className="text-muted-foreground text-xs">
+            {recipe.poolId
+              ? 'This recipe is in a shared pool — only the pool owner can delete it.'
+              : null}
+          </p>
+        ) : !confirming ? (
           <Button variant="ghost" size="sm" onClick={() => setConfirming(true)}>
             Delete recipe
           </Button>

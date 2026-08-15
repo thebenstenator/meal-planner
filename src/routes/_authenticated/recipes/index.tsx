@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { PoolPanel } from '@/features/recipes/components/pool-panel';
 import {
   useCategorizeUncategorized,
   useDeletedRecipes,
@@ -73,6 +74,8 @@ function RecipeLibrary() {
         </div>
       </div>
 
+      <PoolPanel />
+
       <CategorizeBanner uncategorized={recipes.filter((r) => r.mealTypes.length === 0).length} />
 
       {isLoading && <p className="text-muted-foreground text-sm">Loading recipes…</p>}
@@ -104,6 +107,11 @@ function RecipeLibrary() {
                       {m}
                     </Badge>
                   ))}
+                  {r.poolId && (
+                    <Badge variant="outline" className="text-emerald-700">
+                      {r.ownedByMe ? 'shared' : 'from pool'}
+                    </Badge>
+                  )}
                   <span className="text-muted-foreground text-xs">
                     {r.ingredientCount} ingredient{r.ingredientCount === 1 ? '' : 's'} ·{' '}
                     {r.servings} servings

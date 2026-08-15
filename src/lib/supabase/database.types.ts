@@ -660,6 +660,7 @@ export type Database = {
           last_cooked_on: string | null
           meal_types: string[]
           notes: string | null
+          pool_id: string | null
           prep_minutes: number | null
           rating: number | null
           servings: number
@@ -683,6 +684,7 @@ export type Database = {
           last_cooked_on?: string | null
           meal_types?: string[]
           notes?: string | null
+          pool_id?: string | null
           prep_minutes?: number | null
           rating?: number | null
           servings?: number
@@ -706,6 +708,7 @@ export type Database = {
           last_cooked_on?: string | null
           meal_types?: string[]
           notes?: string | null
+          pool_id?: string | null
           prep_minutes?: number | null
           rating?: number | null
           servings?: number
@@ -721,6 +724,13 @@ export type Database = {
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_pool"
             referencedColumns: ["id"]
           },
         ]
@@ -784,6 +794,130 @@ export type Database = {
             columns: ["recipe_id"]
             isOneToOne: false
             referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_pool: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_household_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_household_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_household_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_pool_owner_household_id_fkey"
+            columns: ["owner_household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_pool_invite: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          pool_id: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          pool_id: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          pool_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_pool_invite_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_pool"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_pool_member: {
+        Row: {
+          created_at: string
+          household_id: string
+          id: string
+          invited_at: string | null
+          joined_at: string
+          pool_id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          household_id: string
+          id?: string
+          invited_at?: string | null
+          joined_at?: string
+          pool_id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string
+          id?: string
+          invited_at?: string | null
+          joined_at?: string
+          pool_id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_pool_member_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_pool_member_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_pool"
             referencedColumns: ["id"]
           },
         ]
@@ -1114,6 +1248,63 @@ export type Database = {
     }
     Functions: {
       accept_household_invite: { Args: { p_code: string }; Returns: string }
+      accept_recipe_pool_invite: {
+        Args: { p_household_id: string; p_code: string }
+        Returns: string
+      }
+      create_recipe_pool: {
+        Args: { p_household_id: string; p_name: string }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          owner_household_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "recipe_pool"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_recipe_pool_invite: {
+        Args: { p_pool_id: string }
+        Returns: {
+          accepted_at: string | null
+          accepted_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          pool_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "recipe_pool_invite"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      delete_recipe_pool: { Args: { p_pool_id: string }; Returns: undefined }
+      get_recipe_pool_members: {
+        Args: { p_pool_id: string }
+        Returns: {
+          household_id: string
+          household_name: string
+          role: string
+          joined_at: string
+          email: string
+        }[]
+      }
+      is_pool_member: { Args: { p_pool_id: string }; Returns: boolean }
+      is_pool_owner: { Args: { p_pool_id: string }; Returns: boolean }
+      leave_recipe_pool: {
+        Args: { p_household_id: string; p_pool_id: string }
+        Returns: undefined
+      }
       consume_ai_credit: {
         Args: { p_household_id: string; p_limit?: number; p_source?: string }
         Returns: number

@@ -10,6 +10,7 @@ import { useHousehold } from '@/features/household/use-household';
 import type { RecipeDetail, RecipeIngredientDraft } from '@/features/recipes/api';
 import { IngredientEditor } from '@/features/recipes/components/ingredient-editor';
 import { guessMealTypes } from '@/features/recipes/guess-meal-type';
+import { usePool } from '@/features/recipes/use-pool';
 import { useSaveRecipe } from '@/features/recipes/use-recipes';
 import { cn } from '@/lib/utils/cn';
 import { MEAL_TYPES, recipeFormSchema, type MealType } from '@/schemas/recipe';
@@ -59,6 +60,13 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
   );
   const [error, setError] = useState<string | null>(null);
 
+  // New recipes join the shared pool by default (the library *is* the pool);
+  // members can opt a recipe out to keep it private. Editing never re-homes a
+  // recipe, so this only applies when creating.
+  const { data: pool } = usePool();
+  const isNew = !recipeId;
+  const [shareToPool, setShareToPool] = useState(true);
+
   function toggleMeal(m: MealType) {
     setMealTypes((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
   }
@@ -89,7 +97,8 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
       return;
     }
     try {
-      const id = await save.mutateAsync({ form: parsed.data, ingredients, recipeId });
+      const poolId = isNew && pool && shareToPool ? pool.id : undefined;
+      const id = await save.mutateAsync({ form: parsed.data, ingredients, recipeId, poolId });
       // replace: don't leave the edit/create form in history, so the back button
       // returns to where you were (the recipe or the list), not the form.
       await navigate({ to: '/recipes/$recipeId', params: { recipeId: id }, replace: true });
@@ -128,6 +137,25 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
           ))}
         </div>
       </div>
+
+      {isNew && pool && (
+        <div className="flex items-start gap-2 rounded-lg border p-3">
+          <input
+            id="share-to-pool"
+            type="checkbox"
+            checked={shareToPool}
+            onChange={(e) => setShareToPool(e.target.checked)}
+            className="mt-0.5"
+          />
+          <Label htmlFor="share-to-pool" className="text-sm font-normal">
+            Share with “{pool.name}”
+            <span className="text-muted-foreground block text-xs">
+              On by default — everyone in the pool will see this recipe. Uncheck to keep it private
+              to your household.
+            </span>
+          </Label>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-2">

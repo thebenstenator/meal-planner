@@ -36,11 +36,19 @@ export interface RecipeSummary {
   timesCooked: number;
   ingredientCount: number;
   updatedAt: string;
+  /** Set when the recipe belongs to a shared pool. */
+  poolId: string | null;
+  /** True when the active household created this recipe (can edit/favorite it). */
+  ownedByMe: boolean;
 }
 
 export interface RecipeDetail {
   id: string;
   title: string;
+  /** Creator household; compare to the active household for ownership. */
+  householdId: string;
+  /** Set when the recipe belongs to a shared pool. */
+  poolId: string | null;
   description: string | null;
   mealTypes: string[];
   servings: number;
@@ -57,16 +65,17 @@ export interface RecipeDetail {
 }
 
 const LIST_SELECT =
-  'id, title, meal_types, servings, tags, times_cooked, updated_at, recipe_ingredient(count)';
+  'id, title, household_id, pool_id, meal_types, servings, tags, times_cooked, updated_at, recipe_ingredient(count)';
 
 export async function listRecipes(
   householdId: string,
   opts: { search?: string; mealType?: string } = {},
 ): Promise<RecipeSummary[]> {
+  // No household filter: RLS returns this household's recipes *and* any shared
+  // pool's recipes. `householdId` is used only to mark which ones you own.
   let query = supabase
     .from('recipe')
     .select(LIST_SELECT)
-    .eq('household_id', householdId)
     .is('deleted_at', null)
     .order('title', { ascending: true })
     .limit(200);
@@ -88,6 +97,8 @@ export async function listRecipes(
       timesCooked: r.times_cooked,
       ingredientCount: r.recipe_ingredient?.[0]?.count ?? 0,
       updatedAt: r.updated_at,
+      poolId: r.pool_id,
+      ownedByMe: r.household_id === householdId,
     }))
     // Case-insensitive alphabetical, so "apple" and "Banana" sort naturally.
     .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
@@ -106,6 +117,8 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
   return {
     id: data.id,
     title: data.title,
+    householdId: data.household_id,
+    poolId: data.pool_id,
     description: data.description,
     mealTypes: data.meal_types ?? [],
     servings: data.servings,
@@ -138,9 +151,13 @@ export async function saveRecipe(
   form: RecipeFormInput,
   ingredients: RecipeIngredientDraft[],
   recipeId?: string,
+  /** Attach a new recipe to a shared pool. Ignored on update (save_recipe never
+   * moves a recipe between pools). */
+  poolId?: string | null,
 ): Promise<string> {
   const p_recipe = {
     household_id: householdId,
+    pool_id: poolId ?? null,
     title: form.title,
     description: form.description ?? null,
     meal_types: form.mealTypes,
@@ -262,5 +279,7 @@ export async function listDeletedRecipes(householdId: string): Promise<RecipeSum
     timesCooked: r.times_cooked,
     ingredientCount: r.recipe_ingredient?.[0]?.count ?? 0,
     updatedAt: r.updated_at,
+    poolId: r.pool_id,
+    ownedByMe: r.household_id === householdId,
   }));
 }
