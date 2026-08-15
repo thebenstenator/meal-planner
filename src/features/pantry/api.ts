@@ -263,20 +263,15 @@ export async function adjustPantryStock(
 
   if (!existing) {
     if (deltaQty <= 0) return; // nothing to subtract from
-    const { data: inserted, error: insErr } = await supabase
-      .from('pantry_item')
-      .insert({
-        household_id: householdId,
-        canonical_ingredient_id: canonicalId,
-        quantity: deltaQty,
-        unit: deltaUnit,
-        location: 'pantry',
-      })
-      .select('id')
-      .single();
+    // New items start loose; package tracking is opt-in (add sizes on the row).
+    const { error: insErr } = await supabase.from('pantry_item').insert({
+      household_id: householdId,
+      canonical_ingredient_id: canonicalId,
+      quantity: deltaQty,
+      unit: deltaUnit,
+      location: 'pantry',
+    });
     if (insErr) throw insErr;
-    // A first purchase with a known container starts the package breakdown.
-    if (inserted && purchasedPackage) await writePackageRows(inserted.id, [purchasedPackage]);
     return;
   }
 
@@ -309,7 +304,10 @@ export async function adjustPantryStock(
     unit: p.unit,
     count: p.count,
   }));
-  if (pkgs.length === 0 && !purchasedPackage) return; // loose item — nothing to reconcile
+  // Package tracking is opt-in: only maintain the breakdown for items that
+  // already have one. A loose item stays loose even when you buy a known
+  // container — start tracking it by adding sizes on the row.
+  if (pkgs.length === 0) return;
 
   if (deltaQty > 0 && purchasedPackage) pkgs = mergePurchasedPackage(pkgs, purchasedPackage);
   pkgs = reconcileToTotal(pkgs, newQty, existing.unit, info);
