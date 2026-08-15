@@ -4,11 +4,13 @@ import { createContext } from 'react';
 import type { Credentials } from '@/schemas/auth';
 
 /**
- * Google OAuth is intentionally deferred (see docs/decisions/0002). Flipping
- * this to true — after adding the Google client id/secret to supabase auth
- * config — is all that's needed to light up the button in the UI.
+ * Lights up the "Continue with Google" button. The client side (signInWithGoogle
+ * below) has always been implemented; this gate stayed off until the Google
+ * client id/secret were added to the Supabase project's auth config (see
+ * docs/decisions/0002). Keep this false in any environment where that provider
+ * config isn't in place, or the button will 400 on click.
  */
-export const GOOGLE_OAUTH_ENABLED = false;
+export const GOOGLE_OAUTH_ENABLED = true;
 
 export interface AuthContextValue {
   session: Session | null;

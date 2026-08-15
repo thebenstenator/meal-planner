@@ -16,6 +16,16 @@ button and the `signInWithGoogle` path is already implemented. Enabling it later
 is: add the Google credentials to Supabase auth config, flip the constant to
 `true`. No other code changes.
 
+**Update (2026-08-15):** enabled. `GOOGLE_OAUTH_ENABLED` is now `true`. The
+Google OAuth client (Google Cloud Console) and provider credentials live in the
+cloud Supabase project's auth config (dashboard → Authentication → Providers →
+Google), with the authorized redirect URI
+`https://qxeuqjeoukpmdxogdotu.supabase.co/auth/v1/callback` and the prod site URL
+in the auth URL allow-list. New Google users get a household from the same
+`handle_new_user()` trigger (it names the household from the email local part, so
+it needs nothing Google-specific). Local dev still has no Google provider
+configured — the button will 400 against a local Supabase; test it against cloud.
+
 ## Household is created by a database trigger, not the client
 
 `handle_new_user()` fires `after insert on auth.users` and creates the household
