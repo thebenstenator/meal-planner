@@ -96,6 +96,47 @@ test('pantry expiry: set on add, edit on the row, drives the use-it-up nudge', a
   await expect(page.getByRole('menuitem', { name: 'Add expiry' })).toBeVisible();
 });
 
+// Items come in different container sizes; the pantry can record several per
+// ingredient (2×32oz + 2×16oz), show the breakdown + a running total, and edit
+// the sizes in place. The buy/cook reconciliation math is unit-tested in
+// packages.test.ts; this covers the manual entry + display path end to end.
+test('pantry package sizes: add multiple containers, see the total, edit in place', async ({
+  page,
+}) => {
+  await signUp(page, uniqueEmail('packages'));
+  await page.goto('/pantry');
+
+  await page.getByPlaceholder('Type an ingredient…').fill('enchilada sauce');
+
+  // Two 32oz cans + two 16oz cans.
+  await page.getByRole('button', { name: '+ add a size' }).click();
+  await page.getByLabel('Container count 1').fill('2');
+  await page.getByLabel('Container size 1').fill('32');
+  await page.getByLabel('Container unit 1').fill('oz');
+  await page.getByRole('button', { name: '+ add a size' }).click();
+  await page.getByLabel('Container count 2').fill('2');
+  await page.getByLabel('Container size 2').fill('16');
+  await page.getByLabel('Container unit 2').fill('oz');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+
+  const row = page.getByRole('listitem').filter({ hasText: /enchilada sauce/i });
+  await expect(row).toContainText('32oz');
+  await expect(row).toContainText('16oz');
+  await expect(row).toContainText('96 oz'); // running total, summed for you
+
+  // Add a third size in place; the total follows. Scope to the row's editor —
+  // the (now-empty) add form above also has an "+ add a size" button.
+  await row.getByRole('button', { name: /Actions for/ }).click();
+  await page.getByRole('menuitem', { name: 'Edit sizes' }).click();
+  await row.getByRole('button', { name: '+ add a size' }).click();
+  await row.getByLabel('Container count 3').fill('1');
+  await row.getByLabel('Container size 3').fill('8');
+  await row.getByLabel('Container unit 3').fill('oz');
+  await row.getByRole('button', { name: 'Save sizes' }).click();
+
+  await expect(row).toContainText('104 oz');
+});
+
 // Checking a matched item off the shopping list adds it to the pantry.
 test('buying a matched item adds it to the pantry', async ({ page }) => {
   await signUp(page, uniqueEmail('pantry'));

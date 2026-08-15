@@ -3,11 +3,11 @@ import { useState } from 'react';
 import { BarcodeIcon } from '@/components/icons/barcode';
 import { Button } from '@/components/ui/button';
 import { BarcodeScanner } from '@/features/scanner/barcode-scanner';
-import { lookupBarcode } from '@/features/scanner/open-food-facts';
+import { lookupBarcode, type ScannedProduct } from '@/features/scanner/open-food-facts';
 
 interface Props {
-  /** Called with the looked-up product name so the caller can prefill its add box. */
-  onResult: (name: string) => void;
+  /** Called with the looked-up product (name + optional size) to prefill the add box. */
+  onResult: (product: ScannedProduct) => void;
   size?: 'sm' | 'default';
 }
 
@@ -29,7 +29,7 @@ export function ScanButton({ onResult, size = 'default' }: Props) {
     try {
       const product = await lookupBarcode(barcode);
       if (product) {
-        onResult(product.name);
+        onResult(product);
         setMessage(`Found: ${product.name}`);
       } else {
         setMessage(`No product match for ${barcode} — type it in.`);

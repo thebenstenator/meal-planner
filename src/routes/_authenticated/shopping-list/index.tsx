@@ -347,7 +347,7 @@ function ListPanel({
             placeholder="Add something you need…"
           />
         </div>
-        <ScanButton size="default" onResult={onScanned} />
+        <ScanButton size="default" onResult={(p) => onScanned(p.name)} />
         <Button type="submit" disabled={edits.addItem.isPending}>
           {edits.addItem.isPending ? 'Adding…' : 'Add'}
         </Button>

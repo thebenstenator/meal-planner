@@ -726,7 +726,7 @@ function AddItemForm({
         </div>
         <Input aria-label="Add item quantity" className="w-16" placeholder="qty" value={qty} onChange={(e) => setQty(e.target.value)} />
         <Input aria-label="Add item unit" className="w-16" placeholder="unit" value={unit} onChange={(e) => setUnit(e.target.value)} />
-        <ScanButton size="default" onResult={onScanned} />
+        <ScanButton size="default" onResult={(p) => onScanned(p.name)} />
         <Button type="submit" disabled={busy}>
           {busy ? 'Adding…' : 'Add'}
         </Button>

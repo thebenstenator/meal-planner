@@ -9,7 +9,8 @@ import { daysBetween, expiryLabel } from '@/features/insights/insights';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { resolveOrCreateCanonical } from '@/features/ingredients/resolve';
 import { ScanButton } from '@/features/scanner/scan-button';
-import type { PantryItem, PantryLocation } from '@/features/pantry/api';
+import type { ScannedProduct } from '@/features/scanner/open-food-facts';
+import type { PackageLine, PantryItem, PantryLocation } from '@/features/pantry/api';
 import { PantryBulkImport } from '@/features/pantry/components/bulk-import';
 import { usePantry, usePantryMutations } from '@/features/pantry/use-pantry';
 import { toISO } from '@/features/planner/dates';
@@ -20,6 +21,38 @@ export const Route = createFileRoute('/_authenticated/pantry')({
 });
 
 const LOCATIONS: PantryLocation[] = ['pantry', 'fridge', 'freezer'];
+
+/** A container-size row while it's being typed in the add form or the row editor. */
+interface DraftPkg {
+  count: string;
+  size: string;
+  unit: string;
+}
+
+const EMPTY_PKG: DraftPkg = { count: '1', size: '', unit: '' };
+
+/** Parse draft rows into clean PackageLine[], dropping any that aren't complete. */
+function parseDraftPackages(drafts: DraftPkg[]): PackageLine[] {
+  return drafts.flatMap((d) => {
+    const size = Number(d.size);
+    const count = Number(d.count);
+    const unit = d.unit.trim();
+    if (!unit || !Number.isFinite(size) || size <= 0 || !Number.isInteger(count) || count <= 0) {
+      return [];
+    }
+    return [{ size, unit, count }];
+  });
+}
+
+/** "2×32oz · 2×16oz" for a row's sealed containers. */
+function formatPackages(packages: PackageLine[]): string {
+  return packages.map((p) => `${p.count}×${p.size}${p.unit}`).join(' · ');
+}
+
+/** Trim floaty amounts to at most 2 decimals for display. */
+function formatAmount(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+}
 
 function PantryPage() {
   const { householdId } = useHousehold();
@@ -35,6 +68,9 @@ function PantryPage() {
   const [unit, setUnit] = useState('');
   const [location, setLocation] = useState<PantryLocation>('pantry');
   const [expires, setExpires] = useState('');
+  // Container sizes, e.g. 2×32oz + 2×16oz. When any are filled they define the
+  // quantity and the plain amount above is ignored.
+  const [pkgs, setPkgs] = useState<DraftPkg[]>([]);
   const [addMode, setAddMode] = useState<'single' | 'many'>('single');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
@@ -45,10 +81,15 @@ function PantryPage() {
   // Bumped after each add / scan to remount the combobox (its text is internal).
   const [formKey, setFormKey] = useState(0);
 
-  function onScanned(name: string) {
-    setSeed(name);
-    setTyped(name);
+  function onScanned(product: ScannedProduct) {
+    setSeed(product.name);
+    setTyped(product.name);
     setPicked({ id: null, name: null });
+    // Barcode carried a package size → start a container row with it.
+    if (product.size) {
+      setPkgs([{ count: '1', size: String(product.size.quantity), unit: product.size.unit }]);
+      setUnit(product.size.unit);
+    }
     setFormKey((k) => k + 1);
     setFeedback(null);
   }
@@ -68,8 +109,10 @@ function PantryPage() {
       setFeedback({ type: 'error', message: 'Type an ingredient to add (e.g. “milk”).' });
       return;
     }
+    const packages = parseDraftPackages(pkgs);
+    const hasPackages = packages.length > 0;
     const blankQty = qty.trim() === '';
-    if (!blankQty && (!Number.isFinite(Number(qty)) || Number(qty) < 0)) {
+    if (!hasPackages && !blankQty && (!Number.isFinite(Number(qty)) || Number(qty) < 0)) {
       setFeedback({ type: 'error', message: 'Enter a valid amount, or leave it blank.' });
       return;
     }
@@ -86,11 +129,13 @@ function PantryPage() {
 
       await add.mutateAsync({
         canonicalId: target.canonicalId,
+        // With container sizes the quantity is their sum; unit follows the first.
         quantity: blankQty ? 0 : Number(qty),
-        amountUnknown: blankQty,
-        unit: unit.trim() || null,
+        amountUnknown: hasPackages ? false : blankQty,
+        unit: hasPackages ? packages[0]!.unit : unit.trim() || null,
         location,
         expiresOn: expires || null,
+        packages: hasPackages ? packages : undefined,
       });
 
       setPicked({ id: null, name: null });
@@ -99,6 +144,7 @@ function PantryPage() {
       setQty('');
       setUnit('');
       setExpires('');
+      setPkgs([]);
       setFormKey((k) => k + 1);
       setFeedback({
         type: 'success',
@@ -210,10 +256,13 @@ function PantryPage() {
           />
           <span className="text-muted-foreground text-xs">optional</span>
         </div>
+
+        <PackageBuilder drafts={pkgs} setDrafts={setPkgs} />
+
         <p className="text-muted-foreground text-xs">
-          Leave the amount blank if you have it but haven’t measured it — it’ll count as in stock
-          and stay off your shopping list. An expiry date is what powers “use it up” nudges and
-          reminders.
+          Track container sizes (e.g. 2×32 oz + 2×16 oz) and they’ll set the amount for you.
+          Otherwise leave the amount blank if you have it but haven’t measured it — it stays off
+          your shopping list. An expiry date powers “use it up” nudges and reminders.
         </p>
         {feedback && (
           <p
@@ -267,8 +316,10 @@ function PantryPage() {
 function PantryRow({ item }: { item: PantryItem }) {
   const { update, remove } = usePantryMutations();
   const [qty, setQty] = useState(item.amountUnknown ? '' : String(item.quantity));
-  // Owned here so the row's "⋮" menu can open the expiry editor.
+  // Owned here so the row's "⋮" menu can open each editor.
   const [editingExpiry, setEditingExpiry] = useState(false);
+  const [editingPackages, setEditingPackages] = useState(false);
+  const packaged = item.packages.length > 0;
 
   function commitQty() {
     // Cleared → back to "have some, amount unknown" (kept off the shopping list).
@@ -284,40 +335,168 @@ function PantryRow({ item }: { item: PantryItem }) {
   }
 
   return (
-    <li className="flex items-center justify-between gap-2 p-3">
-      <div className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{item.canonicalName}</span>
-        <ExpiryControl item={item} editing={editingExpiry} setEditing={setEditingExpiry} />
+    <li className="p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{item.canonicalName}</span>
+          {packaged && (
+            <span className="text-muted-foreground block text-xs">
+              {formatPackages(item.packages)}
+              {item.looseQuantity > 0 &&
+                ` · +${formatAmount(item.looseQuantity)}${item.unit ?? ''} opened`}
+            </span>
+          )}
+          <ExpiryControl item={item} editing={editingExpiry} setEditing={setEditingExpiry} />
+        </div>
+        <div className="flex items-center gap-1">
+          {packaged ? (
+            <span
+              className="text-sm tabular-nums"
+              aria-label={`Total ${item.canonicalName}`}
+            >
+              {formatAmount(item.quantity)} {item.unit ?? ''}
+            </span>
+          ) : (
+            <>
+              <Input
+                aria-label={`Quantity of ${item.canonicalName}`}
+                inputMode="decimal"
+                value={qty}
+                placeholder={item.amountUnknown ? 'in stock' : undefined}
+                onChange={(e) => setQty(e.target.value)}
+                onBlur={commitQty}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitQty();
+                  }
+                }}
+                className="h-8 w-16"
+              />
+              <span className="text-muted-foreground w-10 text-xs">{item.unit ?? ''}</span>
+            </>
+          )}
+          <RowMenu
+            label={`Actions for ${item.canonicalName}`}
+            actions={[
+              {
+                label: item.expiresOn ? 'Change expiry' : 'Add expiry',
+                onSelect: () => setEditingExpiry(true),
+              },
+              {
+                label: packaged ? 'Edit sizes' : 'Add sizes',
+                onSelect: () => setEditingPackages(true),
+              },
+              { label: 'Remove', onSelect: () => remove.mutate(item.id), destructive: true },
+            ]}
+          />
+        </div>
       </div>
-      <div className="flex items-center gap-1">
-        <Input
-          aria-label={`Quantity of ${item.canonicalName}`}
-          inputMode="decimal"
-          value={qty}
-          placeholder={item.amountUnknown ? 'in stock' : undefined}
-          onChange={(e) => setQty(e.target.value)}
-          onBlur={commitQty}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              commitQty();
-            }
-          }}
-          className="h-8 w-16"
-        />
-        <span className="text-muted-foreground w-10 text-xs">{item.unit ?? ''}</span>
-        <RowMenu
-          label={`Actions for ${item.canonicalName}`}
-          actions={[
-            {
-              label: item.expiresOn ? 'Change expiry' : 'Add expiry',
-              onSelect: () => setEditingExpiry(true),
-            },
-            { label: 'Remove', onSelect: () => remove.mutate(item.id), destructive: true },
-          ]}
-        />
-      </div>
+      {editingPackages && (
+        <PackageEditor item={item} onClose={() => setEditingPackages(false)} />
+      )}
     </li>
+  );
+}
+
+/** Repeated "[count] × [size] [unit]" rows for entering container sizes. */
+function PackageBuilder({
+  drafts,
+  setDrafts,
+}: {
+  drafts: DraftPkg[];
+  setDrafts: (d: DraftPkg[]) => void;
+}) {
+  function patch(i: number, next: Partial<DraftPkg>) {
+    setDrafts(drafts.map((d, idx) => (idx === i ? { ...d, ...next } : d)));
+  }
+  return (
+    <div className="space-y-2">
+      {drafts.map((d, i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <Input
+            aria-label={`Container count ${i + 1}`}
+            inputMode="numeric"
+            value={d.count}
+            onChange={(e) => patch(i, { count: e.target.value })}
+            className="h-9 w-14"
+          />
+          <span className="text-muted-foreground text-sm">×</span>
+          <Input
+            aria-label={`Container size ${i + 1}`}
+            inputMode="decimal"
+            placeholder="size"
+            value={d.size}
+            onChange={(e) => patch(i, { size: e.target.value })}
+            className="h-9 w-20"
+          />
+          <Input
+            aria-label={`Container unit ${i + 1}`}
+            placeholder="unit"
+            value={d.unit}
+            onChange={(e) => patch(i, { unit: e.target.value })}
+            className="h-9 w-20"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label={`Remove size ${i + 1}`}
+            onClick={() => setDrafts(drafts.filter((_, idx) => idx !== i))}
+          >
+            ✕
+          </Button>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setDrafts([...drafts, { ...EMPTY_PKG }])}
+      >
+        + add a size
+      </Button>
+    </div>
+  );
+}
+
+/** In-row editor for an item's container sizes; saving resets the total to their sum. */
+function PackageEditor({ item, onClose }: { item: PantryItem; onClose: () => void }) {
+  const { setPackages } = usePantryMutations();
+  const [drafts, setDrafts] = useState<DraftPkg[]>(
+    item.packages.length > 0
+      ? item.packages.map((p) => ({ count: String(p.count), size: String(p.size), unit: p.unit }))
+      : [{ ...EMPTY_PKG, unit: item.unit ?? '' }],
+  );
+
+  function save() {
+    const lines = parseDraftPackages(drafts);
+    setPackages.mutate(
+      {
+        id: item.id,
+        lines,
+        unit: lines[0]?.unit ?? item.unit,
+        info: {
+          densityGPerMl: item.densityGPerMl ?? undefined,
+          countToGram: item.countToGram ?? undefined,
+        },
+      },
+      { onSuccess: onClose },
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2 rounded-md border p-2">
+      <PackageBuilder drafts={drafts} setDrafts={setDrafts} />
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={save} disabled={setPackages.isPending}>
+          {setPackages.isPending ? 'Saving…' : 'Save sizes'}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </div>
   );
 }
 

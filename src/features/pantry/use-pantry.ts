@@ -7,11 +7,14 @@ import {
   listPantry,
   pantryKeys,
   removePantryItem,
+  replacePantryPackages,
   setRestockMuted,
   updatePantryItem,
   upsertPantryItem,
+  type PackageLine,
   type PantryLocation,
 } from '@/features/pantry/api';
+import type { ConversionInfo } from '@/features/pricing/price-item';
 import { planKeys, setEntryCooked, type PlanEntry } from '@/features/planner/api';
 import { fetchConversionInfos } from '@/features/pricing/api';
 import type { ShoppingItem } from '@/features/shopping-list/api';
@@ -39,7 +42,26 @@ export function usePantryMutations() {
       location: PantryLocation;
       expiresOn?: string | null;
       amountUnknown?: boolean;
+      packages?: PackageLine[];
+      info?: ConversionInfo;
     }) => upsertPantryItem(householdId as string, input),
+    onSuccess: invalidate,
+  });
+
+  // Replace an item's sealed-container breakdown (manual editor). Resets the
+  // item's total to the sum of the packages.
+  const setPackages = useMutation({
+    mutationFn: ({
+      id,
+      lines,
+      unit,
+      info,
+    }: {
+      id: string;
+      lines: PackageLine[];
+      unit: string | null;
+      info?: ConversionInfo;
+    }) => replacePantryPackages(id, lines, unit, info ?? {}),
     onSuccess: invalidate,
   });
 
@@ -67,7 +89,7 @@ export function usePantryMutations() {
     onSuccess: invalidate,
   });
 
-  return { add, update, remove, mute };
+  return { add, update, remove, mute, setPackages };
 }
 
 /**
@@ -87,12 +109,23 @@ export function useApplyPurchaseToPantry() {
       const unit = item.purchase ? item.purchase.packageUnit : item.unit;
       if (qty == null || qty <= 0) return;
       const infos = await fetchConversionInfos([item.canonicalId]);
+      // On a buy with a known container, record the exact sealed package(s) so
+      // "2 32oz cans" lands as a stack, not a lump. Un-checking just decrements.
+      const purchasedPackage =
+        checked && item.purchase
+          ? {
+              size: item.purchase.packageQuantity,
+              unit: item.purchase.packageUnit,
+              count: item.purchase.packages,
+            }
+          : undefined;
       await adjustPantryStock(
         householdId,
         item.canonicalId,
         checked ? qty : -qty,
         unit,
         infos[0] ?? {},
+        purchasedPackage,
       );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: pantryKeys.all(householdId ?? 'none') }),

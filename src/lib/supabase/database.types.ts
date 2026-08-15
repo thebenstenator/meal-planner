@@ -476,6 +476,44 @@ export type Database = {
           },
         ]
       }
+      pantry_package: {
+        Row: {
+          count: number
+          created_at: string
+          id: string
+          pantry_item_id: string
+          size: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          id?: string
+          pantry_item_id: string
+          size: number
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          id?: string
+          pantry_item_id?: string
+          size?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pantry_package_pantry_item_id_fkey"
+            columns: ["pantry_item_id"]
+            isOneToOne: false
+            referencedRelation: "pantry_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_entry: {
         Row: {
           cooked_at: string | null
