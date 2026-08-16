@@ -20,8 +20,8 @@ function EditRecipe() {
   if (recipe && householdId) {
     const canEdit = canEditRecipe({
       ownedByMe: recipe.householdId === householdId,
-      recipePoolIds: recipe.poolIds,
-      myPools: [],
+      recipeCookbookIds: recipe.cookbookIds,
+      myCookbooks: [],
     });
     if (!canEdit) {
       return <Navigate to="/recipes/$recipeId" params={{ recipeId }} replace />;

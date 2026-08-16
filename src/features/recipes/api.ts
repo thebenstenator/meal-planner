@@ -1,6 +1,6 @@
 import type { LibraryRecipe } from '@/features/planner/autofill';
 import { guessMealTypes } from '@/features/recipes/guess-meal-type';
-import { setRecipePools } from '@/features/recipes/pool-api';
+import { setRecipeCookbooks } from '@/features/recipes/cookbook-api';
 import type { MealType, RecipeFormInput } from '@/schemas/recipe';
 import { supabase } from '@/lib/supabase/client';
 
@@ -37,8 +37,8 @@ export interface RecipeSummary {
   timesCooked: number;
   ingredientCount: number;
   updatedAt: string;
-  /** Pools this recipe is shared into; empty when it's private. */
-  poolIds: string[];
+  /** Cookbooks this recipe is shared into; empty when it's private. */
+  cookbookIds: string[];
   /** True when the active household created this recipe (can edit/favorite it). */
   ownedByMe: boolean;
 }
@@ -48,8 +48,8 @@ export interface RecipeDetail {
   title: string;
   /** Creator household; compare to the active household for ownership. */
   householdId: string;
-  /** Pools this recipe is shared into; empty when it's private. */
-  poolIds: string[];
+  /** Cookbooks this recipe is shared into; empty when it's private. */
+  cookbookIds: string[];
   description: string | null;
   mealTypes: string[];
   servings: number;
@@ -73,7 +73,7 @@ export async function listRecipes(
   opts: { search?: string; mealType?: string } = {},
 ): Promise<RecipeSummary[]> {
   // No household filter: RLS returns this household's recipes *and* any shared
-  // pool's recipes. `householdId` is used only to mark which ones you own.
+  // cookbook's recipes. `householdId` is used only to mark which ones you own.
   let query = supabase
     .from('recipe')
     .select(LIST_SELECT)
@@ -98,7 +98,7 @@ export async function listRecipes(
       timesCooked: r.times_cooked,
       ingredientCount: r.recipe_ingredient?.[0]?.count ?? 0,
       updatedAt: r.updated_at,
-      poolIds: (r.recipe_pool_share ?? []).map((s) => s.pool_id),
+      cookbookIds: (r.recipe_pool_share ?? []).map((s) => s.pool_id),
       ownedByMe: r.household_id === householdId,
     }))
     // Case-insensitive alphabetical, so "apple" and "Banana" sort naturally.
@@ -119,7 +119,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
     id: data.id,
     title: data.title,
     householdId: data.household_id,
-    poolIds: (data.recipe_pool_share ?? []).map((s) => s.pool_id),
+    cookbookIds: (data.recipe_pool_share ?? []).map((s) => s.pool_id),
     description: data.description,
     mealTypes: data.meal_types ?? [],
     servings: data.servings,
@@ -152,9 +152,9 @@ export async function saveRecipe(
   form: RecipeFormInput,
   ingredients: RecipeIngredientDraft[],
   recipeId?: string,
-  /** The exact set of pools to share this recipe into, replacing whatever it
+  /** The exact set of cookbooks to share this recipe into, replacing whatever it
    * was. Omit (undefined) to leave sharing untouched — pass `[]` to unshare. */
-  poolIds?: string[],
+  cookbookIds?: string[],
 ): Promise<string> {
   const p_recipe = {
     household_id: householdId,
@@ -191,7 +191,7 @@ export async function saveRecipe(
   const id = data as string;
   // Sharing lives in its own table, so it's a second call — which is also what
   // lets an *edit* change where a recipe is shared, not just a create.
-  if (poolIds) await setRecipePools(id, poolIds);
+  if (cookbookIds) await setRecipeCookbooks(id, cookbookIds);
   return id;
 }
 
@@ -284,7 +284,7 @@ export async function listDeletedRecipes(householdId: string): Promise<RecipeSum
     timesCooked: r.times_cooked,
     ingredientCount: r.recipe_ingredient?.[0]?.count ?? 0,
     updatedAt: r.updated_at,
-    poolIds: (r.recipe_pool_share ?? []).map((s) => s.pool_id),
+    cookbookIds: (r.recipe_pool_share ?? []).map((s) => s.pool_id),
     ownedByMe: r.household_id === householdId,
   }));
 }

@@ -24,9 +24,9 @@ import { Route as AuthenticatedSuggestRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedHouseholdSettingsRouteImport } from './routes/_authenticated/household.settings'
 import { Route as AuthenticatedRecipesIndexRouteImport } from './routes/_authenticated/recipes/index'
 import { Route as AuthenticatedRecipesBulkImportRouteImport } from './routes/_authenticated/recipes/bulk-import'
+import { Route as AuthenticatedRecipesCookbooksRouteImport } from './routes/_authenticated/recipes/cookbooks'
 import { Route as AuthenticatedRecipesImportRouteImport } from './routes/_authenticated/recipes/import'
 import { Route as AuthenticatedRecipesNewRouteImport } from './routes/_authenticated/recipes/new'
-import { Route as AuthenticatedRecipesPoolsRouteImport } from './routes/_authenticated/recipes/pools'
 import { Route as AuthenticatedShoppingListIndexRouteImport } from './routes/_authenticated/shopping-list/index'
 import { Route as AuthenticatedShoppingListListIdRouteImport } from './routes/_authenticated/shopping-list/$listId'
 import { Route as AuthenticatedRecipesRecipeIdIndexRouteImport } from './routes/_authenticated/recipes/$recipeId/index'
@@ -110,6 +110,12 @@ const AuthenticatedRecipesBulkImportRoute =
     path: '/recipes/bulk-import',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedRecipesCookbooksRoute =
+  AuthenticatedRecipesCookbooksRouteImport.update({
+    id: '/recipes/cookbooks',
+    path: '/recipes/cookbooks',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedRecipesImportRoute =
   AuthenticatedRecipesImportRouteImport.update({
     id: '/recipes/import',
@@ -121,12 +127,6 @@ const AuthenticatedRecipesNewRoute = AuthenticatedRecipesNewRouteImport.update({
   path: '/recipes/new',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedRecipesPoolsRoute =
-  AuthenticatedRecipesPoolsRouteImport.update({
-    id: '/recipes/pools',
-    path: '/recipes/pools',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedShoppingListIndexRoute =
   AuthenticatedShoppingListIndexRouteImport.update({
     id: '/shopping-list/',
@@ -166,9 +166,9 @@ export interface FileRoutesByFullPath {
   '/suggest': typeof AuthenticatedSuggestRoute
   '/household/settings': typeof AuthenticatedHouseholdSettingsRoute
   '/recipes/bulk-import': typeof AuthenticatedRecipesBulkImportRoute
+  '/recipes/cookbooks': typeof AuthenticatedRecipesCookbooksRoute
   '/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/recipes/new': typeof AuthenticatedRecipesNewRoute
-  '/recipes/pools': typeof AuthenticatedRecipesPoolsRoute
   '/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
   '/recipes/': typeof AuthenticatedRecipesIndexRoute
   '/shopping-list/': typeof AuthenticatedShoppingListIndexRoute
@@ -189,9 +189,9 @@ export interface FileRoutesByTo {
   '/suggest': typeof AuthenticatedSuggestRoute
   '/household/settings': typeof AuthenticatedHouseholdSettingsRoute
   '/recipes/bulk-import': typeof AuthenticatedRecipesBulkImportRoute
+  '/recipes/cookbooks': typeof AuthenticatedRecipesCookbooksRoute
   '/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/recipes/new': typeof AuthenticatedRecipesNewRoute
-  '/recipes/pools': typeof AuthenticatedRecipesPoolsRoute
   '/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
   '/recipes': typeof AuthenticatedRecipesIndexRoute
   '/shopping-list': typeof AuthenticatedShoppingListIndexRoute
@@ -214,9 +214,9 @@ export interface FileRoutesById {
   '/_authenticated/suggest': typeof AuthenticatedSuggestRoute
   '/_authenticated/household/settings': typeof AuthenticatedHouseholdSettingsRoute
   '/_authenticated/recipes/bulk-import': typeof AuthenticatedRecipesBulkImportRoute
+  '/_authenticated/recipes/cookbooks': typeof AuthenticatedRecipesCookbooksRoute
   '/_authenticated/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/_authenticated/recipes/new': typeof AuthenticatedRecipesNewRoute
-  '/_authenticated/recipes/pools': typeof AuthenticatedRecipesPoolsRoute
   '/_authenticated/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
   '/_authenticated/recipes/': typeof AuthenticatedRecipesIndexRoute
   '/_authenticated/shopping-list/': typeof AuthenticatedShoppingListIndexRoute
@@ -239,9 +239,9 @@ export interface FileRouteTypes {
     | '/suggest'
     | '/household/settings'
     | '/recipes/bulk-import'
+    | '/recipes/cookbooks'
     | '/recipes/import'
     | '/recipes/new'
-    | '/recipes/pools'
     | '/shopping-list/$listId'
     | '/recipes/'
     | '/shopping-list/'
@@ -262,9 +262,9 @@ export interface FileRouteTypes {
     | '/suggest'
     | '/household/settings'
     | '/recipes/bulk-import'
+    | '/recipes/cookbooks'
     | '/recipes/import'
     | '/recipes/new'
-    | '/recipes/pools'
     | '/shopping-list/$listId'
     | '/recipes'
     | '/shopping-list'
@@ -286,9 +286,9 @@ export interface FileRouteTypes {
     | '/_authenticated/suggest'
     | '/_authenticated/household/settings'
     | '/_authenticated/recipes/bulk-import'
+    | '/_authenticated/recipes/cookbooks'
     | '/_authenticated/recipes/import'
     | '/_authenticated/recipes/new'
-    | '/_authenticated/recipes/pools'
     | '/_authenticated/shopping-list/$listId'
     | '/_authenticated/recipes/'
     | '/_authenticated/shopping-list/'
@@ -410,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRecipesBulkImportRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/recipes/cookbooks': {
+      id: '/_authenticated/recipes/cookbooks'
+      path: '/recipes/cookbooks'
+      fullPath: '/recipes/cookbooks'
+      preLoaderRoute: typeof AuthenticatedRecipesCookbooksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/recipes/import': {
       id: '/_authenticated/recipes/import'
       path: '/recipes/import'
@@ -422,13 +429,6 @@ declare module '@tanstack/react-router' {
       path: '/recipes/new'
       fullPath: '/recipes/new'
       preLoaderRoute: typeof AuthenticatedRecipesNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/recipes/pools': {
-      id: '/_authenticated/recipes/pools'
-      path: '/recipes/pools'
-      fullPath: '/recipes/pools'
-      preLoaderRoute: typeof AuthenticatedRecipesPoolsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/shopping-list/': {
@@ -473,9 +473,9 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSuggestRoute: typeof AuthenticatedSuggestRoute
   AuthenticatedHouseholdSettingsRoute: typeof AuthenticatedHouseholdSettingsRoute
   AuthenticatedRecipesBulkImportRoute: typeof AuthenticatedRecipesBulkImportRoute
+  AuthenticatedRecipesCookbooksRoute: typeof AuthenticatedRecipesCookbooksRoute
   AuthenticatedRecipesImportRoute: typeof AuthenticatedRecipesImportRoute
   AuthenticatedRecipesNewRoute: typeof AuthenticatedRecipesNewRoute
-  AuthenticatedRecipesPoolsRoute: typeof AuthenticatedRecipesPoolsRoute
   AuthenticatedShoppingListListIdRoute: typeof AuthenticatedShoppingListListIdRoute
   AuthenticatedRecipesIndexRoute: typeof AuthenticatedRecipesIndexRoute
   AuthenticatedShoppingListIndexRoute: typeof AuthenticatedShoppingListIndexRoute
@@ -494,9 +494,9 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSuggestRoute: AuthenticatedSuggestRoute,
   AuthenticatedHouseholdSettingsRoute: AuthenticatedHouseholdSettingsRoute,
   AuthenticatedRecipesBulkImportRoute: AuthenticatedRecipesBulkImportRoute,
+  AuthenticatedRecipesCookbooksRoute: AuthenticatedRecipesCookbooksRoute,
   AuthenticatedRecipesImportRoute: AuthenticatedRecipesImportRoute,
   AuthenticatedRecipesNewRoute: AuthenticatedRecipesNewRoute,
-  AuthenticatedRecipesPoolsRoute: AuthenticatedRecipesPoolsRoute,
   AuthenticatedShoppingListListIdRoute: AuthenticatedShoppingListListIdRoute,
   AuthenticatedRecipesIndexRoute: AuthenticatedRecipesIndexRoute,
   AuthenticatedShoppingListIndexRoute: AuthenticatedShoppingListIndexRoute,

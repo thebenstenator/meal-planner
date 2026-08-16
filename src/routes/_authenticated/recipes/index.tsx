@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { matchesScope, scopeCounts, scopeKey, type RecipeScope } from '@/features/recipes/scope';
-import { usePools } from '@/features/recipes/use-pool';
+import { useCookbooks } from '@/features/recipes/use-cookbook';
 import {
   useCategorizeUncategorized,
   useDeletedRecipes,
@@ -28,22 +28,26 @@ function RecipeLibrary() {
   const [showTrash, setShowTrash] = useState(false);
   const [scope, setScope] = useState<RecipeScope>({ kind: 'all' });
   const { data, isLoading, isError } = useRecipeList(search, mealType);
-  const { data: pools } = usePools();
+  const { data: cookbooks } = useCookbooks();
 
   const recipes = data ?? [];
-  const myPools = pools ?? [];
-  // Leaving a pool (or having it deleted) shouldn't strand you on a dead tab.
+  const myCookbooks = cookbooks ?? [];
+  // Leaving a cookbook (or having it deleted) shouldn't strand you on a dead tab.
   const active: RecipeScope =
-    scope.kind === 'pool' && !myPools.some((p) => p.id === scope.poolId) ? { kind: 'all' } : scope;
+    scope.kind === 'cookbook' && !myCookbooks.some((c) => c.id === scope.cookbookId)
+      ? { kind: 'all' }
+      : scope;
   const activeKey = scopeKey(active);
-  const counts = scopeCounts(recipes, myPools.map((p) => p.id));
+  const counts = scopeCounts(recipes, myCookbooks.map((c) => c.id));
 
   const visible = recipes.filter((r) => matchesScope(r, active));
   // What the "all" tab would add — the escape hatch when you're searching inside
   // one place and the thing you want lives somewhere else.
   const elsewhere = recipes.length - visible.length;
-  const activePoolName =
-    active.kind === 'pool' ? (myPools.find((p) => p.id === active.poolId)?.name ?? 'this pool') : '';
+  const activeCookbookName =
+    active.kind === 'cookbook'
+      ? (myCookbooks.find((c) => c.id === active.cookbookId)?.name ?? 'this cookbook')
+      : '';
 
   return (
     <main className="mx-auto max-w-2xl space-y-5 px-4 py-8">
@@ -72,10 +76,10 @@ function RecipeLibrary() {
       </div>
 
       {/* Tabs: where a recipe lives. Only worth showing once there's more than
-          one place — with no pools, "all" and "my household" are the same set.
-          Pool management (invites, members, share-back) lives on its own page. */}
+          one place — with no cookbooks, "all" and "my household" are the same
+          set. Cookbook management (invites, members, share-back) has its own page. */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        {myPools.length > 0 ? (
+        {myCookbooks.length > 0 ? (
           <div
             className="flex flex-wrap items-center gap-1.5"
             role="tablist"
@@ -95,33 +99,33 @@ function RecipeLibrary() {
             >
               My household
             </ScopeTab>
-            {myPools.map((p) => (
+            {myCookbooks.map((c) => (
               <ScopeTab
-                key={p.id}
-                active={activeKey === `pool:${p.id}`}
-                count={counts.pools[p.id] ?? 0}
-                onClick={() => setScope({ kind: 'pool', poolId: p.id })}
+                key={c.id}
+                active={activeKey === `cookbook:${c.id}`}
+                count={counts.cookbooks[c.id] ?? 0}
+                onClick={() => setScope({ kind: 'cookbook', cookbookId: c.id })}
               >
-                {p.name}
+                {c.name}
               </ScopeTab>
             ))}
           </div>
         ) : (
-          <p className="text-muted-foreground text-sm">Share recipes with family in a pool.</p>
+          <p className="text-muted-foreground text-sm">Share recipes with family in a cookbook.</p>
         )}
         <Link
-          to="/recipes/pools"
+          to="/recipes/cookbooks"
           className="text-muted-foreground shrink-0 text-sm underline"
         >
-          {myPools.length > 0 ? 'Manage pools' : 'Get started →'}
+          {myCookbooks.length > 0 ? 'Manage cookbooks' : 'Get started →'}
         </Link>
       </div>
 
       <div className="space-y-3">
         <Input
           placeholder={
-            active.kind === 'pool'
-              ? `Search ${activePoolName}…`
+            active.kind === 'cookbook'
+              ? `Search ${activeCookbookName}…`
               : active.kind === 'household'
                 ? 'Search your recipes…'
                 : 'Search recipes…'
@@ -142,7 +146,7 @@ function RecipeLibrary() {
         </div>
       </div>
 
-      {/* Only our own recipes can be categorized — pool recipes belong to the
+      {/* Only our own recipes can be categorized — cookbook recipes belong to the
           household that added them. */}
       <CategorizeBanner
         uncategorized={recipes.filter((r) => r.ownedByMe && r.mealTypes.length === 0).length}
@@ -169,7 +173,7 @@ function RecipeLibrary() {
           <p className="text-muted-foreground mt-1 text-sm">
             {active.kind === 'household'
               ? 'None of your household’s own recipes match.'
-              : `Nothing in ${activePoolName} matches.`}
+              : `Nothing in ${activeCookbookName} matches.`}
           </p>
           {elsewhere > 0 && (
             <Button variant="outline" className="mt-4" onClick={() => setScope({ kind: 'all' })}>
@@ -193,11 +197,11 @@ function RecipeLibrary() {
                       {m}
                     </Badge>
                   ))}
-                  {r.poolIds.length > 0 && (
+                  {r.cookbookIds.length > 0 && (
                     <Badge variant="outline" className="text-emerald-700">
                       {r.ownedByMe
-                        ? `shared${r.poolIds.length > 1 ? ` ×${r.poolIds.length}` : ''}`
-                        : 'from pool'}
+                        ? `shared${r.cookbookIds.length > 1 ? ` ×${r.cookbookIds.length}` : ''}`
+                        : 'from cookbook'}
                     </Badge>
                   )}
                   <span className="text-muted-foreground text-xs">
@@ -259,7 +263,7 @@ function CategorizeBanner({ uncategorized }: { uncategorized: number }) {
 
 /**
  * One "where it lives" tab. Same pill shape as the shopping list's tabs, with a
- * count so you can tell an empty pool from one you just haven't opened.
+ * count so you can tell an empty cookbook from one you just haven't opened.
  */
 function ScopeTab({
   active,

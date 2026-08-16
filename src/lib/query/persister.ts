@@ -16,5 +16,8 @@ export const queryPersister = createSyncStoragePersister({
   //   v3: recipe pools — RecipeSummary gained `poolIds`, plus the new
   //       ['recipe-pool', …] / ['recipes', …, 'pool-shares'] queries. Old caches
   //       lacked these, crashing the scope tabs with "x.map is not a function".
-  key: 'mealplan-query-cache-v3',
+  //   v4: pool → cookbook rename — `poolIds` became `cookbookIds` and the query
+  //       keys changed (['cookbook', …]); a v3 cache would feed the old field
+  //       names into the new code and crash the same way.
+  key: 'mealplan-query-cache-v4',
 });

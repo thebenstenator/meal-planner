@@ -9,10 +9,10 @@ import {
   canDeleteRecipe,
   canEditRecipe,
   canFavoriteRecipe,
-  poolsICanEvictFrom,
+  cookbooksICanEvictFrom,
 } from '@/features/recipes/permissions';
 import { scaledAmount } from '@/features/recipes/scale';
-import { usePools, useUnshareRecipe } from '@/features/recipes/use-pool';
+import { useCookbooks, useUnshareRecipe } from '@/features/recipes/use-cookbook';
 import { useRecipe, useSetFavorite, useSoftDeleteRecipe } from '@/features/recipes/use-recipes';
 import { formatCurrency } from '@/lib/utils/format-currency';
 
@@ -25,7 +25,7 @@ function RecipeDetailPage() {
   const navigate = useNavigate();
   const { data: recipe, isLoading, isError } = useRecipe(recipeId);
   const { householdId } = useHousehold();
-  const { data: pools } = usePools();
+  const { data: cookbooks } = useCookbooks();
   const unshare = useUnshareRecipe();
   const del = useSoftDeleteRecipe();
   const favorite = useSetFavorite(recipeId);
@@ -39,22 +39,22 @@ function RecipeDetailPage() {
     return <Centered>Couldn’t load this recipe.</Centered>;
   }
 
-  const myPools = pools ?? [];
+  const myCookbooks = cookbooks ?? [];
   const perm = {
     ownedByMe: recipe.householdId === householdId,
-    recipePoolIds: recipe.poolIds,
-    myPools: myPools.map((p) => ({ id: p.id, role: p.role })),
+    recipeCookbookIds: recipe.cookbookIds,
+    myCookbooks: myCookbooks.map((c) => ({ id: c.id, role: c.role })),
   };
   const canEdit = canEditRecipe(perm);
   const canDelete = canDeleteRecipe(perm);
   const canFavorite = canFavoriteRecipe(perm);
-  // Pools I run that hold someone else's recipe — I can throw it out of those.
-  const evictable = poolsICanEvictFrom(perm)
-    .map((id) => myPools.find((p) => p.id === id))
-    .filter((p): p is NonNullable<typeof p> => p != null);
-  // Named pools this recipe is in that I can see, for the "shared with" line.
-  const sharedInto = recipe.poolIds
-    .map((id) => myPools.find((p) => p.id === id)?.name)
+  // Cookbooks I run that hold someone else's recipe — I can throw it out of those.
+  const evictable = cookbooksICanEvictFrom(perm)
+    .map((id) => myCookbooks.find((c) => c.id === id))
+    .filter((c): c is NonNullable<typeof c> => c != null);
+  // Named cookbooks this recipe is in that I can see, for the "shared with" line.
+  const sharedInto = recipe.cookbookIds
+    .map((id) => myCookbooks.find((c) => c.id === id)?.name)
     .filter((n): n is string => !!n);
 
   const targetServings = servings ?? recipe.servings;
@@ -80,13 +80,13 @@ function RecipeDetailPage() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {recipe.poolIds.length > 0 && (
+          {recipe.cookbookIds.length > 0 && (
             <Badge
               variant="outline"
               className="text-emerald-700"
               title={sharedInto.length > 0 ? `In ${sharedInto.join(', ')}` : undefined}
             >
-              {perm.ownedByMe ? 'Shared' : 'From pool'}
+              {perm.ownedByMe ? 'Shared' : 'From cookbook'}
             </Badge>
           )}
           {canFavorite && (
@@ -206,21 +206,21 @@ function RecipeDetailPage() {
           </p>
         )}
 
-        {evictable.map((p) => (
+        {evictable.map((c) => (
           <Button
-            key={p.id}
+            key={c.id}
             variant="outline"
             size="sm"
             disabled={unshare.isPending}
-            onClick={() => unshare.mutate({ recipeId, poolId: p.id })}
+            onClick={() => unshare.mutate({ recipeId, cookbookId: c.id })}
           >
-            Remove from “{p.name}”
+            Remove from “{c.name}”
           </Button>
         ))}
 
         {!canDelete ? (
           <p className="text-muted-foreground text-xs">
-            {recipe.poolIds.length > 0
+            {recipe.cookbookIds.length > 0
               ? 'Shared from another household — only they can edit or delete it.'
               : null}
           </p>

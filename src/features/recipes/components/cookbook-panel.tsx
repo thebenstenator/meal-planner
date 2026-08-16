@@ -13,41 +13,42 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useHousehold } from '@/features/household/use-household';
 import {
-  useAcceptPoolInvite,
-  useCreatePool,
-  useCreatePoolInvite,
-  useDeletePool,
-  useLeavePool,
+  useAcceptCookbookInvite,
+  useCookbookMembers,
+  useCookbooks,
+  useCreateCookbook,
+  useCreateCookbookInvite,
+  useDeleteCookbook,
+  useLeaveCookbook,
   useMyShareCounts,
-  usePoolMembers,
-  usePools,
-  useShareAllWithPool,
-} from '@/features/recipes/use-pool';
+  useShareAllWithCookbook,
+} from '@/features/recipes/use-cookbook';
 import { inviteCodeSchema } from '@/schemas/auth';
 
 /**
- * The "shared recipe pool" controls, shown on the Manage pools page. A household
- * can be in any number of pools — extended family, friends, a supper club — each
- * shown as its own card. Which recipes go into which pool is chosen per recipe on
- * the recipe form; recipe-level permissions live in permissions.ts.
+ * The "shared cookbook" controls, shown on the Manage cookbooks page. A
+ * household can be in any number of cookbooks — extended family, friends, a
+ * supper club — each shown as its own card. Which recipes go into which cookbook
+ * is chosen per recipe on the recipe form; recipe-level permissions live in
+ * permissions.ts.
  */
-export function PoolPanel() {
+export function CookbookPanel() {
   const { household } = useHousehold();
-  const { data: pools, isLoading } = usePools();
+  const { data: cookbooks, isLoading } = useCookbooks();
   const [adding, setAdding] = useState(false);
 
   if (isLoading) return null;
 
-  const mine = pools ?? [];
+  const mine = cookbooks ?? [];
   const defaultName = household ? `${household.name} recipes` : 'Family recipes';
-  // With no pools yet, lead with the two cards — that's the whole pitch. Once
-  // you're in one, they collapse behind a link so the list stays the focus.
+  // With no cookbooks yet, lead with the two cards — that's the whole pitch.
+  // Once you're in one, they collapse behind a link so the list stays the focus.
   const showForms = mine.length === 0 || adding;
 
   return (
     <div className="space-y-3">
-      {mine.map((p) => (
-        <PoolCard key={p.id} poolName={p.name} isOwner={p.role === 'owner'} poolId={p.id} />
+      {mine.map((c) => (
+        <CookbookCard key={c.id} cookbookName={c.name} isOwner={c.role === 'owner'} cookbookId={c.id} />
       ))}
 
       {mine.length > 0 && (
@@ -56,23 +57,23 @@ export function PoolPanel() {
           className="text-muted-foreground text-sm underline"
           onClick={() => setAdding((v) => !v)}
         >
-          {adding ? 'Never mind' : 'Start or join another pool'}
+          {adding ? 'Never mind' : 'Start or join another cookbook'}
         </button>
       )}
 
       {showForms && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <CreatePoolCard defaultName={defaultName} onDone={() => setAdding(false)} />
-          <JoinPoolCard onDone={() => setAdding(false)} />
+          <CreateCookbookCard defaultName={defaultName} onDone={() => setAdding(false)} />
+          <JoinCookbookCard onDone={() => setAdding(false)} />
         </div>
       )}
     </div>
   );
 }
 
-function CreatePoolCard({ defaultName, onDone }: { defaultName: string; onDone: () => void }) {
+function CreateCookbookCard({ defaultName, onDone }: { defaultName: string; onDone: () => void }) {
   const { householdId } = useHousehold();
-  const create = useCreatePool();
+  const create = useCreateCookbook();
   const [name, setName] = useState('');
 
   return (
@@ -80,14 +81,14 @@ function CreatePoolCard({ defaultName, onDone }: { defaultName: string; onDone: 
       <CardHeader>
         <CardTitle className="text-base">Share your recipes</CardTitle>
         <CardDescription>
-          Start a shared pool so extended family can see your recipes and add their own. Your
+          Start a shared cookbook so extended family can see your recipes and add their own. Your
           shopping list, pantry and plan stay private.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
-        <Label htmlFor="pool-name">Pool name</Label>
+        <Label htmlFor="cookbook-name">Cookbook name</Label>
         <Input
-          id="pool-name"
+          id="cookbook-name"
           value={name}
           placeholder={defaultName}
           onChange={(e) => setName(e.target.value)}
@@ -104,7 +105,7 @@ function CreatePoolCard({ defaultName, onDone }: { defaultName: string; onDone: 
             })
           }
         >
-          {create.isPending ? 'Creating…' : 'Create shared pool'}
+          {create.isPending ? 'Creating…' : 'Create shared cookbook'}
         </Button>
         {create.isError && (
           <p className="text-destructive text-sm">{create.error.message}</p>
@@ -114,13 +115,13 @@ function CreatePoolCard({ defaultName, onDone }: { defaultName: string; onDone: 
   );
 }
 
-function JoinPoolCard({ onDone }: { onDone: () => void }) {
+function JoinCookbookCard({ onDone }: { onDone: () => void }) {
   // Both actions pass the household to a SECURITY DEFINER RPC that rejects a
   // null one with "not a member of this household". Straight after signup the
   // household is still resolving, so stay disabled until it's there rather than
   // let an early tap fail with a message about a household they do have.
   const { householdId } = useHousehold();
-  const accept = useAcceptPoolInvite();
+  const accept = useAcceptCookbookInvite();
   const [code, setCode] = useState('');
 
   function submit() {
@@ -139,13 +140,13 @@ function JoinPoolCard({ onDone }: { onDone: () => void }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Join a pool</CardTitle>
+        <CardTitle className="text-base">Join a cookbook</CardTitle>
         <CardDescription>Enter a code someone shared to see their recipes.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
-        <Label htmlFor="pool-join-code">Invite code</Label>
+        <Label htmlFor="cookbook-join-code">Invite code</Label>
         <Input
-          id="pool-join-code"
+          id="cookbook-join-code"
           value={code}
           autoCapitalize="characters"
           className="font-mono uppercase tracking-widest"
@@ -158,7 +159,7 @@ function JoinPoolCard({ onDone }: { onDone: () => void }) {
           disabled={accept.isPending || !householdId}
           onClick={submit}
         >
-          {accept.isPending ? 'Joining…' : 'Join pool'}
+          {accept.isPending ? 'Joining…' : 'Join cookbook'}
         </Button>
         {accept.isError && (
           <p role="alert" className="text-destructive text-sm">
@@ -171,20 +172,21 @@ function JoinPoolCard({ onDone }: { onDone: () => void }) {
 }
 
 /**
- * How much of your library this pool actually holds, and a one-click way to put
- * the rest in. Creating a pool shares everything you have; *joining* one shares
- * nothing until you say so, and nothing on screen used to admit that — a joiner
- * could sit in a pool for weeks assuming their recipes were visible. So the
- * state is always stated, and the fix is one button away but never automatic.
+ * How much of your library this cookbook actually holds, and a one-click way to
+ * put the rest in. Creating a cookbook shares everything you have; *joining* one
+ * shares nothing until you say so, and nothing on screen used to admit that — a
+ * joiner could sit in a cookbook for weeks assuming their recipes were visible.
+ * So the state is always stated, and the fix is one button away but never
+ * automatic.
  */
-function ShareBack({ poolId, poolName }: { poolId: string; poolName: string }) {
-  const { total, byPool, isLoading } = useMyShareCounts();
-  const shareAll = useShareAllWithPool();
+function ShareBack({ cookbookId, cookbookName }: { cookbookId: string; cookbookName: string }) {
+  const { total, byCookbook, isLoading } = useMyShareCounts();
+  const shareAll = useShareAllWithCookbook();
   const [confirming, setConfirming] = useState(false);
 
   if (isLoading) return null;
 
-  const shared = byPool[poolId] ?? 0;
+  const shared = byCookbook[cookbookId] ?? 0;
   const missing = total - shared;
 
   return (
@@ -193,7 +195,7 @@ function ShareBack({ poolId, poolName }: { poolId: string; poolName: string }) {
         {total === 0
           ? 'You haven’t added any recipes yet — once you do, they can go in here.'
           : shared === 0
-            ? `None of your ${total} recipes are here yet — this pool only shows what others added.`
+            ? `None of your ${total} recipes are here yet — this cookbook only shows what others added.`
             : missing === 0
               ? `All ${total} of your recipes are here.`
               : `${shared} of your ${total} recipes are here.`}
@@ -207,13 +209,13 @@ function ShareBack({ poolId, poolName }: { poolId: string; poolName: string }) {
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm">
-              Add {missing} recipe{missing === 1 ? '' : 's'} to “{poolName}” for everyone in it?
+              Add {missing} recipe{missing === 1 ? '' : 's'} to “{cookbookName}” for everyone in it?
             </span>
             <Button
               size="sm"
               disabled={shareAll.isPending}
               onClick={() =>
-                shareAll.mutate(poolId, { onSuccess: () => setConfirming(false) })
+                shareAll.mutate(cookbookId, { onSuccess: () => setConfirming(false) })
               }
             >
               {shareAll.isPending ? 'Sharing…' : 'Share them'}
@@ -225,26 +227,26 @@ function ShareBack({ poolId, poolName }: { poolId: string; poolName: string }) {
         ))}
 
       <p className="text-muted-foreground text-xs">
-        You can also pick pools one recipe at a time, under “Add to” on any recipe.
+        You can also pick cookbooks one recipe at a time, under “Add to” on any recipe.
       </p>
     </div>
   );
 }
 
-function PoolCard({
-  poolName,
+function CookbookCard({
+  cookbookName,
   isOwner,
-  poolId,
+  cookbookId,
 }: {
-  poolName: string;
+  cookbookName: string;
   isOwner: boolean;
-  poolId: string;
+  cookbookId: string;
 }) {
   const { householdId } = useHousehold();
-  const { data: members } = usePoolMembers(poolId);
-  const invite = useCreatePoolInvite(poolId);
-  const leave = useLeavePool();
-  const del = useDeletePool();
+  const { data: members } = useCookbookMembers(cookbookId);
+  const invite = useCreateCookbookInvite(cookbookId);
+  const leave = useLeaveCookbook();
+  const del = useDeleteCookbook();
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
@@ -262,16 +264,16 @@ function PoolCard({
   }
 
   return (
-    <Card data-testid="pool-card">
+    <Card data-testid="cookbook-card">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <CardTitle className="text-base">{poolName}</CardTitle>
+          <CardTitle className="text-base">{cookbookName}</CardTitle>
           <Badge variant="secondary">{isOwner ? 'You own this' : 'Shared with you'}</Badge>
         </div>
         <CardDescription>
           Everyone below sees the recipes shared here. Each household keeps control of the recipes
           it added — only they can edit or delete them
-          {isOwner ? ', though you can remove any of them from this pool.' : '.'}
+          {isOwner ? ', though you can remove any of them from this cookbook.' : '.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -284,7 +286,7 @@ function PoolCard({
           ))}
         </ul>
 
-        <ShareBack poolId={poolId} poolName={poolName} />
+        <ShareBack cookbookId={cookbookId} cookbookName={cookbookName} />
 
         <div className="space-y-2">
           <Button size="sm" onClick={() => invite.mutate()} disabled={invite.isPending}>
@@ -293,7 +295,7 @@ function PoolCard({
           {code && (
             <div className="flex items-center gap-2">
               <code
-                data-testid="pool-invite-code"
+                data-testid="cookbook-invite-code"
                 className="bg-muted rounded-md px-3 py-2 font-mono text-lg tracking-widest"
               >
                 {code}
@@ -312,20 +314,20 @@ function PoolCard({
           {isOwner ? (
             !confirming ? (
               <Button variant="ghost" size="sm" onClick={() => setConfirming(true)}>
-                Delete pool
+                Delete cookbook
               </Button>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm">
-                  Delete “{poolName}”? Recipes stay in each household but stop being shared.
+                  Delete “{cookbookName}”? Recipes stay in each household but stop being shared.
                 </span>
                 <Button
                   variant="destructive"
                   size="sm"
                   disabled={del.isPending}
-                  onClick={() => del.mutate(poolId)}
+                  onClick={() => del.mutate(cookbookId)}
                 >
-                  {del.isPending ? 'Deleting…' : 'Delete pool'}
+                  {del.isPending ? 'Deleting…' : 'Delete cookbook'}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setConfirming(false)}>
                   Cancel
@@ -337,9 +339,9 @@ function PoolCard({
               variant="ghost"
               size="sm"
               disabled={leave.isPending || !householdId}
-              onClick={() => leave.mutate(poolId)}
+              onClick={() => leave.mutate(cookbookId)}
             >
-              {leave.isPending ? 'Leaving…' : 'Leave pool'}
+              {leave.isPending ? 'Leaving…' : 'Leave cookbook'}
             </Button>
           )}
         </div>

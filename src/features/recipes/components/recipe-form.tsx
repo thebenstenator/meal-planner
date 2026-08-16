@@ -10,7 +10,7 @@ import { useHousehold } from '@/features/household/use-household';
 import type { RecipeDetail, RecipeIngredientDraft } from '@/features/recipes/api';
 import { IngredientEditor } from '@/features/recipes/components/ingredient-editor';
 import { guessMealTypes } from '@/features/recipes/guess-meal-type';
-import { usePools } from '@/features/recipes/use-pool';
+import { useCookbooks } from '@/features/recipes/use-cookbook';
 import { useSaveRecipe } from '@/features/recipes/use-recipes';
 import { cn } from '@/lib/utils/cn';
 import { MEAL_TYPES, recipeFormSchema, type MealType } from '@/schemas/recipe';
@@ -60,21 +60,22 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
   );
   const [error, setError] = useState<string | null>(null);
 
-  // Which pools this recipe goes into. New recipes start shared with all your
-  // pools (the library *is* the pool); untick any to hold it back. Editing shows
-  // the same picker seeded from where the recipe currently lives, so you can
-  // share or unshare later — `null` just means "the user hasn't touched it yet".
-  const { data: pools } = usePools();
+  // Which cookbooks this recipe goes into. New recipes start shared with all your
+  // cookbooks (the library *is* the cookbook); untick any to hold it back.
+  // Editing shows the same picker seeded from where the recipe currently lives,
+  // so you can share or unshare later — `null` just means "not touched yet".
+  const { data: cookbooks } = useCookbooks();
   const isNew = !recipeId;
   const [picked, setPicked] = useState<string[] | null>(null);
-  const myPools = pools ?? [];
-  const selectedPools = picked ?? (isNew ? myPools.map((p) => p.id) : (initial?.poolIds ?? []));
+  const myCookbooks = cookbooks ?? [];
+  const selectedCookbooks =
+    picked ?? (isNew ? myCookbooks.map((c) => c.id) : (initial?.cookbookIds ?? []));
 
-  function togglePool(id: string) {
+  function toggleCookbook(id: string) {
     setPicked(
-      selectedPools.includes(id)
-        ? selectedPools.filter((x) => x !== id)
-        : [...selectedPools, id],
+      selectedCookbooks.includes(id)
+        ? selectedCookbooks.filter((x) => x !== id)
+        : [...selectedCookbooks, id],
     );
   }
 
@@ -109,8 +110,8 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
     }
     try {
       // Only send sharing if there's a picker on screen; otherwise leave it be.
-      const poolIds = myPools.length > 0 ? selectedPools : undefined;
-      const id = await save.mutateAsync({ form: parsed.data, ingredients, recipeId, poolIds });
+      const cookbookIds = myCookbooks.length > 0 ? selectedCookbooks : undefined;
+      const id = await save.mutateAsync({ form: parsed.data, ingredients, recipeId, cookbookIds });
       // replace: don't leave the edit/create form in history, so the back button
       // returns to where you were (the recipe or the list), not the form.
       await navigate({ to: '/recipes/$recipeId', params: { recipeId: id }, replace: true });
@@ -150,11 +151,11 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
         </div>
       </div>
 
-      {myPools.length > 0 && (
+      {myCookbooks.length > 0 && (
         <div className="space-y-2 rounded-lg border p-3">
           <Label>Add to</Label>
           {/* Your own library is never a choice — it's where the recipe lives.
-              Showing it fixed makes the pools read as extra places, not a move. */}
+              Showing it fixed makes the cookbooks read as extra places, not a move. */}
           <div className="flex items-start gap-2">
             <input
               id="add-to-household"
@@ -169,24 +170,24 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
               <span className="text-muted-foreground">· always</span>
             </Label>
           </div>
-          {myPools.map((p) => (
-            <div key={p.id} className="flex items-start gap-2">
+          {myCookbooks.map((c) => (
+            <div key={c.id} className="flex items-start gap-2">
               <input
-                id={`share-pool-${p.id}`}
+                id={`share-cookbook-${c.id}`}
                 type="checkbox"
-                checked={selectedPools.includes(p.id)}
-                onChange={() => togglePool(p.id)}
+                checked={selectedCookbooks.includes(c.id)}
+                onChange={() => toggleCookbook(c.id)}
                 className="mt-1"
               />
-              <Label htmlFor={`share-pool-${p.id}`} className="text-sm font-normal">
-                {p.name}
+              <Label htmlFor={`share-cookbook-${c.id}`} className="text-sm font-normal">
+                {c.name}
               </Label>
             </div>
           ))}
           <p className="text-muted-foreground text-xs">
             {isNew
-              ? 'Pools are ticked by default — everyone in one will see this recipe. Untick any to keep it to your household.'
-              : 'Tick or untick any time; unticking removes it from that pool for everyone else.'}
+              ? 'Cookbooks are ticked by default — everyone in one will see this recipe. Untick any to keep it to your household.'
+              : 'Tick or untick any time; unticking removes it from that cookbook for everyone else.'}
           </p>
         </div>
       )}
