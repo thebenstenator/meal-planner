@@ -73,7 +73,12 @@ test('records an actual price and reflects it in Spent', async ({ page }) => {
   await page.getByRole('button', { name: 'Add price paid for this item' }).click();
   await page.getByLabel('Actual price paid').fill('5.00');
   await page.getByLabel('Actual price paid').press('Enter');
+  // Wait for the price to actually land — the row turns back into a "$5.00 paid"
+  // button. networkidle is no barrier for the mutation, and checking off before
+  // it landed left Spent sitting at $3.10.
+  await expect(page.getByRole('button', { name: /currently \$5\.00/ })).toBeVisible({
+    timeout: 15000,
+  });
   await page.getByRole('checkbox', { name: 'Check off Paper Towels' }).click({ force: true });
-  await page.waitForLoadState('networkidle');
-  await expect(page.getByTestId('spent-total')).toContainText('$8.10');
+  await expect(page.getByTestId('spent-total')).toContainText('$8.10', { timeout: 15000 });
 });

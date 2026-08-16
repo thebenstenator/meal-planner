@@ -21,7 +21,14 @@ async function startList(page: Page, name: string) {
   const box = page.getByPlaceholder('Add something you need…');
   await box.fill(name);
   await box.press('Enter');
-  await expect(page.getByRole('checkbox', { name: `Check off ${name}` })).toBeVisible();
+  // Two sequential round trips stand between the submit and the row, which is
+  // more than the default 5s allows on a cold CI database: the lists query has
+  // to pick up the freshly created "Things we need" list (swapping the empty
+  // state for the list panel), and only then does that panel load its items.
+  await expect(page.getByRole('tab', { name: 'Things we need' })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('checkbox', { name: `Check off ${name}` })).toBeVisible({
+    timeout: 15000,
+  });
 }
 
 /**

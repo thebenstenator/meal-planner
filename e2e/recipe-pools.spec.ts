@@ -71,7 +71,11 @@ test('recipe pool: share, join, add, opt out, and creator-only edits across two 
   await member.goto('/recipes');
   await member.getByLabel('Invite code').fill(code);
   await member.getByRole('button', { name: 'Join pool' }).click();
-  await expect(member.getByText('Shared with you')).toBeVisible({ timeout: 15000 });
+  // Joining is the slowest hop in the suite — the RPC, then a pools refetch,
+  // then the members query — so wait on the card itself with room to spare.
+  const joinedCard = member.getByTestId('pool-card').filter({ hasText: 'Family Cookbook' });
+  await expect(joinedCard).toBeVisible({ timeout: 30000 });
+  await expect(joinedCard.getByText('Shared with you')).toBeVisible();
 
   // Member sees the owner's recipe, badged as coming from the pool.
   await expect(recipeLink(member, 'Owner Roast')).toBeVisible({ timeout: 15000 });

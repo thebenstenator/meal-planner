@@ -39,6 +39,10 @@ test('planner survives a reload with a persisted cost cache', async ({ page }) =
   const panel = await openAddEntry(page, `Add to dinner on ${iso}`);
   await panel.getByLabel('Search recipes to add').fill('Reload Test');
   await panel.getByRole('button', { name: 'Reload Test' }).click();
+  // Wait for the panel to close before matching by text: until it does, its
+  // search-result button still reads "Reload Test" and a bare text match hits
+  // both that and the new entry chip (strict-mode violation, not a race).
+  await expect(page.getByTestId('add-entry-panel')).toHaveCount(0, { timeout: 15000 });
   await expect(page.getByText('Reload Test')).toBeVisible();
 
   // Let the cache persist, then reload → it rehydrates from localStorage.
