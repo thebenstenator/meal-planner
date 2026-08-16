@@ -71,6 +71,7 @@ export function PoolPanel() {
 }
 
 function CreatePoolCard({ defaultName, onDone }: { defaultName: string; onDone: () => void }) {
+  const { householdId } = useHousehold();
   const create = useCreatePool();
   const [name, setName] = useState('');
 
@@ -93,7 +94,7 @@ function CreatePoolCard({ defaultName, onDone }: { defaultName: string; onDone: 
         />
         <Button
           className="w-full"
-          disabled={create.isPending}
+          disabled={create.isPending || !householdId}
           onClick={() =>
             create.mutate(name.trim() || defaultName, {
               onSuccess: () => {
@@ -114,6 +115,11 @@ function CreatePoolCard({ defaultName, onDone }: { defaultName: string; onDone: 
 }
 
 function JoinPoolCard({ onDone }: { onDone: () => void }) {
+  // Both actions pass the household to a SECURITY DEFINER RPC that rejects a
+  // null one with "not a member of this household". Straight after signup the
+  // household is still resolving, so stay disabled until it's there rather than
+  // let an early tap fail with a message about a household they do have.
+  const { householdId } = useHousehold();
   const accept = useAcceptPoolInvite();
   const [code, setCode] = useState('');
 
@@ -146,7 +152,12 @@ function JoinPoolCard({ onDone }: { onDone: () => void }) {
           placeholder="ABCD2345"
           onChange={(e) => setCode(e.target.value)}
         />
-        <Button variant="outline" className="w-full" disabled={accept.isPending} onClick={submit}>
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={accept.isPending || !householdId}
+          onClick={submit}
+        >
           {accept.isPending ? 'Joining…' : 'Join pool'}
         </Button>
         {accept.isError && (
