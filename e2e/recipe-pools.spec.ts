@@ -43,6 +43,10 @@ function recipeLink(page: Page, title: string) {
 test('recipe pool: share, join, add, opt out, and creator-only edits across two households', async ({
   browser,
 }) => {
+  // Two browser contexts, two signups, four recipes and the whole pool
+  // lifecycle don't fit in the default 30s budget — this test was chronically
+  // running out of time rather than genuinely failing, so give it 90s.
+  test.slow();
   const ownerEmail = uniqueEmail('pool-owner');
   const memberEmail = uniqueEmail('pool-member');
 
@@ -131,6 +135,7 @@ test('recipe pool: share, join, add, opt out, and creator-only edits across two 
 // A household can run several pools at once, and each recipe picks which ones
 // it goes into — the two things v1 explicitly couldn't do.
 test('recipe pools: a household can be in several, and a recipe picks which', async ({ page }) => {
+  test.slow(); // two pools, two recipes and a bulk share — also past 30s.
   await signUp(page, uniqueEmail('multi-pool'));
   await createRecipe(page, 'House Chili', '1 lb beef\n1 can beans');
 

@@ -22,6 +22,9 @@ async function signUp(page: Page, email: string, password = 'password123') {
 
 // Recording an actual price at check-off overrides the estimate in the Spent total.
 test('records an actual price and reflects it in Spent', async ({ page }) => {
+  // Signup, recipe, plan, store, list generation and two check-offs — too much
+  // for the default 30s budget once any single step runs slow.
+  test.slow();
   await signUp(page, uniqueEmail('actual'));
   const iso = todayISO();
 

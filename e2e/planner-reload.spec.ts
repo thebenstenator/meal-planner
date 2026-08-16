@@ -24,6 +24,7 @@ async function signUp(page: Page, email: string, password = 'password123') {
 // a Map would round-trip to {} in the persisted cache and crash on reload
 // (n.forEach is not a function). Reloading with a planned meal must not crash.
 test('planner survives a reload with a persisted cost cache', async ({ page }) => {
+  test.slow(); // deliberately waits for the cache to persist, then reloads.
   await signUp(page, uniqueEmail('reload'));
   const iso = todayISO();
 
