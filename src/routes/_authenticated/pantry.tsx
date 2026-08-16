@@ -13,7 +13,7 @@ import type { ScannedProduct } from '@/features/scanner/open-food-facts';
 import type { PackageLine, PantryItem, PantryLocation } from '@/features/pantry/api';
 import { PantryBulkImport } from '@/features/pantry/components/bulk-import';
 import { usePantry, usePantryMutations } from '@/features/pantry/use-pantry';
-import { toISO } from '@/features/planner/dates';
+import { parseTypedDate, toISO } from '@/features/planner/dates';
 import { useHousehold } from '@/features/household/use-household';
 
 export const Route = createFileRoute('/_authenticated/pantry')({
@@ -116,6 +116,14 @@ function PantryPage() {
       setFeedback({ type: 'error', message: 'Enter a valid amount, or leave it blank.' });
       return;
     }
+    const expiresOn = parseTypedDate(expires);
+    if (expires.trim() !== '' && expiresOn === null) {
+      setFeedback({
+        type: 'error',
+        message: 'Couldn’t read that expiry date — try 8/20 or 2026-08-20.',
+      });
+      return;
+    }
     if (!householdId) return;
 
     setBusy(true);
@@ -134,7 +142,7 @@ function PantryPage() {
         amountUnknown: hasPackages ? false : blankQty,
         unit: hasPackages ? packages[0]!.unit : unit.trim() || null,
         location,
-        expiresOn: expires || null,
+        expiresOn,
         packages: hasPackages ? packages : undefined,
       });
 
@@ -249,10 +257,12 @@ function PantryPage() {
           </label>
           <Input
             id="pantry-expires"
-            type="date"
+            type="text"
+            inputMode="numeric"
+            placeholder="8/20 or 2026-08-20"
             value={expires}
             onChange={(e) => setExpires(e.target.value)}
-            className="h-9 w-40"
+            className="h-9 w-44"
           />
           <span className="text-muted-foreground text-xs">optional</span>
         </div>
@@ -517,24 +527,41 @@ function ExpiryControl({
 }) {
   const { update } = usePantryMutations();
   const [value, setValue] = useState(item.expiresOn ?? '');
+  const [invalid, setInvalid] = useState(false);
 
-  // Same idiom as the quantity field above: commit on blur or Enter, so a
-  // half-typed date never lands and the native mobile picker works normally.
+  // Free-typed, not a native picker: commit on blur or Enter. Blank clears it; a
+  // date we can read is saved as ISO; anything unreadable keeps the editor open
+  // with a hint rather than silently dropping what was typed.
   function commit(next: string) {
-    const expiresOn = next || null;
-    if (expiresOn !== (item.expiresOn ?? null)) update.mutate({ id: item.id, expiresOn });
+    if (next.trim() === '') {
+      if (item.expiresOn != null) update.mutate({ id: item.id, expiresOn: null });
+      setEditing(false);
+      return;
+    }
+    const iso = parseTypedDate(next);
+    if (iso === null) {
+      setInvalid(true);
+      return;
+    }
+    if (iso !== (item.expiresOn ?? null)) update.mutate({ id: item.id, expiresOn: iso });
     setEditing(false);
   }
 
   if (editing) {
     return (
-      <span className="mt-1 flex items-center gap-1">
+      <span className="mt-1 flex flex-wrap items-center gap-1">
         <Input
-          type="date"
+          type="text"
+          inputMode="numeric"
           autoFocus
+          placeholder="8/20 or 2026-08-20"
           aria-label={`Expiry date for ${item.canonicalName}`}
+          aria-invalid={invalid}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setInvalid(false);
+          }}
           onBlur={() => commit(value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -543,7 +570,7 @@ function ExpiryControl({
             }
             if (e.key === 'Escape') setEditing(false);
           }}
-          className="h-7 w-36 text-xs"
+          className="h-7 w-40 text-xs"
         />
         {item.expiresOn && (
           <Button
@@ -560,6 +587,9 @@ function ExpiryControl({
           >
             clear
           </Button>
+        )}
+        {invalid && (
+          <span className="text-destructive text-xs">Couldn’t read that date.</span>
         )}
       </span>
     );

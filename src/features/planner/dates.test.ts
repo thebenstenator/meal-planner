@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { monthGridDays, monthGridRange, weekDays, weekRange } from '@/features/planner/dates';
+import {
+  monthGridDays,
+  monthGridRange,
+  parseTypedDate,
+  weekDays,
+  weekRange,
+} from '@/features/planner/dates';
 
 // March 2026: March 1 is a Sunday, March 31 is a Tuesday.
 const march = new Date(2026, 2, 15);
@@ -26,5 +32,28 @@ describe('weekRange / weekDays', () => {
     expect(days).toHaveLength(7);
     expect(days[0]).toBe('2026-03-15');
     expect(days[6]).toBe('2026-03-21');
+  });
+});
+
+describe('parseTypedDate', () => {
+  const today = new Date(2026, 7, 15); // Aug 15 2026, for year-less inputs
+
+  it('reads ISO, US slashes, and short years', () => {
+    expect(parseTypedDate('2026-08-20', today)).toBe('2026-08-20');
+    expect(parseTypedDate('8/20/2026', today)).toBe('2026-08-20');
+    expect(parseTypedDate('08/20/2026', today)).toBe('2026-08-20');
+    expect(parseTypedDate('8/20/26', today)).toBe('2026-08-20');
+  });
+
+  it('assumes the current year when none is typed', () => {
+    expect(parseTypedDate('8/20', today)).toBe('2026-08-20');
+    expect(parseTypedDate('Aug 20', today)).toBe('2026-08-20');
+    expect(parseTypedDate('December 1', today)).toBe('2026-12-01');
+  });
+
+  it('trims whitespace and returns null for blanks or nonsense', () => {
+    expect(parseTypedDate('  2026-08-20 ', today)).toBe('2026-08-20');
+    expect(parseTypedDate('', today)).toBeNull();
+    expect(parseTypedDate('not a date', today)).toBeNull();
   });
 });
