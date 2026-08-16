@@ -152,7 +152,23 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
 
       {myPools.length > 0 && (
         <div className="space-y-2 rounded-lg border p-3">
-          <Label>Share with</Label>
+          <Label>Add to</Label>
+          {/* Your own library is never a choice — it's where the recipe lives.
+              Showing it fixed makes the pools read as extra places, not a move. */}
+          <div className="flex items-start gap-2">
+            <input
+              id="add-to-household"
+              type="checkbox"
+              checked
+              disabled
+              readOnly
+              className="mt-1"
+            />
+            <Label htmlFor="add-to-household" className="text-sm font-normal">
+              My household{' '}
+              <span className="text-muted-foreground">· always</span>
+            </Label>
+          </div>
           {myPools.map((p) => (
             <div key={p.id} className="flex items-start gap-2">
               <input
@@ -169,7 +185,7 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
           ))}
           <p className="text-muted-foreground text-xs">
             {isNew
-              ? 'On by default — everyone in a ticked pool will see this recipe. Untick to keep it private to your household.'
+              ? 'Pools are ticked by default — everyone in one will see this recipe. Untick any to keep it to your household.'
               : 'Tick or untick any time; unticking removes it from that pool for everyone else.'}
           </p>
         </div>

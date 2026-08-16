@@ -130,18 +130,38 @@ test('recipe pools: a household can be in several, and a recipe picks which', as
   await page.goto('/recipes');
   await page.getByLabel('Pool name').fill('Family Cookbook');
   await page.getByRole('button', { name: 'Create shared pool' }).click();
-  await expect(page.getByText('Family Cookbook')).toBeVisible();
+  // Each pool you're in becomes a tab on the library.
+  await expect(page.getByRole('tab', { name: 'Family Cookbook' })).toBeVisible({ timeout: 15000 });
 
   // The create/join forms collapse once you're in a pool; reopen them.
   await page.getByRole('button', { name: 'Start or join another pool' }).click();
   await page.getByLabel('Pool name').fill('Supper Club');
   await page.getByRole('button', { name: 'Create shared pool' }).click();
-  await expect(page.getByText('Supper Club')).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText('Family Cookbook')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Supper Club' })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('tab', { name: 'Family Cookbook' })).toBeVisible();
 
-  // A new recipe offers both pools and can go into just one of them.
+  // A new recipe offers both pools and can go into just one of them; the
+  // household is a fixed destination, not a choice.
   await createRecipe(page, 'Club Tart', '2 cups flour', ['Family Cookbook']);
   await page.getByRole('link', { name: 'Edit' }).click();
+  await expect(page.getByLabel('My household')).toBeDisabled();
   await expect(page.getByLabel('Family Cookbook', { exact: true })).not.toBeChecked();
   await expect(page.getByLabel('Supper Club', { exact: true })).toBeChecked();
+
+  // The tabs filter by where a recipe lives. House Chili predates both pools, so
+  // creating them seeded it into each; Club Tart only went to Supper Club.
+  await page.goto('/recipes');
+  await page.getByRole('tab', { name: 'Family Cookbook' }).click();
+  await expect(recipeLink(page, 'House Chili')).toBeVisible();
+  await expect(recipeLink(page, 'Club Tart')).toHaveCount(0);
+
+  await page.getByRole('tab', { name: 'Supper Club' }).click();
+  await expect(recipeLink(page, 'Club Tart')).toBeVisible();
+  await expect(recipeLink(page, 'House Chili')).toBeVisible();
+
+  // …and "All" is always there to search across the lot.
+  await page.getByRole('tab', { name: 'Family Cookbook' }).click();
+  await page.getByRole('tab', { name: 'All' }).click();
+  await expect(recipeLink(page, 'Club Tart')).toBeVisible();
+  await expect(recipeLink(page, 'House Chili')).toBeVisible();
 });

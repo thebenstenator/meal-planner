@@ -201,8 +201,8 @@ function RecipeDetailPage() {
       <div className="space-y-3 border-t pt-4">
         {sharedInto.length > 0 && perm.ownedByMe && (
           <p className="text-muted-foreground text-xs">
-            Shared with {sharedInto.join(', ')} — change that under “Share with” on this recipe’s
-            edit form.
+            Also in {sharedInto.join(', ')} — change that under “Add to” on this recipe’s edit
+            form.
           </p>
         )}
 
