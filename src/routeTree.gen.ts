@@ -26,6 +26,7 @@ import { Route as AuthenticatedRecipesIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedRecipesBulkImportRouteImport } from './routes/_authenticated/recipes/bulk-import'
 import { Route as AuthenticatedRecipesImportRouteImport } from './routes/_authenticated/recipes/import'
 import { Route as AuthenticatedRecipesNewRouteImport } from './routes/_authenticated/recipes/new'
+import { Route as AuthenticatedRecipesPoolsRouteImport } from './routes/_authenticated/recipes/pools'
 import { Route as AuthenticatedShoppingListIndexRouteImport } from './routes/_authenticated/shopping-list/index'
 import { Route as AuthenticatedShoppingListListIdRouteImport } from './routes/_authenticated/shopping-list/$listId'
 import { Route as AuthenticatedRecipesRecipeIdIndexRouteImport } from './routes/_authenticated/recipes/$recipeId/index'
@@ -120,6 +121,12 @@ const AuthenticatedRecipesNewRoute = AuthenticatedRecipesNewRouteImport.update({
   path: '/recipes/new',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedRecipesPoolsRoute =
+  AuthenticatedRecipesPoolsRouteImport.update({
+    id: '/recipes/pools',
+    path: '/recipes/pools',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedShoppingListIndexRoute =
   AuthenticatedShoppingListIndexRouteImport.update({
     id: '/shopping-list/',
@@ -161,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/recipes/bulk-import': typeof AuthenticatedRecipesBulkImportRoute
   '/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/recipes/new': typeof AuthenticatedRecipesNewRoute
+  '/recipes/pools': typeof AuthenticatedRecipesPoolsRoute
   '/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
   '/recipes/': typeof AuthenticatedRecipesIndexRoute
   '/shopping-list/': typeof AuthenticatedShoppingListIndexRoute
@@ -183,6 +191,7 @@ export interface FileRoutesByTo {
   '/recipes/bulk-import': typeof AuthenticatedRecipesBulkImportRoute
   '/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/recipes/new': typeof AuthenticatedRecipesNewRoute
+  '/recipes/pools': typeof AuthenticatedRecipesPoolsRoute
   '/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
   '/recipes': typeof AuthenticatedRecipesIndexRoute
   '/shopping-list': typeof AuthenticatedShoppingListIndexRoute
@@ -207,6 +216,7 @@ export interface FileRoutesById {
   '/_authenticated/recipes/bulk-import': typeof AuthenticatedRecipesBulkImportRoute
   '/_authenticated/recipes/import': typeof AuthenticatedRecipesImportRoute
   '/_authenticated/recipes/new': typeof AuthenticatedRecipesNewRoute
+  '/_authenticated/recipes/pools': typeof AuthenticatedRecipesPoolsRoute
   '/_authenticated/shopping-list/$listId': typeof AuthenticatedShoppingListListIdRoute
   '/_authenticated/recipes/': typeof AuthenticatedRecipesIndexRoute
   '/_authenticated/shopping-list/': typeof AuthenticatedShoppingListIndexRoute
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/recipes/bulk-import'
     | '/recipes/import'
     | '/recipes/new'
+    | '/recipes/pools'
     | '/shopping-list/$listId'
     | '/recipes/'
     | '/shopping-list/'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/recipes/bulk-import'
     | '/recipes/import'
     | '/recipes/new'
+    | '/recipes/pools'
     | '/shopping-list/$listId'
     | '/recipes'
     | '/shopping-list'
@@ -276,6 +288,7 @@ export interface FileRouteTypes {
     | '/_authenticated/recipes/bulk-import'
     | '/_authenticated/recipes/import'
     | '/_authenticated/recipes/new'
+    | '/_authenticated/recipes/pools'
     | '/_authenticated/shopping-list/$listId'
     | '/_authenticated/recipes/'
     | '/_authenticated/shopping-list/'
@@ -411,6 +424,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRecipesNewRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/recipes/pools': {
+      id: '/_authenticated/recipes/pools'
+      path: '/recipes/pools'
+      fullPath: '/recipes/pools'
+      preLoaderRoute: typeof AuthenticatedRecipesPoolsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/shopping-list/': {
       id: '/_authenticated/shopping-list/'
       path: '/shopping-list'
@@ -455,6 +475,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRecipesBulkImportRoute: typeof AuthenticatedRecipesBulkImportRoute
   AuthenticatedRecipesImportRoute: typeof AuthenticatedRecipesImportRoute
   AuthenticatedRecipesNewRoute: typeof AuthenticatedRecipesNewRoute
+  AuthenticatedRecipesPoolsRoute: typeof AuthenticatedRecipesPoolsRoute
   AuthenticatedShoppingListListIdRoute: typeof AuthenticatedShoppingListListIdRoute
   AuthenticatedRecipesIndexRoute: typeof AuthenticatedRecipesIndexRoute
   AuthenticatedShoppingListIndexRoute: typeof AuthenticatedShoppingListIndexRoute
@@ -475,6 +496,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedRecipesBulkImportRoute: AuthenticatedRecipesBulkImportRoute,
   AuthenticatedRecipesImportRoute: AuthenticatedRecipesImportRoute,
   AuthenticatedRecipesNewRoute: AuthenticatedRecipesNewRoute,
+  AuthenticatedRecipesPoolsRoute: AuthenticatedRecipesPoolsRoute,
   AuthenticatedShoppingListListIdRoute: AuthenticatedShoppingListListIdRoute,
   AuthenticatedRecipesIndexRoute: AuthenticatedRecipesIndexRoute,
   AuthenticatedShoppingListIndexRoute: AuthenticatedShoppingListIndexRoute,

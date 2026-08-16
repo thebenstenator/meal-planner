@@ -26,10 +26,10 @@ import {
 import { inviteCodeSchema } from '@/schemas/auth';
 
 /**
- * The "shared recipe pool" controls on the recipes page. A household can be in
- * any number of pools — extended family, friends, a supper club — each shown as
- * its own card. Which recipes go into which pool is chosen per recipe on the
- * recipe form; recipe-level permissions live in permissions.ts.
+ * The "shared recipe pool" controls, shown on the Manage pools page. A household
+ * can be in any number of pools — extended family, friends, a supper club — each
+ * shown as its own card. Which recipes go into which pool is chosen per recipe on
+ * the recipe form; recipe-level permissions live in permissions.ts.
  */
 export function PoolPanel() {
   const { household } = useHousehold();

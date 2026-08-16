@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { PoolPanel } from '@/features/recipes/components/pool-panel';
 import { matchesScope, scopeCounts, scopeKey, type RecipeScope } from '@/features/recipes/scope';
 import { usePools } from '@/features/recipes/use-pool';
 import {
@@ -73,35 +72,50 @@ function RecipeLibrary() {
       </div>
 
       {/* Tabs: where a recipe lives. Only worth showing once there's more than
-          one place — with no pools, "all" and "my household" are the same set. */}
-      {myPools.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Where recipes live">
-          <ScopeTab
-            active={activeKey === 'all'}
-            count={counts.all}
-            onClick={() => setScope({ kind: 'all' })}
+          one place — with no pools, "all" and "my household" are the same set.
+          Pool management (invites, members, share-back) lives on its own page. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {myPools.length > 0 ? (
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            role="tablist"
+            aria-label="Where recipes live"
           >
-            All
-          </ScopeTab>
-          <ScopeTab
-            active={activeKey === 'household'}
-            count={counts.household}
-            onClick={() => setScope({ kind: 'household' })}
-          >
-            My household
-          </ScopeTab>
-          {myPools.map((p) => (
             <ScopeTab
-              key={p.id}
-              active={activeKey === `pool:${p.id}`}
-              count={counts.pools[p.id] ?? 0}
-              onClick={() => setScope({ kind: 'pool', poolId: p.id })}
+              active={activeKey === 'all'}
+              count={counts.all}
+              onClick={() => setScope({ kind: 'all' })}
             >
-              {p.name}
+              All
             </ScopeTab>
-          ))}
-        </div>
-      )}
+            <ScopeTab
+              active={activeKey === 'household'}
+              count={counts.household}
+              onClick={() => setScope({ kind: 'household' })}
+            >
+              My household
+            </ScopeTab>
+            {myPools.map((p) => (
+              <ScopeTab
+                key={p.id}
+                active={activeKey === `pool:${p.id}`}
+                count={counts.pools[p.id] ?? 0}
+                onClick={() => setScope({ kind: 'pool', poolId: p.id })}
+              >
+                {p.name}
+              </ScopeTab>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-sm">Share recipes with family in a pool.</p>
+        )}
+        <Link
+          to="/recipes/pools"
+          className="text-muted-foreground shrink-0 text-sm underline"
+        >
+          {myPools.length > 0 ? 'Manage pools' : 'Get started →'}
+        </Link>
+      </div>
 
       <div className="space-y-3">
         <Input
@@ -127,8 +141,6 @@ function RecipeLibrary() {
           ))}
         </div>
       </div>
-
-      <PoolPanel />
 
       {/* Only our own recipes can be categorized — pool recipes belong to the
           household that added them. */}

@@ -59,7 +59,8 @@ test('recipe pool: share, join, add, opt out, and creator-only edits across two 
   await signUp(owner, ownerEmail);
   await createRecipe(owner, 'Owner Roast', '2 lb beef\n1 onion');
 
-  await owner.goto('/recipes');
+  // Pool management lives on its own page now, reached by "Manage pools".
+  await owner.goto('/recipes/pools');
   await owner.getByLabel('Pool name').fill('Family Cookbook');
   await owner.getByRole('button', { name: 'Create shared pool' }).click();
   // The owned-pool card replaces the create form.
@@ -72,12 +73,12 @@ test('recipe pool: share, join, add, opt out, and creator-only edits across two 
 
   // Member signs up and joins by code.
   await signUp(member, memberEmail);
-  await member.goto('/recipes');
-  // The recipes page settles several queries at once, so a one-shot click can
-  // land mid-re-render and be dropped — and a dropped click leaves the form
-  // looking exactly like one that was never clicked. Retry until the pool card
-  // shows up; re-accepting is refused server-side before any write, so the
-  // worst a redundant attempt does is flash an alert.
+  await member.goto('/recipes/pools');
+  // The page settles several queries at once, so a one-shot click can land
+  // mid-re-render and be dropped — and a dropped click leaves the form looking
+  // exactly like one that was never clicked. Retry until the pool card shows up;
+  // re-accepting is refused server-side before any write, so the worst a
+  // redundant attempt does is flash an alert.
   const joinedCard = member.getByTestId('pool-card').filter({ hasText: 'Family Cookbook' });
   const joinButton = member.getByRole('button', { name: 'Join pool' });
   await expect(async () => {
@@ -90,6 +91,7 @@ test('recipe pool: share, join, add, opt out, and creator-only edits across two 
   await expect(joinedCard.getByText('Shared with you')).toBeVisible();
 
   // Member sees the owner's recipe, badged as coming from the pool.
+  await member.goto('/recipes');
   await expect(recipeLink(member, 'Owner Roast')).toBeVisible({ timeout: 15000 });
 
   // Opening it: read-only. A pool recipe still belongs to the household that
@@ -110,11 +112,13 @@ test('recipe pool: share, join, add, opt out, and creator-only edits across two 
   await expect(recipeLink(owner, 'Member Salad')).toBeVisible({ timeout: 15000 });
   await expect(recipeLink(owner, 'Member Secret')).toHaveCount(0);
 
-  // The member can change their mind later: unshare from the edit form.
-  await member.goto('/recipes');
   // The pool card states how much of your library is actually in the pool, so a
   // household that joined can't wrongly assume everything is shared.
+  await member.goto('/recipes/pools');
   await expect(member.getByText('1 of your 2 recipes are here.')).toBeVisible({ timeout: 15000 });
+
+  // The member can change their mind later: unshare from the edit form.
+  await member.goto('/recipes');
   await recipeLink(member, 'Member Salad').click();
   await member.getByRole('link', { name: 'Edit' }).click();
   await member.getByLabel('Family Cookbook', { exact: true }).uncheck();
@@ -147,16 +151,24 @@ test('recipe pools: a household can be in several, and a recipe picks which', as
   await signUp(page, uniqueEmail('multi-pool'));
   await createRecipe(page, 'House Chili', '1 lb beef\n1 can beans');
 
-  await page.goto('/recipes');
+  await page.goto('/recipes/pools');
   await page.getByLabel('Pool name').fill('Family Cookbook');
   await page.getByRole('button', { name: 'Create shared pool' }).click();
-  // Each pool you're in becomes a tab on the library.
-  await expect(page.getByRole('tab', { name: 'Family Cookbook' })).toBeVisible({ timeout: 15000 });
+  // Creating a pool replaces the form with its card.
+  await expect(page.getByTestId('pool-card').filter({ hasText: 'Family Cookbook' })).toBeVisible({
+    timeout: 15000,
+  });
 
   // The create/join forms collapse once you're in a pool; reopen them.
   await page.getByRole('button', { name: 'Start or join another pool' }).click();
   await page.getByLabel('Pool name').fill('Supper Club');
   await page.getByRole('button', { name: 'Create shared pool' }).click();
+  await expect(page.getByTestId('pool-card').filter({ hasText: 'Supper Club' })).toBeVisible({
+    timeout: 15000,
+  });
+
+  // Each pool you're in becomes a tab on the library itself.
+  await page.goto('/recipes');
   await expect(page.getByRole('tab', { name: 'Supper Club' })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole('tab', { name: 'Family Cookbook' })).toBeVisible();
 
@@ -188,14 +200,18 @@ test('recipe pools: a household can be in several, and a recipe picks which', as
   // Share-back: the pool card admits what's missing and offers to add the rest
   // in one go. This is the opt-in a household that *joined* a pool needs, since
   // joining (unlike creating) shares nothing on its own.
+  await page.goto('/recipes/pools');
   const familyCard = page.getByTestId('pool-card').filter({ hasText: 'Family Cookbook' });
-  await expect(familyCard.getByText('1 of your 2 recipes are here.')).toBeVisible();
+  await expect(familyCard.getByText('1 of your 2 recipes are here.')).toBeVisible({
+    timeout: 15000,
+  });
   await familyCard.getByRole('button', { name: 'Share the other 1' }).click();
   await familyCard.getByRole('button', { name: 'Share them' }).click();
   await expect(familyCard.getByText('All 2 of your recipes are here.')).toBeVisible({
     timeout: 15000,
   });
 
+  await page.goto('/recipes');
   await page.getByRole('tab', { name: 'Family Cookbook' }).click();
   await expect(recipeLink(page, 'Club Tart')).toBeVisible();
 });
