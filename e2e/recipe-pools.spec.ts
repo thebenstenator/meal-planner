@@ -96,6 +96,9 @@ test('recipe pool: share, join, add, opt out, and creator-only edits across two 
 
   // The member can change their mind later: unshare from the edit form.
   await member.goto('/recipes');
+  // The pool card states how much of your library is actually in the pool, so a
+  // household that joined can't wrongly assume everything is shared.
+  await expect(member.getByText('1 of your 2 recipes are here.')).toBeVisible({ timeout: 15000 });
   await recipeLink(member, 'Member Salad').click();
   await member.getByRole('link', { name: 'Edit' }).click();
   await member.getByLabel('Family Cookbook', { exact: true }).uncheck();
@@ -164,4 +167,18 @@ test('recipe pools: a household can be in several, and a recipe picks which', as
   await page.getByRole('tab', { name: 'All' }).click();
   await expect(recipeLink(page, 'Club Tart')).toBeVisible();
   await expect(recipeLink(page, 'House Chili')).toBeVisible();
+
+  // Share-back: the pool card admits what's missing and offers to add the rest
+  // in one go. This is the opt-in a household that *joined* a pool needs, since
+  // joining (unlike creating) shares nothing on its own.
+  const familyCard = page.getByTestId('pool-card').filter({ hasText: 'Family Cookbook' });
+  await expect(familyCard.getByText('1 of your 2 recipes are here.')).toBeVisible();
+  await familyCard.getByRole('button', { name: 'Share the other 1' }).click();
+  await familyCard.getByRole('button', { name: 'Share them' }).click();
+  await expect(familyCard.getByText('All 2 of your recipes are here.')).toBeVisible({
+    timeout: 15000,
+  });
+
+  await page.getByRole('tab', { name: 'Family Cookbook' }).click();
+  await expect(recipeLink(page, 'Club Tart')).toBeVisible();
 });

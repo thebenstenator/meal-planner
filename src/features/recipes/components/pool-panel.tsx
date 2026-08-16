@@ -18,8 +18,10 @@ import {
   useCreatePoolInvite,
   useDeletePool,
   useLeavePool,
+  useMyShareCounts,
   usePoolMembers,
   usePools,
+  useShareAllWithPool,
 } from '@/features/recipes/use-pool';
 import { inviteCodeSchema } from '@/schemas/auth';
 
@@ -157,6 +159,67 @@ function JoinPoolCard({ onDone }: { onDone: () => void }) {
   );
 }
 
+/**
+ * How much of your library this pool actually holds, and a one-click way to put
+ * the rest in. Creating a pool shares everything you have; *joining* one shares
+ * nothing until you say so, and nothing on screen used to admit that — a joiner
+ * could sit in a pool for weeks assuming their recipes were visible. So the
+ * state is always stated, and the fix is one button away but never automatic.
+ */
+function ShareBack({ poolId, poolName }: { poolId: string; poolName: string }) {
+  const { total, byPool, isLoading } = useMyShareCounts();
+  const shareAll = useShareAllWithPool();
+  const [confirming, setConfirming] = useState(false);
+
+  if (isLoading) return null;
+
+  const shared = byPool[poolId] ?? 0;
+  const missing = total - shared;
+
+  return (
+    <div className="bg-muted/40 space-y-2 rounded-md px-3 py-2">
+      <p className="text-sm">
+        {total === 0
+          ? 'You haven’t added any recipes yet — once you do, they can go in here.'
+          : shared === 0
+            ? `None of your ${total} recipes are here yet — this pool only shows what others added.`
+            : missing === 0
+              ? `All ${total} of your recipes are here.`
+              : `${shared} of your ${total} recipes are here.`}
+      </p>
+
+      {missing > 0 &&
+        (!confirming ? (
+          <Button variant="outline" size="sm" onClick={() => setConfirming(true)}>
+            {shared === 0 ? `Share all ${missing} of mine` : `Share the other ${missing}`}
+          </Button>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm">
+              Add {missing} recipe{missing === 1 ? '' : 's'} to “{poolName}” for everyone in it?
+            </span>
+            <Button
+              size="sm"
+              disabled={shareAll.isPending}
+              onClick={() =>
+                shareAll.mutate(poolId, { onSuccess: () => setConfirming(false) })
+              }
+            >
+              {shareAll.isPending ? 'Sharing…' : 'Share them'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setConfirming(false)}>
+              Cancel
+            </Button>
+          </div>
+        ))}
+
+      <p className="text-muted-foreground text-xs">
+        You can also pick pools one recipe at a time, under “Add to” on any recipe.
+      </p>
+    </div>
+  );
+}
+
 function PoolCard({
   poolName,
   isOwner,
@@ -188,7 +251,7 @@ function PoolCard({
   }
 
   return (
-    <Card>
+    <Card data-testid="pool-card">
       <CardHeader>
         <div className="flex items-center gap-2">
           <CardTitle className="text-base">{poolName}</CardTitle>
@@ -197,8 +260,7 @@ function PoolCard({
         <CardDescription>
           Everyone below sees the recipes shared here. Each household keeps control of the recipes
           it added — only they can edit or delete them
-          {isOwner ? ', though you can remove any of them from this pool.' : '.'} Pick which of your
-          recipes to share on the recipe itself.
+          {isOwner ? ', though you can remove any of them from this pool.' : '.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -210,6 +272,8 @@ function PoolCard({
             </li>
           ))}
         </ul>
+
+        <ShareBack poolId={poolId} poolName={poolName} />
 
         <div className="space-y-2">
           <Button size="sm" onClick={() => invite.mutate()} disabled={invite.isPending}>

@@ -1376,6 +1376,10 @@ export type Database = {
         Args: { p_household_id: string; p_pool_id: string }
         Returns: undefined
       }
+      share_all_with_pool: {
+        Args: { p_household_id: string; p_pool_id: string }
+        Returns: number
+      }
       consume_ai_credit: {
         Args: { p_household_id: string; p_limit?: number; p_source?: string }
         Returns: number

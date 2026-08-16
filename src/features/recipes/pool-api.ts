@@ -4,6 +4,10 @@ import { supabase } from '@/lib/supabase/client';
 export const poolKeys = {
   mine: (householdId: string) => ['recipe-pool', householdId] as const,
   members: (poolId: string) => ['recipe-pool-members', poolId] as const,
+  /** Deliberately under the 'recipes' prefix: share counts go stale whenever a
+   * recipe is saved, deleted or re-shared, and those all invalidate ['recipes']
+   * already. Hanging it off the pool prefix would miss every one of them. */
+  myShares: (householdId: string) => ['recipes', householdId, 'pool-shares'] as const,
 };
 
 export interface RecipePool {
@@ -128,6 +132,43 @@ export async function setRecipePools(recipeId: string, poolIds: string[]): Promi
     p_pool_ids: poolIds,
   });
   if (error) throw error;
+}
+
+/**
+ * This household's own live recipes and, for each, the pools it's in. Just
+ * enough to answer "how much of my library is in this pool?" without pulling
+ * the whole library view — the pool cards use it to say so out loud.
+ */
+export async function fetchMyRecipeShares(
+  householdId: string,
+): Promise<{ ownedByMe: true; poolIds: string[] }[]> {
+  const { data, error } = await supabase
+    .from('recipe')
+    .select('id, recipe_pool_share(pool_id)')
+    .eq('household_id', householdId)
+    .is('deleted_at', null)
+    .limit(1000);
+  if (error) throw error;
+
+  return (data ?? []).map((r) => ({
+    ownedByMe: true,
+    poolIds: (r.recipe_pool_share ?? []).map((s) => s.pool_id),
+  }));
+}
+
+/**
+ * Put every recipe this household has into a pool it already belongs to, in one
+ * statement. Creating a pool does this implicitly; joining one doesn't, so this
+ * is how a joiner shares back. Returns how many were newly added (already-shared
+ * recipes are skipped, so running it twice is harmless).
+ */
+export async function shareAllWithPool(householdId: string, poolId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('share_all_with_pool', {
+    p_household_id: householdId,
+    p_pool_id: poolId,
+  });
+  if (error) throw error;
+  return data ?? 0;
 }
 
 /**
