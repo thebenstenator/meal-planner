@@ -9,7 +9,12 @@ export const CACHE_MAX_AGE = 1000 * 60 * 60 * 24; // 24h
 
 export const queryPersister = createSyncStoragePersister({
   storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-  // v2: query data must be JSON-serializable (no Maps — they round-trip to `{}`).
-  // Bumping the key discards any older, incompatible cache on next load.
-  key: 'mealplan-query-cache-v2',
+  // Bump this key whenever a persisted query's shape changes, so a client that
+  // cached the old shape discards it on next load instead of rehydrating it into
+  // code that expects the new one.
+  //   v2: query data must be JSON-serializable (no Maps — they round-trip to `{}`).
+  //   v3: recipe pools — RecipeSummary gained `poolIds`, plus the new
+  //       ['recipe-pool', …] / ['recipes', …, 'pool-shares'] queries. Old caches
+  //       lacked these, crashing the scope tabs with "x.map is not a function".
+  key: 'mealplan-query-cache-v3',
 });
