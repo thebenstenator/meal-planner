@@ -10,7 +10,7 @@ import { useHousehold } from '@/features/household/use-household';
 import type { RecipeDetail, RecipeIngredientDraft } from '@/features/recipes/api';
 import { IngredientEditor } from '@/features/recipes/components/ingredient-editor';
 import { guessMealTypes } from '@/features/recipes/guess-meal-type';
-import { usePool } from '@/features/recipes/use-pool';
+import { usePools } from '@/features/recipes/use-pool';
 import { useSaveRecipe } from '@/features/recipes/use-recipes';
 import { cn } from '@/lib/utils/cn';
 import { MEAL_TYPES, recipeFormSchema, type MealType } from '@/schemas/recipe';
@@ -60,12 +60,23 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
   );
   const [error, setError] = useState<string | null>(null);
 
-  // New recipes join the shared pool by default (the library *is* the pool);
-  // members can opt a recipe out to keep it private. Editing never re-homes a
-  // recipe, so this only applies when creating.
-  const { data: pool } = usePool();
+  // Which pools this recipe goes into. New recipes start shared with all your
+  // pools (the library *is* the pool); untick any to hold it back. Editing shows
+  // the same picker seeded from where the recipe currently lives, so you can
+  // share or unshare later — `null` just means "the user hasn't touched it yet".
+  const { data: pools } = usePools();
   const isNew = !recipeId;
-  const [shareToPool, setShareToPool] = useState(true);
+  const [picked, setPicked] = useState<string[] | null>(null);
+  const myPools = pools ?? [];
+  const selectedPools = picked ?? (isNew ? myPools.map((p) => p.id) : (initial?.poolIds ?? []));
+
+  function togglePool(id: string) {
+    setPicked(
+      selectedPools.includes(id)
+        ? selectedPools.filter((x) => x !== id)
+        : [...selectedPools, id],
+    );
+  }
 
   function toggleMeal(m: MealType) {
     setMealTypes((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
@@ -97,8 +108,9 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
       return;
     }
     try {
-      const poolId = isNew && pool && shareToPool ? pool.id : undefined;
-      const id = await save.mutateAsync({ form: parsed.data, ingredients, recipeId, poolId });
+      // Only send sharing if there's a picker on screen; otherwise leave it be.
+      const poolIds = myPools.length > 0 ? selectedPools : undefined;
+      const id = await save.mutateAsync({ form: parsed.data, ingredients, recipeId, poolIds });
       // replace: don't leave the edit/create form in history, so the back button
       // returns to where you were (the recipe or the list), not the form.
       await navigate({ to: '/recipes/$recipeId', params: { recipeId: id }, replace: true });
@@ -138,22 +150,28 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
         </div>
       </div>
 
-      {isNew && pool && (
-        <div className="flex items-start gap-2 rounded-lg border p-3">
-          <input
-            id="share-to-pool"
-            type="checkbox"
-            checked={shareToPool}
-            onChange={(e) => setShareToPool(e.target.checked)}
-            className="mt-0.5"
-          />
-          <Label htmlFor="share-to-pool" className="text-sm font-normal">
-            Share with “{pool.name}”
-            <span className="text-muted-foreground block text-xs">
-              On by default — everyone in the pool will see this recipe. Uncheck to keep it private
-              to your household.
-            </span>
-          </Label>
+      {myPools.length > 0 && (
+        <div className="space-y-2 rounded-lg border p-3">
+          <Label>Share with</Label>
+          {myPools.map((p) => (
+            <div key={p.id} className="flex items-start gap-2">
+              <input
+                id={`share-pool-${p.id}`}
+                type="checkbox"
+                checked={selectedPools.includes(p.id)}
+                onChange={() => togglePool(p.id)}
+                className="mt-1"
+              />
+              <Label htmlFor={`share-pool-${p.id}`} className="text-sm font-normal">
+                {p.name}
+              </Label>
+            </div>
+          ))}
+          <p className="text-muted-foreground text-xs">
+            {isNew
+              ? 'On by default — everyone in a ticked pool will see this recipe. Untick to keep it private to your household.'
+              : 'Tick or untick any time; unticking removes it from that pool for everyone else.'}
+          </p>
         </div>
       )}
 

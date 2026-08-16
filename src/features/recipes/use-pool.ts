@@ -1,25 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useHousehold } from '@/features/household/use-household';
+import { recipeKeys } from '@/features/recipes/api';
 import {
   acceptPoolInvite,
   createPool,
   createPoolInvite,
   deletePool,
-  fetchMyPool,
+  fetchMyPools,
   fetchPoolMembers,
   leavePool,
   poolKeys,
+  setRecipePools,
+  unshareRecipeFromPool,
   type PoolInviteResult,
   type RecipePool,
 } from '@/features/recipes/pool-api';
 
-/** The pool the active household belongs to (its own or one it joined), or null. */
-export function usePool() {
+/** Every pool the active household is in (started or joined). */
+export function usePools() {
   const { householdId } = useHousehold();
   return useQuery({
     queryKey: poolKeys.mine(householdId ?? 'none'),
-    queryFn: () => fetchMyPool(householdId as string),
+    queryFn: () => fetchMyPools(householdId as string),
     enabled: !!householdId,
   });
 }
@@ -81,5 +84,29 @@ export function useDeletePool() {
   return useMutation<void, Error, string>({
     mutationFn: (poolId: string) => deletePool(poolId),
     onSuccess: invalidate,
+  });
+}
+
+/** Change which pools a recipe is shared into (creator only). */
+export function useSetRecipePools() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { recipeId: string; poolIds: string[] }>({
+    mutationFn: ({ recipeId, poolIds }) => setRecipePools(recipeId, poolIds),
+    onSuccess: (_data, { recipeId }) => {
+      void qc.invalidateQueries({ queryKey: ['recipes'] });
+      void qc.invalidateQueries({ queryKey: recipeKeys.detail(recipeId) });
+    },
+  });
+}
+
+/** Take a recipe out of one pool (creator, or that pool's owner). */
+export function useUnshareRecipe() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { recipeId: string; poolId: string }>({
+    mutationFn: ({ recipeId, poolId }) => unshareRecipeFromPool(recipeId, poolId),
+    onSuccess: (_data, { recipeId }) => {
+      void qc.invalidateQueries({ queryKey: ['recipes'] });
+      void qc.invalidateQueries({ queryKey: recipeKeys.detail(recipeId) });
+    },
   });
 }

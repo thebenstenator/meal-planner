@@ -5,9 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useHousehold } from '@/features/household/use-household';
 import { useRecipeCost } from '@/features/pricing/use-recipe-cost';
-import { canDeleteRecipe, canEditRecipe, canFavoriteRecipe } from '@/features/recipes/permissions';
+import {
+  canDeleteRecipe,
+  canEditRecipe,
+  canFavoriteRecipe,
+  poolsICanEvictFrom,
+} from '@/features/recipes/permissions';
 import { scaledAmount } from '@/features/recipes/scale';
-import { usePool } from '@/features/recipes/use-pool';
+import { usePools, useUnshareRecipe } from '@/features/recipes/use-pool';
 import { useRecipe, useSetFavorite, useSoftDeleteRecipe } from '@/features/recipes/use-recipes';
 import { formatCurrency } from '@/lib/utils/format-currency';
 
@@ -20,7 +25,8 @@ function RecipeDetailPage() {
   const navigate = useNavigate();
   const { data: recipe, isLoading, isError } = useRecipe(recipeId);
   const { householdId } = useHousehold();
-  const { data: pool } = usePool();
+  const { data: pools } = usePools();
+  const unshare = useUnshareRecipe();
   const del = useSoftDeleteRecipe();
   const favorite = useSetFavorite(recipeId);
   const [confirming, setConfirming] = useState(false);
@@ -33,14 +39,23 @@ function RecipeDetailPage() {
     return <Centered>Couldn’t load this recipe.</Centered>;
   }
 
+  const myPools = pools ?? [];
   const perm = {
     ownedByMe: recipe.householdId === householdId,
-    recipePoolId: recipe.poolId,
-    myPool: pool ? { id: pool.id, role: pool.role } : null,
+    recipePoolIds: recipe.poolIds,
+    myPools: myPools.map((p) => ({ id: p.id, role: p.role })),
   };
   const canEdit = canEditRecipe(perm);
   const canDelete = canDeleteRecipe(perm);
   const canFavorite = canFavoriteRecipe(perm);
+  // Pools I run that hold someone else's recipe — I can throw it out of those.
+  const evictable = poolsICanEvictFrom(perm)
+    .map((id) => myPools.find((p) => p.id === id))
+    .filter((p): p is NonNullable<typeof p> => p != null);
+  // Named pools this recipe is in that I can see, for the "shared with" line.
+  const sharedInto = recipe.poolIds
+    .map((id) => myPools.find((p) => p.id === id)?.name)
+    .filter((n): n is string => !!n);
 
   const targetServings = servings ?? recipe.servings;
   const scaled = targetServings !== recipe.servings;
@@ -65,8 +80,12 @@ function RecipeDetailPage() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {recipe.poolId && (
-            <Badge variant="outline" className="text-emerald-700">
+          {recipe.poolIds.length > 0 && (
+            <Badge
+              variant="outline"
+              className="text-emerald-700"
+              title={sharedInto.length > 0 ? `In ${sharedInto.join(', ')}` : undefined}
+            >
               {perm.ownedByMe ? 'Shared' : 'From pool'}
             </Badge>
           )}
@@ -179,11 +198,30 @@ function RecipeDetailPage() {
         </section>
       )}
 
-      <div className="border-t pt-4">
+      <div className="space-y-3 border-t pt-4">
+        {sharedInto.length > 0 && perm.ownedByMe && (
+          <p className="text-muted-foreground text-xs">
+            Shared with {sharedInto.join(', ')} — change that under “Share with” on this recipe’s
+            edit form.
+          </p>
+        )}
+
+        {evictable.map((p) => (
+          <Button
+            key={p.id}
+            variant="outline"
+            size="sm"
+            disabled={unshare.isPending}
+            onClick={() => unshare.mutate({ recipeId, poolId: p.id })}
+          >
+            Remove from “{p.name}”
+          </Button>
+        ))}
+
         {!canDelete ? (
           <p className="text-muted-foreground text-xs">
-            {recipe.poolId
-              ? 'This recipe is in a shared pool — only the pool owner can delete it.'
+            {recipe.poolIds.length > 0
+              ? 'Shared from another household — only they can edit or delete it.'
               : null}
           </p>
         ) : !confirming ? (

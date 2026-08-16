@@ -110,9 +110,9 @@ function buildDetail(
   return {
     id: '',
     title: meta.title,
-    // Not yet saved — ownership/pool are decided by the review form on save.
+    // Not yet saved — ownership/pools are decided by the review form on save.
     householdId: '',
-    poolId: null,
+    poolIds: [],
     description: null,
     // Pre-fill the meal type from the title so the review form starts on the
     // right category; the user can still adjust it before saving.

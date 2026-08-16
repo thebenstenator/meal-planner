@@ -18,37 +18,57 @@ import {
   useCreatePoolInvite,
   useDeletePool,
   useLeavePool,
-  usePool,
   usePoolMembers,
+  usePools,
 } from '@/features/recipes/use-pool';
 import { inviteCodeSchema } from '@/schemas/auth';
 
 /**
- * The "shared recipe pool" controls on the recipes page. A household is in at
- * most one pool: create one (shares your whole library), join someone's by code,
- * or manage the one you're in. Recipe-level permissions live in permissions.ts.
+ * The "shared recipe pool" controls on the recipes page. A household can be in
+ * any number of pools — extended family, friends, a supper club — each shown as
+ * its own card. Which recipes go into which pool is chosen per recipe on the
+ * recipe form; recipe-level permissions live in permissions.ts.
  */
 export function PoolPanel() {
   const { household } = useHousehold();
-  const { data: pool, isLoading } = usePool();
+  const { data: pools, isLoading } = usePools();
+  const [adding, setAdding] = useState(false);
 
   if (isLoading) return null;
 
+  const mine = pools ?? [];
+  const defaultName = household ? `${household.name} recipes` : 'Family recipes';
+  // With no pools yet, lead with the two cards — that's the whole pitch. Once
+  // you're in one, they collapse behind a link so the list stays the focus.
+  const showForms = mine.length === 0 || adding;
+
   return (
     <div className="space-y-3">
-      {pool ? (
-        <PoolCard poolName={pool.name} isOwner={pool.role === 'owner'} poolId={pool.id} />
-      ) : (
+      {mine.map((p) => (
+        <PoolCard key={p.id} poolName={p.name} isOwner={p.role === 'owner'} poolId={p.id} />
+      ))}
+
+      {mine.length > 0 && (
+        <button
+          type="button"
+          className="text-muted-foreground text-sm underline"
+          onClick={() => setAdding((v) => !v)}
+        >
+          {adding ? 'Never mind' : 'Start or join another pool'}
+        </button>
+      )}
+
+      {showForms && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <CreatePoolCard defaultName={household ? `${household.name} recipes` : 'Family recipes'} />
-          <JoinPoolCard />
+          <CreatePoolCard defaultName={defaultName} onDone={() => setAdding(false)} />
+          <JoinPoolCard onDone={() => setAdding(false)} />
         </div>
       )}
     </div>
   );
 }
 
-function CreatePoolCard({ defaultName }: { defaultName: string }) {
+function CreatePoolCard({ defaultName, onDone }: { defaultName: string; onDone: () => void }) {
   const create = useCreatePool();
   const [name, setName] = useState('');
 
@@ -72,7 +92,14 @@ function CreatePoolCard({ defaultName }: { defaultName: string }) {
         <Button
           className="w-full"
           disabled={create.isPending}
-          onClick={() => create.mutate(name.trim() || defaultName)}
+          onClick={() =>
+            create.mutate(name.trim() || defaultName, {
+              onSuccess: () => {
+                setName('');
+                onDone();
+              },
+            })
+          }
         >
           {create.isPending ? 'Creating…' : 'Create shared pool'}
         </Button>
@@ -84,7 +111,7 @@ function CreatePoolCard({ defaultName }: { defaultName: string }) {
   );
 }
 
-function JoinPoolCard() {
+function JoinPoolCard({ onDone }: { onDone: () => void }) {
   const accept = useAcceptPoolInvite();
   const [code, setCode] = useState('');
 
@@ -93,7 +120,12 @@ function JoinPoolCard() {
     if (!parsed.success) {
       return; // the field guidance already tells them the format
     }
-    accept.mutate(parsed.data.code);
+    accept.mutate(parsed.data.code, {
+      onSuccess: () => {
+        setCode('');
+        onDone();
+      },
+    });
   }
 
   return (
@@ -163,8 +195,10 @@ function PoolCard({
           <Badge variant="secondary">{isOwner ? 'You own this' : 'Shared with you'}</Badge>
         </div>
         <CardDescription>
-          Recipes here are shared with everyone below. Members can add recipes and edit their own;
-          {isOwner ? ' you can edit or remove anything.' : ' only the owner can delete.'}
+          Everyone below sees the recipes shared here. Each household keeps control of the recipes
+          it added — only they can edit or delete them
+          {isOwner ? ', though you can remove any of them from this pool.' : '.'} Pick which of your
+          recipes to share on the recipe itself.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

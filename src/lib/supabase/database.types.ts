@@ -698,7 +698,6 @@ export type Database = {
           last_cooked_on: string | null
           meal_types: string[]
           notes: string | null
-          pool_id: string | null
           prep_minutes: number | null
           rating: number | null
           servings: number
@@ -722,7 +721,6 @@ export type Database = {
           last_cooked_on?: string | null
           meal_types?: string[]
           notes?: string | null
-          pool_id?: string | null
           prep_minutes?: number | null
           rating?: number | null
           servings?: number
@@ -746,7 +744,6 @@ export type Database = {
           last_cooked_on?: string | null
           meal_types?: string[]
           notes?: string | null
-          pool_id?: string | null
           prep_minutes?: number | null
           rating?: number | null
           servings?: number
@@ -762,13 +759,6 @@ export type Database = {
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "household"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recipe_pool_id_fkey"
-            columns: ["pool_id"]
-            isOneToOne: false
-            referencedRelation: "recipe_pool"
             referencedColumns: ["id"]
           },
         ]
@@ -956,6 +946,42 @@ export type Database = {
             columns: ["pool_id"]
             isOneToOne: false
             referencedRelation: "recipe_pool"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_pool_share: {
+        Row: {
+          created_at: string
+          id: string
+          pool_id: string
+          recipe_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pool_id: string
+          recipe_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pool_id?: string
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_pool_share_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_pool"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_pool_share_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
             referencedColumns: ["id"]
           },
         ]
@@ -1339,6 +1365,13 @@ export type Database = {
       }
       is_pool_member: { Args: { p_pool_id: string }; Returns: boolean }
       is_pool_owner: { Args: { p_pool_id: string }; Returns: boolean }
+      is_recipe_creator: { Args: { p_recipe_id: string }; Returns: boolean }
+      is_recipe_shared_with_me: { Args: { p_recipe_id: string }; Returns: boolean }
+      my_pool_ids: { Args: never; Returns: string[] }
+      set_recipe_pools: {
+        Args: { p_recipe_id: string; p_pool_ids: string[] }
+        Returns: undefined
+      }
       leave_recipe_pool: {
         Args: { p_household_id: string; p_pool_id: string }
         Returns: undefined

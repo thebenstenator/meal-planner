@@ -1,6 +1,11 @@
-// Client-side mirror of the recipe RLS rules (see 20260815120000_recipe_pools.sql).
-// The database is the real guard; these just keep dead buttons off the screen so
-// a member never clicks "Delete" only to get a 42501 back.
+// Client-side mirror of the recipe RLS rules (see
+// 20260815190000_recipe_pool_options.sql). The database is the real guard;
+// these just keep dead buttons off the screen so nobody clicks "Delete" only to
+// get a 42501 back.
+//
+// The rule is simply: **the household that added a recipe owns it.** They edit
+// it, delete it, and choose which pools it's shared into. A pool owner has no
+// say over someone else's recipe except to evict it from their own pool.
 
 export interface MyPool {
   id: string;
@@ -10,28 +15,37 @@ export interface MyPool {
 export interface RecipePerm {
   /** The active household created this recipe. */
   ownedByMe: boolean;
-  /** The recipe's pool, or null if it's private. */
-  recipePoolId: string | null;
-  /** The active household's pool (own or joined), or null. */
-  myPool: MyPool | null;
+  /** Pools the recipe is shared into (empty when private). */
+  recipePoolIds: string[];
+  /** Every pool the active household belongs to. */
+  myPools: MyPool[];
 }
 
-/** True when the active household is the owner of the recipe's pool. */
-function ownsRecipePool({ recipePoolId, myPool }: RecipePerm): boolean {
-  return recipePoolId != null && myPool?.id === recipePoolId && myPool.role === 'owner';
-}
-
-/** Creators edit their own recipes; the pool owner edits anything in the pool. */
 export function canEditRecipe(p: RecipePerm): boolean {
-  return p.ownedByMe || ownsRecipePool(p);
+  return p.ownedByMe;
 }
 
-/** Only the pool owner deletes pool recipes; private recipes, their creator. */
 export function canDeleteRecipe(p: RecipePerm): boolean {
-  return p.recipePoolId != null ? ownsRecipePool(p) : p.ownedByMe;
+  return p.ownedByMe;
 }
 
-/** Favorites/ratings are per-creator (v1): only touch recipes you added. */
+/** Favorites and ratings are per-creator: only touch recipes you added. */
 export function canFavoriteRecipe(p: RecipePerm): boolean {
   return p.ownedByMe;
+}
+
+/** Only the creator picks where a recipe is shared. */
+export function canManageSharing(p: RecipePerm): boolean {
+  return p.ownedByMe;
+}
+
+/**
+ * Pools the viewer *runs* that this recipe is currently in — the ones they can
+ * evict it from. Empty for your own recipes: unsharing those is part of
+ * managing sharing, not moderation.
+ */
+export function poolsICanEvictFrom(p: RecipePerm): string[] {
+  if (p.ownedByMe) return [];
+  const ownedIds = new Set(p.myPools.filter((m) => m.role === 'owner').map((m) => m.id));
+  return p.recipePoolIds.filter((id) => ownedIds.has(id));
 }

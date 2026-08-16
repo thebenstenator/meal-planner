@@ -57,11 +57,11 @@ export function useSaveRecipe() {
       form: RecipeFormInput;
       ingredients: RecipeIngredientDraft[];
       recipeId?: string;
-      poolId?: string | null;
+      poolIds?: string[];
     }
   >({
-    mutationFn: ({ form, ingredients, recipeId, poolId }) =>
-      saveRecipe(householdId as string, form, ingredients, recipeId, poolId),
+    mutationFn: ({ form, ingredients, recipeId, poolIds }) =>
+      saveRecipe(householdId as string, form, ingredients, recipeId, poolIds),
     onSuccess: (id) => {
       invalidate();
       void qc.invalidateQueries({ queryKey: recipeKeys.detail(id) });

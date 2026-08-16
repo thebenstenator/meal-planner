@@ -107,9 +107,11 @@ function RecipeLibrary() {
                       {m}
                     </Badge>
                   ))}
-                  {r.poolId && (
+                  {r.poolIds.length > 0 && (
                     <Badge variant="outline" className="text-emerald-700">
-                      {r.ownedByMe ? 'shared' : 'from pool'}
+                      {r.ownedByMe
+                        ? `shared${r.poolIds.length > 1 ? ` ×${r.poolIds.length}` : ''}`
+                        : 'from pool'}
                     </Badge>
                   )}
                   <span className="text-muted-foreground text-xs">

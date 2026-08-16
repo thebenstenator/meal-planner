@@ -3,7 +3,6 @@ import { createFileRoute, Navigate } from '@tanstack/react-router';
 import { useHousehold } from '@/features/household/use-household';
 import { RecipeForm } from '@/features/recipes/components/recipe-form';
 import { canEditRecipe } from '@/features/recipes/permissions';
-import { usePool } from '@/features/recipes/use-pool';
 import { useRecipe } from '@/features/recipes/use-recipes';
 
 export const Route = createFileRoute('/_authenticated/recipes/$recipeId/edit')({
@@ -14,15 +13,15 @@ function EditRecipe() {
   const { recipeId } = Route.useParams();
   const { data: recipe, isLoading, isError } = useRecipe(recipeId);
   const { householdId } = useHousehold();
-  const { data: pool, isLoading: poolLoading } = usePool();
 
-  // A member can only edit recipes they added; bounce anyone else back to the
-  // read-only detail. RLS would reject the save anyway — this avoids a dead form.
-  if (recipe && householdId && !poolLoading) {
+  // You can only edit recipes your household added; bounce anyone else back to
+  // the read-only detail. RLS would reject the save anyway — this avoids a dead
+  // form.
+  if (recipe && householdId) {
     const canEdit = canEditRecipe({
       ownedByMe: recipe.householdId === householdId,
-      recipePoolId: recipe.poolId,
-      myPool: pool ? { id: pool.id, role: pool.role } : null,
+      recipePoolIds: recipe.poolIds,
+      myPools: [],
     });
     if (!canEdit) {
       return <Navigate to="/recipes/$recipeId" params={{ recipeId }} replace />;
