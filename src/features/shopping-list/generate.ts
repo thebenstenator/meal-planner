@@ -122,9 +122,9 @@ export async function buildShoppingItems(
   const categoryOverrides =
     canonicalIds.size > 0
       ? await fetchIngredientCategories(householdId, [...canonicalIds]).catch(
-          () => new Map<string, string>(),
+          (): Record<string, string> => ({}),
         )
-      : new Map<string, string>();
+      : {};
 
   // Pantry offset: how much of each canonical is already on hand (summed across
   // locations, converted into a common unit per item at map time).
@@ -198,7 +198,7 @@ export async function buildShoppingItems(
         total_quantity: totalQuantity,
         unit: item.unit,
         category:
-          categoryOverrides.get(item.canonicalId) ?? item.category ?? deduceCategory(displayName),
+          categoryOverrides[item.canonicalId] ?? item.category ?? deduceCategory(displayName),
         unresolved: item.unresolved,
         sub_totals: item.subTotals.length > 0 ? item.subTotals : null,
         purchase,

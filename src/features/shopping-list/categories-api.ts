@@ -172,12 +172,20 @@ export async function setIngredientCategory(
   if (error) throw error;
 }
 
-/** The household's ingredient → category overrides, keyed by canonical id. */
+/**
+ * The household's ingredient → category overrides, keyed by canonical id.
+ *
+ * A plain object, not a Map. Nothing uses this as a queryFn today, but two
+ * Map-returning fetchers that *were* used as one shipped a crash to production
+ * (they persist to localStorage as `{}`, whose `.get` throws — see the v5 note
+ * in lib/query/persister.ts). The rule only holds if it holds everywhere, so no
+ * async fetcher here returns a Map, wired into a query or not.
+ */
 export async function fetchIngredientCategories(
   householdId: string,
   canonicalIds?: string[],
-): Promise<Map<string, string>> {
-  if (canonicalIds && canonicalIds.length === 0) return new Map();
+): Promise<Record<string, string>> {
+  if (canonicalIds && canonicalIds.length === 0) return {};
   let query = supabase
     .from('household_ingredient_category')
     .select('canonical_ingredient_id, category')
@@ -186,5 +194,5 @@ export async function fetchIngredientCategories(
 
   const { data, error } = await query;
   if (error) throw error;
-  return new Map((data ?? []).map((r) => [r.canonical_ingredient_id, r.category]));
+  return Object.fromEntries((data ?? []).map((r) => [r.canonical_ingredient_id, r.category]));
 }
