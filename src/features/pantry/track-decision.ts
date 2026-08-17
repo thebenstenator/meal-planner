@@ -1,4 +1,5 @@
 import { isNonFood } from '@/features/ingredients/non-food';
+import type { PantryPrefs } from '@/features/pantry/pantry-pref-api';
 
 /** Just the fields the decision needs, so callers can pass a shopping item. */
 export interface TrackInput {
@@ -18,11 +19,11 @@ export interface TrackInput {
  * Keep this the single source of truth: the check-off's pantry write and the
  * status line both read it, so what the line says is exactly what happens.
  */
-export function shouldTrackInPantry(item: TrackInput, prefs: Map<string, boolean>): boolean {
+export function shouldTrackInPantry(item: TrackInput, prefs: PantryPrefs): boolean {
   // Unmatched items never touch the pantry — there's no ingredient to track.
   if (!item.canonicalId) return false;
 
-  const pref = prefs.get(item.canonicalId);
+  const pref = prefs[item.canonicalId];
   if (pref !== undefined) return pref;
 
   if (item.category === 'household') return false;

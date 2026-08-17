@@ -202,7 +202,7 @@ function FinishTripDialog({
             i,
             shouldTrackInPantry(
               { canonicalId: line.canonicalId, category: null, displayName: line.raw },
-              pantryPrefs ?? new Map(),
+              pantryPrefs ?? {},
             ),
           ]),
         ),

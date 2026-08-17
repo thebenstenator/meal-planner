@@ -139,7 +139,7 @@ function PricesReview({ storeId, staleDays }: { storeId: string | null; staleDay
 
   const rows = (prices ?? []).map((p) => ({
     ...p,
-    name: names?.get(p.canonicalId) ?? p.canonicalId,
+    name: names?.[p.canonicalId] ?? p.canonicalId,
     stale: differenceInCalendarDays(new Date(), new Date(p.observedOn)) > staleDays,
   }));
   rows.sort((a, b) => Number(b.stale) - Number(a.stale));

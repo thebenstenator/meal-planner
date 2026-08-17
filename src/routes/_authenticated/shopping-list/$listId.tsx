@@ -250,7 +250,7 @@ function ShoppingListDetail() {
                   toggle.mutate({ itemId: item.id, checked });
                   applyToPantry.mutate({ item, checked });
                 }}
-                pantryTracked={shouldTrackInPantry(item, pantryPrefs ?? new Map())}
+                pantryTracked={shouldTrackInPantry(item, pantryPrefs ?? {})}
                 onSetPantryTracked={(tracked) => setPantryTracked.mutate({ item, tracked })}
                 onSetActualCost={(cents) => setActual.mutate({ itemId: item.id, cents })}
                 onOverride={(q, u) =>

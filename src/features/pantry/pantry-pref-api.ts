@@ -2,16 +2,26 @@ import { supabase } from '@/lib/supabase/client';
 
 /**
  * Per-household "track this ingredient in the pantry?" overrides, keyed by
- * canonical id. Set from the check-off toggle; read at check-off to decide
- * whether a purchase lands in the pantry (see track-decision.ts).
+ * canonical id.
+ *
+ * A plain object, not a Map, because this is query data and the query cache is
+ * persisted to localStorage — a Map JSON-round-trips to `{}`, and the `{}` comes
+ * back as a plain object that still passes a `?? fallback` check, so every
+ * `.get()` on it throws. See the v5 note in lib/query/persister.ts.
  */
-export async function fetchPantryPrefs(householdId: string): Promise<Map<string, boolean>> {
+export type PantryPrefs = Record<string, boolean>;
+
+/**
+ * Set from the check-off toggle; read at check-off to decide whether a purchase
+ * lands in the pantry (see track-decision.ts).
+ */
+export async function fetchPantryPrefs(householdId: string): Promise<PantryPrefs> {
   const { data, error } = await supabase
     .from('household_ingredient_pantry_pref')
     .select('canonical_ingredient_id, tracked')
     .eq('household_id', householdId);
   if (error) throw error;
-  return new Map((data ?? []).map((r) => [r.canonical_ingredient_id, r.tracked]));
+  return Object.fromEntries((data ?? []).map((r) => [r.canonical_ingredient_id, r.tracked]));
 }
 
 /** Remember whether an ingredient should be tracked in the pantry when bought. */

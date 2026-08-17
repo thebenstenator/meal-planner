@@ -397,7 +397,7 @@ function ListPanel({
                       category,
                     })
                   }
-                  pantryTracked={shouldTrackInPantry(item, pantryPrefs ?? new Map())}
+                  pantryTracked={shouldTrackInPantry(item, pantryPrefs ?? {})}
                   onSetPantryTracked={(tracked) => setPantryTracked.mutate({ item, tracked })}
                   onRemove={() => edits.removeItem.mutate(item.id)}
                 />

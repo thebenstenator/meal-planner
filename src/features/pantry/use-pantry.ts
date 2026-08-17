@@ -14,7 +14,7 @@ import {
   type PackageLine,
   type PantryLocation,
 } from '@/features/pantry/api';
-import { fetchPantryPrefs, setPantryPref } from '@/features/pantry/pantry-pref-api';
+import { fetchPantryPrefs, setPantryPref, type PantryPrefs } from '@/features/pantry/pantry-pref-api';
 import { shouldTrackInPantry } from '@/features/pantry/track-decision';
 import type { ConversionInfo } from '@/features/pricing/price-item';
 import { planKeys, setEntryCooked, type PlanEntry } from '@/features/planner/api';
@@ -154,7 +154,7 @@ export function useApplyPurchaseToPantry() {
   return useMutation({
     mutationFn: async ({ item, checked }: { item: ShoppingItem; checked: boolean }) => {
       if (!householdId) return;
-      if (!shouldTrackInPantry(item, prefs ?? new Map())) return;
+      if (!shouldTrackInPantry(item, prefs ?? {})) return;
       await applyItemToPantry(householdId, item, checked);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: pantryKeys.all(householdId ?? 'none') }),
@@ -180,10 +180,8 @@ export function useSetPantryTracked() {
       if (!item.canonicalId) return;
       const key = pantryPrefKey(householdId ?? 'none');
       await qc.cancelQueries({ queryKey: key });
-      const prev = qc.getQueryData<Map<string, boolean>>(key);
-      const next = new Map(prev ?? []);
-      next.set(item.canonicalId, tracked);
-      qc.setQueryData(key, next);
+      const prev = qc.getQueryData<PantryPrefs>(key);
+      qc.setQueryData(key, { ...(prev ?? {}), [item.canonicalId]: tracked });
       return { prev };
     },
     onError: (_e, _v, ctx) => {

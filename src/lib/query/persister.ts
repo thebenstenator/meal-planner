@@ -19,5 +19,11 @@ export const queryPersister = createSyncStoragePersister({
   //   v4: pool → cookbook rename — `poolIds` became `cookbookIds` and the query
   //       keys changed (['cookbook', …]); a v3 cache would feed the old field
   //       names into the new code and crash the same way.
-  key: 'mealplan-query-cache-v4',
+  //   v5: the v2 rule got broken twice — ['pantry-prefs', …] and
+  //       ['canonical-names', …] both cached Maps, which persisted as `{}` and
+  //       then threw "prefs.get is not a function" on the shopping list and
+  //       stores pages. Both are plain objects now; this discards the poisoned
+  //       caches, which a reload alone could never do (localStorage survives
+  //       refresh, app restart, and service-worker updates alike).
+  key: 'mealplan-query-cache-v5',
 });

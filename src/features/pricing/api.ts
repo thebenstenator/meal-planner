@@ -145,16 +145,19 @@ export async function fetchConversionInfos(ids: string[]): Promise<ConversionRow
   }));
 }
 
-export async function fetchCanonicalNames(ids: string[]): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
-  if (ids.length === 0) return map;
+/**
+ * Canonical names by id. A plain object, not a Map, because this is query data:
+ * the cache is persisted to localStorage, and a Map comes back as `{}` whose
+ * `.get` throws. Same reason as PantryPrefs; see persister.ts v5.
+ */
+export async function fetchCanonicalNames(ids: string[]): Promise<Record<string, string>> {
+  if (ids.length === 0) return {};
   const { data, error } = await supabase
     .from('canonical_ingredient')
     .select('id, name')
     .in('id', ids);
   if (error) throw error;
-  for (const c of data ?? []) map.set(c.id, c.name);
-  return map;
+  return Object.fromEntries((data ?? []).map((c) => [c.id, c.name]));
 }
 
 export async function getCurrentPrices(storeId: string): Promise<CurrentPrice[]> {
