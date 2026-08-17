@@ -21,6 +21,7 @@ import {
   type SmartAddResult,
 } from '@/features/shopping-list/api';
 import { setIngredientCategory } from '@/features/shopping-list/categories-api';
+import { offlineMutationKeys } from '@/lib/query/offline-mutations';
 
 export function useShoppingLists() {
   const { householdId } = useHousehold();
@@ -81,6 +82,9 @@ export function useRenameList() {
 export function useToggleItem(listId: string) {
   const qc = useQueryClient();
   return useMutation<void, Error, { itemId: string; checked: boolean }>({
+    // Keyed so a check-off queued offline can be revived after a reload — the
+    // mutationFn is looked back up by this key. See lib/query/offline-mutations.
+    mutationKey: offlineMutationKeys.toggleItem,
     mutationFn: ({ itemId, checked }) => setItemChecked(itemId, checked),
     // Optimistic: flip the checkbox immediately (high-frequency interaction, and
     // it must survive an offline queue). Apply the cache update synchronously —
@@ -110,6 +114,8 @@ export function useToggleItem(listId: string) {
 export function useSetActualCost(listId: string) {
   const qc = useQueryClient();
   return useMutation<void, Error, { itemId: string; cents: number | null }>({
+    // Keyed for offline replay, like check-off — prices get typed in the aisle too.
+    mutationKey: offlineMutationKeys.setActualCost,
     mutationFn: ({ itemId, cents }) => setItemActualCost(itemId, cents),
     // Optimistic like check-off: apply synchronously so the number doesn't flicker.
     onMutate: ({ itemId, cents }) => {

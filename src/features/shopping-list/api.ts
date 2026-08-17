@@ -6,10 +6,7 @@ import { supabase } from '@/lib/supabase/client';
 import type { Json } from '@/lib/supabase/database.types';
 import type { Unit } from '@/lib/ingredients';
 
-export const listKeys = {
-  all: (householdId: string) => ['shopping-lists', householdId] as const,
-  detail: (id: string) => ['shopping-list', id] as const,
-};
+export { listKeys } from '@/features/shopping-list/keys';
 
 export interface ShoppingListSummary {
   id: string;
@@ -387,7 +384,7 @@ export async function addSmartItem(
   const [{ data: canon }, overrides] = await Promise.all([
     supabase.from('canonical_ingredient').select('category').eq('id', resolved.canonicalId).single(),
     fetchIngredientCategories(householdId, [resolved.canonicalId]).catch(
-      () => new Map<string, string>(),
+      (): Record<string, string> => ({}),
     ),
   ]);
 
@@ -398,7 +395,7 @@ export async function addSmartItem(
     total_quantity: input.quantity,
     unit: input.unit,
     category:
-      overrides.get(resolved.canonicalId) ?? canon?.category ?? deduceCategory(resolved.name),
+      overrides[resolved.canonicalId] ?? canon?.category ?? deduceCategory(resolved.name),
     is_manual: true,
   });
   if (error) throw error;
