@@ -185,7 +185,10 @@ export function useSetPantryTracked() {
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(pantryPrefKey(householdId ?? 'none'), ctx.prev);
+      // `prev` is undefined on the first toggle of a session — nothing cached yet.
+      // Restoring that (rather than skipping) is what drops the optimistic value,
+      // which otherwise sticks while offline, where the refetch below can't run.
+      if (ctx) qc.setQueryData(pantryPrefKey(householdId ?? 'none'), ctx.prev);
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: pantryPrefKey(householdId ?? 'none') });
