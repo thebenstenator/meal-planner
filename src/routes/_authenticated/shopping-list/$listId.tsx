@@ -12,7 +12,10 @@ import {
   useApplyPurchaseToPantry,
   usePantry,
   usePantryMutations,
+  usePantryPrefs,
+  useSetPantryTracked,
 } from '@/features/pantry/use-pantry';
+import { shouldTrackInPantry } from '@/features/pantry/track-decision';
 import { useAddPrice } from '@/features/pricing/use-pricing';
 import { useListPricing, type ItemPricing } from '@/features/pricing/use-list-pricing';
 import type { ShoppingItem } from '@/features/shopping-list/api';
@@ -54,6 +57,8 @@ function ShoppingListDetail() {
   const [managingCategories, setManagingCategories] = useState(false);
   const applyToPantry = useApplyPurchaseToPantry();
   const { data: pantry } = usePantry();
+  const { data: pantryPrefs } = usePantryPrefs();
+  const setPantryTracked = useSetPantryTracked();
   const pantryMut = usePantryMutations();
   const pricing = useListPricing(data?.items ?? []);
 
@@ -241,6 +246,8 @@ function ShoppingListDetail() {
                   toggle.mutate({ itemId: item.id, checked });
                   applyToPantry.mutate({ item, checked });
                 }}
+                pantryTracked={shouldTrackInPantry(item, pantryPrefs ?? new Map())}
+                onSetPantryTracked={(tracked) => setPantryTracked.mutate({ item, tracked })}
                 onSetActualCost={(cents) => setActual.mutate({ itemId: item.id, cents })}
                 onOverride={(q, u) =>
                   edits.overrideQuantity.mutate({ itemId: item.id, totalQuantity: q, unit: u })
@@ -270,6 +277,8 @@ function ItemRow({
   onAddPrice,
   onSetCategory,
   onToggle,
+  pantryTracked,
+  onSetPantryTracked,
   onSetActualCost,
   onOverride,
   onDelete,
@@ -282,6 +291,9 @@ function ItemRow({
   onAddPrice: (priceCents: number, packageQuantity: number, packageUnit: string) => void;
   onSetCategory: (category: string) => void;
   onToggle: (checked: boolean) => void;
+  /** Whether checking this off adds it to the pantry (pref, else the heuristic). */
+  pantryTracked: boolean;
+  onSetPantryTracked: (tracked: boolean) => void;
   onSetActualCost: (cents: number | null) => void;
   onOverride: (quantity: number | null, unit: string | null) => void;
   onDelete: () => void;
@@ -388,6 +400,29 @@ function ItemRow({
                 />
               )}
             </>
+          )}
+
+          {/* Once checked off, say where a canonical item went and let the shopper
+              flip it — the choice is remembered for that ingredient next time. */}
+          {item.isChecked && item.canonicalId && (
+            <div className="mt-1 flex items-center gap-2 text-xs">
+              <span className={pantryTracked ? 'text-emerald-700' : 'text-muted-foreground'}>
+                {pantryTracked ? '✓ Added to pantry' : 'Not added to pantry'}
+              </span>
+              <button
+                type="button"
+                className="text-muted-foreground underline"
+                title={`Remembered for ${item.displayName}`}
+                aria-label={
+                  pantryTracked
+                    ? `Don't track ${item.displayName} in the pantry`
+                    : `Track ${item.displayName} in the pantry`
+                }
+                onClick={() => onSetPantryTracked(!pantryTracked)}
+              >
+                {pantryTracked ? 'Don’t track this' : 'Track it'}
+              </button>
+            </div>
           )}
 
           {/* Unresolved-merge review */}

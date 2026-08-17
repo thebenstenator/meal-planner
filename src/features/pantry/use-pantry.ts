@@ -14,7 +14,8 @@ import {
   type PackageLine,
   type PantryLocation,
 } from '@/features/pantry/api';
-import { isNonFood } from '@/features/ingredients/non-food';
+import { fetchPantryPrefs, setPantryPref } from '@/features/pantry/pantry-pref-api';
+import { shouldTrackInPantry } from '@/features/pantry/track-decision';
 import type { ConversionInfo } from '@/features/pricing/price-item';
 import { planKeys, setEntryCooked, type PlanEntry } from '@/features/planner/api';
 import { fetchConversionInfos } from '@/features/pricing/api';
@@ -93,48 +94,105 @@ export function usePantryMutations() {
   return { add, update, remove, mute, setPackages };
 }
 
+/** Query key for a household's per-ingredient pantry-tracking preferences. */
+const pantryPrefKey = (householdId: string) => ['pantry-prefs', householdId] as const;
+
 /**
- * Apply a shopping-list check-off to the pantry: buying (checked) adds the
- * purchased quantity — whole packages you actually bought when known, else the
- * needed amount — and un-checking reverses it. Only canonical-matched *food*
- * items touch the pantry; ad-hoc/unmatched items and non-food (toilet paper,
- * shampoo, water softener salt…) are skipped. Best-effort and silent: the pantry
- * is an estimate, so a failure here never blocks the check-off.
+ * Move one bought item into (or out of) the pantry. `add` follows the check-off:
+ * checked adds the purchased quantity — whole packages you actually bought when
+ * known, else the needed amount — un-checking reverses it. No food/pref gate
+ * here; callers decide *whether* to apply. Best-effort: a bad quantity no-ops.
+ */
+async function applyItemToPantry(householdId: string, item: ShoppingItem, add: boolean) {
+  if (!item.canonicalId) return;
+  const qty = item.purchase ? item.purchase.totalPurchaseQuantity : item.totalQuantity;
+  const unit = item.purchase ? item.purchase.packageUnit : item.unit;
+  if (qty == null || qty <= 0) return;
+  const infos = await fetchConversionInfos([item.canonicalId]);
+  // On a buy with a known container, record the exact sealed package(s) so
+  // "2 32oz cans" lands as a stack, not a lump. Removing just decrements.
+  const purchasedPackage =
+    add && item.purchase
+      ? {
+          size: item.purchase.packageQuantity,
+          unit: item.purchase.packageUnit,
+          count: item.purchase.packages,
+        }
+      : undefined;
+  await adjustPantryStock(
+    householdId,
+    item.canonicalId,
+    add ? qty : -qty,
+    unit,
+    infos[0] ?? {},
+    purchasedPackage,
+  );
+}
+
+/** A household's per-ingredient "track in the pantry?" overrides, by canonical id. */
+export function usePantryPrefs() {
+  const { householdId } = useHousehold();
+  return useQuery({
+    queryKey: pantryPrefKey(householdId ?? 'none'),
+    queryFn: () => fetchPantryPrefs(householdId as string),
+    enabled: !!householdId,
+  });
+}
+
+/**
+ * Apply a shopping-list check-off to the pantry. Only canonical-matched *food*
+ * items land there — unmatched items and non-food (toilet paper, shampoo, water
+ * softener salt…) are skipped, unless the household has pinned the choice with
+ * the check-off toggle. `shouldTrackInPantry` is the single gate, so what the
+ * status line says is exactly what happens here. Best-effort and silent: the
+ * pantry is an estimate, so a failure never blocks the check-off.
  */
 export function useApplyPurchaseToPantry() {
   const { householdId } = useHousehold();
+  const { data: prefs } = usePantryPrefs();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ item, checked }: { item: ShoppingItem; checked: boolean }) => {
-      if (!householdId || !item.canonicalId) return;
-      // Two independent nets so neither has to be perfect: the Household aisle
-      // (things correctly filed there), and a name check (catches the ones that
-      // mis-file as food, e.g. "water softener salt" landing under Pantry).
-      if (item.category === 'household' || isNonFood(item.displayName)) return;
-      const qty = item.purchase ? item.purchase.totalPurchaseQuantity : item.totalQuantity;
-      const unit = item.purchase ? item.purchase.packageUnit : item.unit;
-      if (qty == null || qty <= 0) return;
-      const infos = await fetchConversionInfos([item.canonicalId]);
-      // On a buy with a known container, record the exact sealed package(s) so
-      // "2 32oz cans" lands as a stack, not a lump. Un-checking just decrements.
-      const purchasedPackage =
-        checked && item.purchase
-          ? {
-              size: item.purchase.packageQuantity,
-              unit: item.purchase.packageUnit,
-              count: item.purchase.packages,
-            }
-          : undefined;
-      await adjustPantryStock(
-        householdId,
-        item.canonicalId,
-        checked ? qty : -qty,
-        unit,
-        infos[0] ?? {},
-        purchasedPackage,
-      );
+      if (!householdId) return;
+      if (!shouldTrackInPantry(item, prefs ?? new Map())) return;
+      await applyItemToPantry(householdId, item, checked);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: pantryKeys.all(householdId ?? 'none') }),
+  });
+}
+
+/**
+ * The "Added to pantry / Not added" toggle on a checked-off item. Remembers the
+ * choice for that ingredient (so next time is automatic), and corrects the
+ * pantry right now — but only when the item is already checked, since the pantry
+ * only mirrors what's been bought. Optimistic so the line flips instantly.
+ */
+export function useSetPantryTracked() {
+  const { householdId } = useHousehold();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ item, tracked }: { item: ShoppingItem; tracked: boolean }) => {
+      if (!householdId || !item.canonicalId) return;
+      await setPantryPref(householdId, item.canonicalId, tracked);
+      if (item.isChecked) await applyItemToPantry(householdId, item, tracked);
+    },
+    onMutate: async ({ item, tracked }) => {
+      if (!item.canonicalId) return;
+      const key = pantryPrefKey(householdId ?? 'none');
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Map<string, boolean>>(key);
+      const next = new Map(prev ?? []);
+      next.set(item.canonicalId, tracked);
+      qc.setQueryData(key, next);
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(pantryPrefKey(householdId ?? 'none'), ctx.prev);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: pantryPrefKey(householdId ?? 'none') });
+      void qc.invalidateQueries({ queryKey: pantryKeys.all(householdId ?? 'none') });
+    },
   });
 }
 

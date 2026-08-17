@@ -292,6 +292,48 @@ export type Database = {
           },
         ]
       }
+      household_ingredient_pantry_pref: {
+        Row: {
+          canonical_ingredient_id: string
+          created_at: string
+          household_id: string
+          id: string
+          tracked: boolean
+          updated_at: string
+        }
+        Insert: {
+          canonical_ingredient_id: string
+          created_at?: string
+          household_id: string
+          id?: string
+          tracked: boolean
+          updated_at?: string
+        }
+        Update: {
+          canonical_ingredient_id?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          tracked?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_ingredient_pantry_pref_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_ingredient_pantry_pref_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_ingredient_map: {
         Row: {
           canonical_ingredient_id: string
