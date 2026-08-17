@@ -7,12 +7,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RowMenu } from '@/components/ui/row-menu';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
-import { useApplyPurchaseToPantry } from '@/features/pantry/use-pantry';
+import { PantryTrackLine } from '@/features/pantry/components/pantry-track-line';
+import { shouldTrackInPantry } from '@/features/pantry/track-decision';
+import {
+  useApplyPurchaseToPantry,
+  usePantryPrefs,
+  useSetPantryTracked,
+} from '@/features/pantry/use-pantry';
 import { fromISO, weekRange } from '@/features/planner/dates';
 import { ScanButton } from '@/features/scanner/scan-button';
 import type { ShoppingItem, ShoppingListSummary } from '@/features/shopping-list/api';
 import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
+import { isOwnClickTarget } from '@/features/shopping-list/row-toggle';
 import { useShoppingCategories } from '@/features/shopping-list/use-categories';
 import {
   useAddToRunningList,
@@ -217,6 +224,8 @@ function ListPanel({
   const rename = useRenameList();
   const del = useDeleteShoppingList();
   const applyToPantry = useApplyPurchaseToPantry();
+  const { data: pantryPrefs } = usePantryPrefs();
+  const setPantryTracked = useSetPantryTracked();
   const setCategory = useSetItemCategory(listId);
   const { categories } = useShoppingCategories();
 
@@ -387,6 +396,8 @@ function ListPanel({
                       category,
                     })
                   }
+                  pantryTracked={shouldTrackInPantry(item, pantryPrefs ?? new Map())}
+                  onSetPantryTracked={(tracked) => setPantryTracked.mutate({ item, tracked })}
                   onRemove={() => edits.removeItem.mutate(item.id)}
                 />
               ))}
@@ -446,12 +457,17 @@ function ItemRow({
   categories,
   onToggle,
   onSetCategory,
+  pantryTracked,
+  onSetPantryTracked,
   onRemove,
 }: {
   item: ShoppingItem;
   categories: ShoppingCategory[];
   onToggle: (checked: boolean) => void;
   onSetCategory: (category: string) => void;
+  /** Whether checking this off adds it to the pantry (pref, else the heuristic). */
+  pantryTracked: boolean;
+  onSetPantryTracked: (tracked: boolean) => void;
   onRemove: () => void;
 }) {
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -459,7 +475,14 @@ function ItemRow({
     item.totalQuantity != null ? `${trim(item.totalQuantity)} ${item.unit ?? ''}`.trim() : null;
 
   return (
-    <li className="p-3">
+    // Tap anywhere on the row to check it off. The checkbox stays the accessible
+    // control (and the keyboard one); this just widens the target for a thumb.
+    <li
+      className="cursor-pointer p-3"
+      onClick={(e) => {
+        if (!isOwnClickTarget(e.target)) onToggle(!item.isChecked);
+      }}
+    >
       <div className="flex items-center gap-3">
         <input
           type="checkbox"
@@ -484,16 +507,24 @@ function ItemRow({
           ]}
         />
       </div>
+
+      {/* Aligned under the name, clear of the checkbox. */}
+      <div className="pl-7">
+        <PantryTrackLine item={item} tracked={pantryTracked} onSetTracked={onSetPantryTracked} />
+      </div>
+
       {categoryOpen && (
-        <CategorySelect
-          itemName={item.displayName}
-          value={item.category}
-          categories={categories}
-          onChange={(slug) => {
-            onSetCategory(slug);
-            setCategoryOpen(false);
-          }}
-        />
+        <div data-no-toggle>
+          <CategorySelect
+            itemName={item.displayName}
+            value={item.category}
+            categories={categories}
+            onChange={(slug) => {
+              onSetCategory(slug);
+              setCategoryOpen(false);
+            }}
+          />
+        </div>
       )}
     </li>
   );

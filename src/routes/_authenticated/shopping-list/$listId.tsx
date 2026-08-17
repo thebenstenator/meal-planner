@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { RowMenu } from '@/components/ui/row-menu';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { isLowStock } from '@/features/pantry/low-stock';
+import { PantryTrackLine } from '@/features/pantry/components/pantry-track-line';
 import { ScanButton } from '@/features/scanner/scan-button';
 import {
   useApplyPurchaseToPantry,
@@ -22,6 +23,7 @@ import type { ShoppingItem } from '@/features/shopping-list/api';
 import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
 import { CategoryManager } from '@/features/shopping-list/components/category-manager';
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
+import { isOwnClickTarget } from '@/features/shopping-list/row-toggle';
 import { useShoppingCategories } from '@/features/shopping-list/use-categories';
 import {
   useGenerateList,
@@ -316,7 +318,14 @@ function ItemRow({
       : null;
 
   return (
-    <li className="p-3">
+    // Tap anywhere on the row to check it off. The checkbox stays the accessible
+    // control (and the keyboard one); this just widens the target for a thumb.
+    <li
+      className="cursor-pointer p-3"
+      onClick={(e) => {
+        if (!isOwnClickTarget(e.target)) onToggle(!item.isChecked);
+      }}
+    >
       <div className="flex items-start gap-3">
         <input
           type="checkbox"
@@ -402,32 +411,11 @@ function ItemRow({
             </>
           )}
 
-          {/* Once checked off, say where a canonical item went and let the shopper
-              flip it — the choice is remembered for that ingredient next time. */}
-          {item.isChecked && item.canonicalId && (
-            <div className="mt-1 flex items-center gap-2 text-xs">
-              <span className={pantryTracked ? 'text-emerald-700' : 'text-muted-foreground'}>
-                {pantryTracked ? '✓ Added to pantry' : 'Not added to pantry'}
-              </span>
-              <button
-                type="button"
-                className="text-muted-foreground underline"
-                title={`Remembered for ${item.displayName}`}
-                aria-label={
-                  pantryTracked
-                    ? `Don't track ${item.displayName} in the pantry`
-                    : `Track ${item.displayName} in the pantry`
-                }
-                onClick={() => onSetPantryTracked(!pantryTracked)}
-              >
-                {pantryTracked ? 'Don’t track this' : 'Track it'}
-              </button>
-            </div>
-          )}
+          <PantryTrackLine item={item} tracked={pantryTracked} onSetTracked={onSetPantryTracked} />
 
           {/* Unresolved-merge review */}
           {item.unresolved && !dismissed && item.canonicalId && (
-            <div className="bg-muted/40 mt-2 space-y-2 rounded border p-2 text-xs">
+            <div data-no-toggle className="bg-muted/40 mt-2 space-y-2 rounded border p-2 text-xs">
               <p>Couldn’t combine these automatically.</p>
               <div className="flex items-center gap-2">
                 <Input
@@ -455,7 +443,7 @@ function ItemRow({
 
           {/* Manual quantity override */}
           {panel === 'quantity' && (
-            <div className="mt-2 flex items-center gap-2">
+            <div data-no-toggle className="mt-2 flex items-center gap-2">
               <Input
                 aria-label={`Quantity for ${item.displayName}`}
                 inputMode="decimal"
@@ -484,15 +472,17 @@ function ItemRow({
 
           {/* Which aisle it belongs in */}
           {panel === 'category' && (
-            <CategorySelect
-              itemName={item.displayName}
-              value={item.category}
-              categories={categories}
-              onChange={(slug) => {
-                onSetCategory(slug);
-                setPanel('none');
-              }}
-            />
+            <div data-no-toggle>
+              <CategorySelect
+                itemName={item.displayName}
+                value={item.category}
+                categories={categories}
+                onChange={(slug) => {
+                  onSetCategory(slug);
+                  setPanel('none');
+                }}
+              />
+            </div>
           )}
 
           {item.sources.length > 0 && (
@@ -508,7 +498,7 @@ function ItemRow({
           )}
 
           {open && (
-            <ul className="text-muted-foreground mt-1 space-y-0.5 text-xs">
+            <ul data-no-toggle className="text-muted-foreground mt-1 space-y-0.5 text-xs">
               {item.sources.map((s, i) => (
                 <li key={i}>
                   {s.recipeTitle ?? 'a recipe'}
@@ -560,7 +550,7 @@ function ItemPrice({
 
   if (editing) {
     return (
-      <div className="mt-0.5 flex items-center gap-1">
+      <div data-no-toggle className="mt-0.5 flex items-center gap-1">
         <span className="text-sm">$</span>
         <Input
           autoFocus
@@ -638,7 +628,7 @@ function AddPriceInline({
   const [pkgUnit, setPkgUnit] = useState(defaultUnit ?? '');
 
   return (
-    <div className="bg-muted/40 mt-2 flex flex-wrap items-center gap-2 rounded border p-2 text-xs">
+    <div data-no-toggle className="bg-muted/40 mt-2 flex flex-wrap items-center gap-2 rounded border p-2 text-xs">
       <span>$</span>
       <Input
         aria-label="Package price"
