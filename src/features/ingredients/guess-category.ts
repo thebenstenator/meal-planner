@@ -3,6 +3,8 @@
 // it only returns a category on a confident hit, otherwise null (leave it
 // uncategorized rather than mis-file it). Categories mirror the seeded set.
 
+import { NON_FOOD_KEYWORDS } from '@/features/ingredients/non-food';
+
 interface Rule {
   category: string;
   keywords: string[];
@@ -32,15 +34,12 @@ const RULES: Rule[] = [
       'baked beans', 'olives', 'pickles', 'evaporated milk', 'condensed milk',
     ],
   },
+  // Non-food goes to the Household aisle. Shares its keyword list with the pantry
+  // check-off's skip so "add it to a store aisle" and "don't track it as food"
+  // never drift apart — see non-food.ts.
   {
     category: 'household',
-    keywords: [
-      'paper towel', 'paper towels', 'toilet paper', 'napkin', 'napkins', 'dish soap',
-      'dishwasher', 'detergent', 'laundry', 'bleach', 'sponge', 'sponges', 'trash bag',
-      'trash bags', 'garbage bags', 'foil', 'aluminum foil', 'plastic wrap', 'parchment paper',
-      'ziploc', 'freezer bags', 'cleaner', 'disinfectant', 'soap', 'shampoo', 'toothpaste',
-      'deodorant', 'tissues', 'batteries', 'light bulb', 'light bulbs', 'diapers',
-    ],
+    keywords: NON_FOOD_KEYWORDS,
   },
   {
     category: 'beverages',

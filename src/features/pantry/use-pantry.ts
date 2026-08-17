@@ -14,6 +14,7 @@ import {
   type PackageLine,
   type PantryLocation,
 } from '@/features/pantry/api';
+import { isNonFood } from '@/features/ingredients/non-food';
 import type { ConversionInfo } from '@/features/pricing/price-item';
 import { planKeys, setEntryCooked, type PlanEntry } from '@/features/planner/api';
 import { fetchConversionInfos } from '@/features/pricing/api';
@@ -95,9 +96,10 @@ export function usePantryMutations() {
 /**
  * Apply a shopping-list check-off to the pantry: buying (checked) adds the
  * purchased quantity — whole packages you actually bought when known, else the
- * needed amount — and un-checking reverses it. Only canonical-matched items
- * touch the pantry; ad-hoc/unmatched items are skipped. Best-effort and silent:
- * the pantry is an estimate, so a failure here never blocks the check-off.
+ * needed amount — and un-checking reverses it. Only canonical-matched *food*
+ * items touch the pantry; ad-hoc/unmatched items and non-food (toilet paper,
+ * shampoo, water softener salt…) are skipped. Best-effort and silent: the pantry
+ * is an estimate, so a failure here never blocks the check-off.
  */
 export function useApplyPurchaseToPantry() {
   const { householdId } = useHousehold();
@@ -105,6 +107,10 @@ export function useApplyPurchaseToPantry() {
   return useMutation({
     mutationFn: async ({ item, checked }: { item: ShoppingItem; checked: boolean }) => {
       if (!householdId || !item.canonicalId) return;
+      // Two independent nets so neither has to be perfect: the Household aisle
+      // (things correctly filed there), and a name check (catches the ones that
+      // mis-file as food, e.g. "water softener salt" landing under Pantry).
+      if (item.category === 'household' || isNonFood(item.displayName)) return;
       const qty = item.purchase ? item.purchase.totalPurchaseQuantity : item.totalQuantity;
       const unit = item.purchase ? item.purchase.packageUnit : item.unit;
       if (qty == null || qty <= 0) return;
