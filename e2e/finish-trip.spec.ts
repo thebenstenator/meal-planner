@@ -60,7 +60,8 @@ test('closes out a trip: logs the total, then clears only what was bought', asyn
   await logTrip.click();
 
   await expect(page.getByText('Saved to your spending.')).toBeVisible({ timeout: 15000 });
-  await page.getByRole('button', { name: 'Clear 1' }).click();
+  // exact, or this also matches the standalone "clear 1 checked" behind the dialog.
+  await page.getByRole('button', { name: 'Clear 1', exact: true }).click();
 
   // The bought item is gone; the one still needed stays.
   await expect(page.getByRole('checkbox', { name: 'Check off paper towels' })).toHaveCount(0, {
