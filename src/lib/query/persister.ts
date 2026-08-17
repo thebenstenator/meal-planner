@@ -7,6 +7,9 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
  */
 export const CACHE_MAX_AGE = 1000 * 60 * 60 * 24; // 24h
 
+const CACHE_PREFIX = 'mealplan-query-cache-';
+const CACHE_KEY = `${CACHE_PREFIX}v5`;
+
 export const queryPersister = createSyncStoragePersister({
   storage: typeof window !== 'undefined' ? window.localStorage : undefined,
   // Bump this key whenever a persisted query's shape changes, so a client that
@@ -25,5 +28,27 @@ export const queryPersister = createSyncStoragePersister({
   //       stores pages. Both are plain objects now; this discards the poisoned
   //       caches, which a reload alone could never do (localStorage survives
   //       refresh, app restart, and service-worker updates alike).
-  key: 'mealplan-query-cache-v5',
+  key: CACHE_KEY,
 });
+
+/**
+ * Drop the caches left behind by earlier key bumps.
+ *
+ * Bumping the key orphans the old entry rather than deleting it, and each one
+ * can hold the whole library. localStorage only allows ~5MB per origin, so
+ * after a few bumps the *new* cache is the one that fails to write — silently,
+ * since the persister swallows the quota error. Offline would then just quietly
+ * stop working, which is far harder to spot than a crash.
+ */
+export function pruneOldCaches(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith(CACHE_PREFIX) && key !== CACHE_KEY) {
+        window.localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // Private mode, or storage disabled entirely. Nothing here is load-bearing.
+  }
+}
