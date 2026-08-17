@@ -197,6 +197,41 @@ export function useSetPantryTracked() {
 }
 
 /**
+ * Add bought quantities to the pantry by canonical id, for things that were
+ * never on the list — the receipt closeout finds these. Check-off goes through
+ * `useApplyPurchaseToPantry` instead, which has a list item to gate on; here the
+ * caller has already decided (the off-list review), so there's no gate.
+ */
+export function useAddCanonicalToPantry() {
+  const { householdId } = useHousehold();
+  const qc = useQueryClient();
+  return useMutation<
+    void,
+    Error,
+    Array<{ canonicalId: string; quantity: number | null; unit: string | null }>
+  >({
+    mutationFn: async (adds) => {
+      if (!householdId || adds.length === 0) return;
+      const infos = await fetchConversionInfos(adds.map((a) => a.canonicalId));
+      const infoById = new Map(infos.map((i) => [i.canonicalId, i]));
+      for (const add of adds) {
+        // Receipts often print no quantity. One unit is the honest default — the
+        // pantry is an estimate, and a wrong count is easier to fix than a
+        // missing item is to notice.
+        await adjustPantryStock(
+          householdId,
+          add.canonicalId,
+          add.quantity && add.quantity > 0 ? add.quantity : 1,
+          add.unit,
+          infoById.get(add.canonicalId) ?? {},
+        );
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: pantryKeys.all(householdId ?? 'none') }),
+  });
+}
+
+/**
  * Mark a planned meal cooked (or not) and move its recipe's ingredients out of
  * (or back into) the pantry, scaled by any servings override. cooked_at on the
  * entry is the idempotent guard. Best-effort like the purchase sync.

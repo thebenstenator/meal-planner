@@ -316,6 +316,22 @@ export async function deleteShoppingList(listId: string): Promise<void> {
 }
 
 /**
+ * Clear every checked-off item from a list — the end-of-trip cleanup, leaving
+ * behind only what you still need.
+ *
+ * This is destructive and the checked items are the only record of what was
+ * bought, so callers should log the trip first (see the finish-trip flow).
+ */
+export async function clearCheckedItems(listId: string): Promise<void> {
+  const { error } = await supabase
+    .from('shopping_list_item')
+    .delete()
+    .eq('shopping_list_id', listId)
+    .eq('is_checked', true);
+  if (error) throw error;
+}
+
+/**
  * Add a manual item ("paper towels") that survives regeneration. Its category is
  * deduced from the name, falling back to "other".
  */

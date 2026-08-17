@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useHousehold } from '@/features/household/use-household';
 import {
   addSmartItem,
+  clearCheckedItems,
   createShoppingList,
   deleteItem,
   deleteShoppingList,
@@ -177,6 +178,19 @@ export function useSetItemCategory(listId: string) {
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
     },
+  });
+}
+
+/**
+ * Clear the checked-off items at the end of a trip. Destructive, and those items
+ * are the only record of what was bought — the finish-trip flow logs the trip
+ * before offering this.
+ */
+export function useClearCheckedItems(listId: string) {
+  const qc = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: () => clearCheckedItems(listId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: listKeys.detail(listId) }),
   });
 }
 

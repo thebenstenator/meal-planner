@@ -23,6 +23,7 @@ import type { ShoppingItem } from '@/features/shopping-list/api';
 import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
 import { CategoryManager } from '@/features/shopping-list/components/category-manager';
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
+import { FinishTrip } from '@/features/shopping-list/components/finish-trip';
 import { isOwnClickTarget } from '@/features/shopping-list/row-toggle';
 import { useShoppingCategories } from '@/features/shopping-list/use-categories';
 import {
@@ -114,7 +115,8 @@ function ShoppingListDetail() {
             · {items.length} items
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <FinishTrip listId={listId} listName={summary.name} items={items} />
           <Button
             variant="outline"
             size="sm"

@@ -19,6 +19,7 @@ import { ScanButton } from '@/features/scanner/scan-button';
 import type { ShoppingItem, ShoppingListSummary } from '@/features/shopping-list/api';
 import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
+import { FinishTrip } from '@/features/shopping-list/components/finish-trip';
 import { isOwnClickTarget } from '@/features/shopping-list/row-toggle';
 import { useShoppingCategories } from '@/features/shopping-list/use-categories';
 import {
@@ -405,6 +406,9 @@ function ListPanel({
           </div>
         ))
       )}
+
+      {/* Below the list, where you land after checking the last thing off. */}
+      <FinishTrip listId={listId} listName={summary.name} items={items} />
 
       <div className="pt-1">
         {!confirmDelete ? (
