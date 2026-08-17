@@ -92,6 +92,15 @@ Kept here so they don't creep into earlier versions.
 - Recipe sharing between households — **blocked pending copyright review**
 - Public/community recipe library
 - Grocery delivery handoff formatting (Instacart, Walmart pickup)
+- Voice/assistant quick-add ("add rice to the Walmart list") — shelved until
+  after launch. Core is one authed `quick-add` Edge Function reusing
+  `addSmartItem` + list-by-name; each assistant is just a front door onto it.
+  Feasibility differs sharply: a **Siri Shortcut + HTTP** is the fastest path and
+  needs no native app; a **custom Alexa skill** is the fullest voice experience
+  (needs OAuth account linking). **Google Assistant is not viable as asked** —
+  Google shut down third-party Conversational Actions in 2023, so it now requires
+  native Android App Actions and is therefore gated on the V3 Capacitor shell.
+  The hard part is identity/account-linking, not the language parsing.
 - "Use it up" suggestions from expiring pantry items
 - Plan templates
 - Nutrition data
