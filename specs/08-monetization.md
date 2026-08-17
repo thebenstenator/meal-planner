@@ -35,7 +35,7 @@ calls** — and they already run through one shared per-household meter
 | Claude — recipe photo/PDF import (`parse-recipe`) | Per import | Haiku; cheap-ish |
 | Claude — URL import (`parse-recipe-url`) | Per import | JSON-LD path is **free**; AI only on fallback |
 | Claude — meal ideas (`suggest-meals`) | Per request | Sonnet; the most expensive call |
-| Claude — receipt scanning | Per receipt | *Spec'd, not built. Recurring cost.* |
+| Claude — receipt scanning (`parse-receipt`) | Per receipt | Vision; **built**. Recurring cost. |
 | Supabase (db, storage, bandwidth) | Grows with users + images | Slow, cheap; not a per-action cost |
 | Apple Developer / Google Play | $99/yr · $25 once | Fixed |
 
@@ -62,6 +62,11 @@ more people in a household, the better — never gate it.
 - Offline-first operation + installable PWA
 - One store, manual price entry, projected monthly total
 - Budget goal, planned vs. actual, month-over-month spending history
+- **Trip closeout — logging what you actually spent is free.** Finish a trip by
+  typing the total (optionally a per-item price pass that feeds price history),
+  then clear the checked items. Actual-spend tracking must never be paywalled:
+  a budget app that charges to record what you spent isn't a budget app. What's
+  paid is the *typing*, not the number — see the receipt bullet below
 - Manual pantry tracking: buy→stock, cook→stock, running-low, pantry offset,
   bulk paste-import (all no-AI)
 - **Household sharing — unlimited members, realtime, free**
@@ -101,6 +106,14 @@ nothing but is the ambient, recurring value that justifies staying subscribed.
   matched lines with a price + chosen store. Removes the one recurring tedious
   step in keeping prices honest. Code: `src/features/receipts/*`,
   `routes/_authenticated/receipts.tsx`, migration `20260806140000_grocery_trips`.
+  **BUILT: second entry point — the trip closeout** (`FinishTrip`, on both
+  shopping surfaces). The gate here is deliberately drawn at *labour, not data*:
+  a free user logs the same trip by typing the total, and may price items by
+  hand. Scanning buys three things they'd otherwise do manually — the itemized
+  lines, reconciliation against the list (tick what you forgot; `reconcileTrip`),
+  and off-list buys offered to the pantry. That's the honest recurring pitch:
+  it does the tedious part of a thing you can always still do yourself. Code:
+  `src/features/shopping-list/components/finish-trip.tsx`, `reconcile-trip.ts`.
 - **Smart reminders & surfacing** (zero AI cost): expiration alerts, "haven't
   made this in a while," use-it-up suggestions, meal-type balance nudges.
   Individually small; together they're the ambient weekly value that a one-time
@@ -132,6 +145,13 @@ The gated tier has to actually drive sales. The honest read:
   pull: **auto-fill a balanced month** (monthly ritual), **receipt scanning**
   (recurring, removes tedium), **meal ideas** (weekly), **smart reminders**
   (ambient). Analytics barely moves anyone.
+- **The free closeout costs receipt scanning some of its pull, on purpose.** A
+  free user who types one total per trip gets working spend tracking and never
+  hits a wall — so scanning has to sell on tedium removed, not on data withheld.
+  That's a weaker hook than a hard gate would be, and it's the right trade: the
+  hard gate would have made the budget feature feel like the subscription trap
+  the originating user complained about. Watch whether scan usage justifies its
+  API cost; if it doesn't, the problem is the scan's accuracy, not the free tier.
 
 **Build priority for monetization:**
 1. ✅ `useEntitlement()` + tier the AI limit (Phase 0) — plumbing everything needs.
