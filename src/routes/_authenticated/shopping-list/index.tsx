@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ import type { ShoppingItem, ShoppingListSummary } from '@/features/shopping-list
 import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
 import { FinishTrip } from '@/features/shopping-list/components/finish-trip';
+import { readLastList, writeLastList } from '@/features/shopping-list/last-list';
 import { isOwnClickTarget } from '@/features/shopping-list/row-toggle';
 import { useShoppingCategories } from '@/features/shopping-list/use-categories';
 import {
@@ -36,7 +38,13 @@ import {
 } from '@/features/shopping-list/use-shopping-list';
 import { cn } from '@/lib/utils/cn';
 
+const searchSchema = z.object({
+  /** Which list tab is open. In the URL so a reload comes back to it. */
+  list: z.string().optional(),
+});
+
 export const Route = createFileRoute('/_authenticated/shopping-list/')({
+  validateSearch: searchSchema,
   component: ShoppingListsPage,
 });
 
@@ -49,22 +57,44 @@ function ShoppingListsPage() {
   const { data: lists } = useShoppingLists();
   const create = useCreateList();
 
-  const [picked, setPicked] = useState<string | null>(null);
+  const { list: fromUrl } = Route.useSearch();
+  // Read once, on mount: after that the URL is authoritative.
+  const [lastUsed] = useState(readLastList);
   const [generating, setGenerating] = useState(false);
   const [addingList, setAddingList] = useState(false);
   const [newName, setNewName] = useState('');
 
   const allLists = lists ?? [];
-  // The active tab: the user's pick if it still exists, else the first list.
+  const exists = (id: string | null | undefined): boolean =>
+    !!id && allLists.some((l) => l.id === id);
+
+  // The active tab, most specific first: the URL, then the list you had open
+  // last time, then whatever's first. Each is only honoured if that list is
+  // still here — deleted, or belonging to a household you've since left.
   const activeId =
-    (picked && allLists.some((l) => l.id === picked) ? picked : allLists[0]?.id) ?? null;
+    (exists(fromUrl) ? fromUrl : exists(lastUsed) ? lastUsed : allLists[0]?.id) ?? null;
   const active = allLists.find((l) => l.id === activeId) ?? null;
+
+  // Remember whichever list you actually ended up on, not just the ones you
+  // tapped — arriving by URL and then relaunching from the home-screen icon
+  // should still come back here.
+  useEffect(() => {
+    if (activeId) writeLastList(activeId);
+  }, [activeId]);
+
+  /**
+   * Switch tabs. `replace` rather than push: on a phone, back should leave the
+   * shopping list, not walk you through every tab you glanced at.
+   */
+  function selectList(id: string | null) {
+    void navigate({ to: '/shopping-list', search: id ? { list: id } : {}, replace: true });
+  }
 
   async function submitNewList(e: React.FormEvent) {
     e.preventDefault();
     if (newName.trim() === '') return;
     const id = await create.mutateAsync({ name: newName });
-    setPicked(id);
+    selectList(id);
     setNewName('');
     setAddingList(false);
   }
@@ -84,7 +114,7 @@ function ShoppingListsPage() {
             type="button"
             role="tab"
             aria-selected={l.id === activeId}
-            onClick={() => setPicked(l.id)}
+            onClick={() => selectList(l.id)}
             className={cn(
               'rounded-full border px-3 py-1 text-sm',
               l.id === activeId
@@ -140,9 +170,14 @@ function ShoppingListsPage() {
       </div>
 
       {activeId && active ? (
-        <ListPanel key={activeId} listId={activeId} summary={active} onDeleted={() => setPicked(null)} />
+        <ListPanel
+          key={activeId}
+          listId={activeId}
+          summary={active}
+          onDeleted={() => selectList(null)}
+        />
       ) : (
-        <EmptyList onCreated={(id) => setPicked(id)} />
+        <EmptyList onCreated={(id) => selectList(id)} />
       )}
 
       {generating && (

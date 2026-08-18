@@ -123,3 +123,36 @@ test('multiple lists as tabs; items land on the selected tab', async ({ page }) 
   await expect(page.getByRole('checkbox', { name: /check off dish soap/i })).toBeVisible();
   await expect(page.getByRole('checkbox', { name: /check off rotisserie chicken/i })).toHaveCount(0);
 });
+
+// The tab you were on survives a reload, and survives arriving with no search
+// param at all — the two ways you come back to this page in practice: pulling to
+// refresh mid-shop, and relaunching from the home-screen icon.
+test('comes back to the tab you were on', async ({ page }) => {
+  await signUp(page, uniqueEmail('lasttab'));
+  await page.goto('/shopping-list');
+
+  const box = page.getByPlaceholder('Add something you need…');
+  await box.fill('dish soap');
+  await box.press('Enter');
+  await expect(page.getByRole('checkbox', { name: /check off dish soap/i })).toBeVisible();
+
+  await page.getByRole('button', { name: '+ New list' }).click();
+  await page.getByLabel('New list name').fill('Costco');
+  await page.getByRole('button', { name: 'Create list' }).click();
+  await expect(page.getByRole('tab', { name: 'Costco', selected: true })).toBeVisible();
+
+  // A reload lands back on Costco rather than the first list.
+  await page.reload();
+  await expect(page.getByRole('tab', { name: 'Costco', selected: true })).toBeVisible();
+
+  // And so does a fresh visit with no ?list= — the cold-start case, where the
+  // URL can't help and only the remembered id can.
+  await page.goto('/shopping-list');
+  await expect(page.getByRole('tab', { name: 'Costco', selected: true })).toBeVisible();
+
+  // Switching tabs is remembered too, not just the list you created.
+  await page.getByRole('tab', { name: 'Things we need' }).click();
+  await expect(page.getByRole('tab', { name: 'Things we need', selected: true })).toBeVisible();
+  await page.goto('/shopping-list');
+  await expect(page.getByRole('tab', { name: 'Things we need', selected: true })).toBeVisible();
+});
