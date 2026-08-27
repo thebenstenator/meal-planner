@@ -112,6 +112,7 @@ function buildDetail(
     title: meta.title,
     // Not yet saved — ownership/cookbooks are decided by the review form on save.
     householdId: '',
+    forkedFromRecipeId: null,
     cookbookIds: [],
     description: null,
     // Pre-fill the meal type from the title so the review form starts on the

@@ -29,12 +29,15 @@ interface ScalarFields {
 interface Props {
   recipeId?: string;
   initial?: RecipeDetail;
+  /** Editing a shared recipe you don't own: save creates your own copy of this
+   * source rather than touching the original. Mutually exclusive with recipeId. */
+  forkFromId?: string;
   /** Show the "paste ingredients" box. Off on the import/suggestion review,
    * where the ingredients are already parsed into rows. */
   showPaste?: boolean;
 }
 
-export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
+export function RecipeForm({ recipeId, initial, forkFromId, showPaste = true }: Props) {
   const { householdId } = useHousehold();
   const navigate = useNavigate();
   const save = useSaveRecipe();
@@ -65,11 +68,14 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
   // Editing shows the same picker seeded from where the recipe currently lives,
   // so you can share or unshare later — `null` just means "not touched yet".
   const { data: cookbooks } = useCookbooks();
-  const isNew = !recipeId;
+  const isFork = !!forkFromId;
+  const isNew = !recipeId && !isFork;
   const [picked, setPicked] = useState<string[] | null>(null);
   const myCookbooks = cookbooks ?? [];
+  // A forked copy starts private — it's your version now, share it deliberately.
   const selectedCookbooks =
-    picked ?? (isNew ? myCookbooks.map((c) => c.id) : (initial?.cookbookIds ?? []));
+    picked ??
+    (isFork ? [] : isNew ? myCookbooks.map((c) => c.id) : (initial?.cookbookIds ?? []));
 
   function toggleCookbook(id: string) {
     setPicked(
@@ -111,7 +117,15 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
     try {
       // Only send sharing if there's a picker on screen; otherwise leave it be.
       const cookbookIds = myCookbooks.length > 0 ? selectedCookbooks : undefined;
-      const id = await save.mutateAsync({ form: parsed.data, ingredients, recipeId, cookbookIds });
+      // Fork: a create (no recipeId) that records the source. Otherwise a normal
+      // create/update of a recipe you own.
+      const id = await save.mutateAsync({
+        form: parsed.data,
+        ingredients,
+        recipeId: isFork ? undefined : recipeId,
+        cookbookIds,
+        forkedFromId: forkFromId,
+      });
       // replace: don't leave the edit/create form in history, so the back button
       // returns to where you were (the recipe or the list), not the form.
       await navigate({ to: '/recipes/$recipeId', params: { recipeId: id }, replace: true });
@@ -122,6 +136,12 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
+      {isFork && (
+        <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          You’re editing a shared recipe. Saving makes your own copy — the original won’t change.
+        </p>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="title">Title</Label>
         <Input id="title" {...register('title')} placeholder="Grandma’s cheesecake" />
@@ -185,9 +205,11 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
             </div>
           ))}
           <p className="text-muted-foreground text-xs">
-            {isNew
-              ? 'Cookbooks are ticked by default — everyone in one will see this recipe. Untick any to keep it to your household.'
-              : 'Tick or untick any time; unticking removes it from that cookbook for everyone else.'}
+            {isFork
+              ? 'Your copy is private. Tick a cookbook to share your version with that group.'
+              : isNew
+                ? 'Cookbooks are ticked by default — everyone in one will see this recipe. Untick any to keep it to your household.'
+                : 'Tick or untick any time; unticking removes it from that cookbook for everyone else.'}
           </p>
         </div>
       )}
@@ -244,16 +266,25 @@ export function RecipeForm({ recipeId, initial, showPaste = true }: Props) {
 
       <div className="flex gap-2">
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? 'Saving…' : recipeId ? 'Save changes' : 'Create recipe'}
+          {save.isPending
+            ? 'Saving…'
+            : isFork
+              ? 'Save as my copy'
+              : recipeId
+                ? 'Save changes'
+                : 'Create recipe'}
         </Button>
         <Button
           type="button"
           variant="ghost"
-          onClick={() =>
-            recipeId
-              ? navigate({ to: '/recipes/$recipeId', params: { recipeId }, replace: true })
-              : navigate({ to: '/recipes', replace: true })
-          }
+          onClick={() => {
+            // Fork/edit both return to the recipe they came from; a fresh create
+            // has nowhere better than the list.
+            const backTo = forkFromId ?? recipeId;
+            void (backTo
+              ? navigate({ to: '/recipes/$recipeId', params: { recipeId: backTo }, replace: true })
+              : navigate({ to: '/recipes', replace: true }));
+          }}
         >
           Cancel
         </Button>

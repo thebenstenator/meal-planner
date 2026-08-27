@@ -48,6 +48,9 @@ export interface RecipeDetail {
   title: string;
   /** Creator household; compare to the active household for ownership. */
   householdId: string;
+  /** The shared recipe this one was copied from, when a non-owner edited it —
+   * else null. Drives the "your copy" provenance badge. */
+  forkedFromRecipeId: string | null;
   /** Cookbooks this recipe is shared into; empty when it's private. */
   cookbookIds: string[];
   description: string | null;
@@ -119,6 +122,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
     id: data.id,
     title: data.title,
     householdId: data.household_id,
+    forkedFromRecipeId: data.forked_from_recipe_id,
     cookbookIds: (data.recipe_pool_share ?? []).map((s) => s.pool_id),
     description: data.description,
     mealTypes: data.meal_types ?? [],
@@ -155,9 +159,14 @@ export async function saveRecipe(
   /** The exact set of cookbooks to share this recipe into, replacing whatever it
    * was. Omit (undefined) to leave sharing untouched — pass `[]` to unshare. */
   cookbookIds?: string[],
+  /** When a non-owner edits a shared recipe, this is a *create* (recipeId omitted)
+   * that records the original it was copied from. Ignored on an update — provenance
+   * is stamped once, at copy time. */
+  forkedFromId?: string,
 ): Promise<string> {
   const p_recipe = {
     household_id: householdId,
+    forked_from_recipe_id: forkedFromId ?? null,
     title: form.title,
     description: form.description ?? null,
     meal_types: form.mealTypes,

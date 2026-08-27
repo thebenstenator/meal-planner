@@ -89,6 +89,11 @@ function RecipeDetailPage() {
               {perm.ownedByMe ? 'Shared' : 'From cookbook'}
             </Badge>
           )}
+          {recipe.forkedFromRecipeId && (
+            <Badge variant="outline" className="text-sky-700" title="Copied from a shared recipe">
+              Your copy
+            </Badge>
+          )}
           {canFavorite && (
             <button
               type="button"
@@ -101,13 +106,13 @@ function RecipeDetailPage() {
               <span className="text-xl leading-none">{recipe.isFavorite ? '★' : '☆'}</span>
             </button>
           )}
-          {canEdit && (
-            <Button asChild variant="outline" size="sm">
-              <Link to="/recipes/$recipeId/edit" params={{ recipeId }}>
-                Edit
-              </Link>
-            </Button>
-          )}
+          {/* Owners edit in place; everyone else edits a copy (same route, which
+              forks on save). Never a dead end on a recipe you can see. */}
+          <Button asChild variant="outline" size="sm">
+            <Link to="/recipes/$recipeId/edit" params={{ recipeId }}>
+              {canEdit ? 'Edit' : 'Edit a copy'}
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -221,7 +226,7 @@ function RecipeDetailPage() {
         {!canDelete ? (
           <p className="text-muted-foreground text-xs">
             {recipe.cookbookIds.length > 0
-              ? 'Shared from another household — only they can edit or delete it.'
+              ? 'Shared from another household. “Edit a copy” makes your own version to change — the original stays theirs.'
               : null}
           </p>
         ) : !confirming ? (

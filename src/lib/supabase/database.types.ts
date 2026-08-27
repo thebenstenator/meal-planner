@@ -292,48 +292,6 @@ export type Database = {
           },
         ]
       }
-      household_ingredient_pantry_pref: {
-        Row: {
-          canonical_ingredient_id: string
-          created_at: string
-          household_id: string
-          id: string
-          tracked: boolean
-          updated_at: string
-        }
-        Insert: {
-          canonical_ingredient_id: string
-          created_at?: string
-          household_id: string
-          id?: string
-          tracked: boolean
-          updated_at?: string
-        }
-        Update: {
-          canonical_ingredient_id?: string
-          created_at?: string
-          household_id?: string
-          id?: string
-          tracked?: boolean
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "household_ingredient_pantry_pref_canonical_ingredient_id_fkey"
-            columns: ["canonical_ingredient_id"]
-            isOneToOne: false
-            referencedRelation: "canonical_ingredient"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "household_ingredient_pantry_pref_household_id_fkey"
-            columns: ["household_id"]
-            isOneToOne: false
-            referencedRelation: "household"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       household_ingredient_map: {
         Row: {
           canonical_ingredient_id: string
@@ -369,6 +327,48 @@ export type Database = {
           },
           {
             foreignKeyName: "household_ingredient_map_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      household_ingredient_pantry_pref: {
+        Row: {
+          canonical_ingredient_id: string
+          created_at: string
+          household_id: string
+          id: string
+          tracked: boolean
+          updated_at: string
+        }
+        Insert: {
+          canonical_ingredient_id: string
+          created_at?: string
+          household_id: string
+          id?: string
+          tracked: boolean
+          updated_at?: string
+        }
+        Update: {
+          canonical_ingredient_id?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          tracked?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_ingredient_pantry_pref_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_ingredient_pantry_pref_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "household"
@@ -731,6 +731,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description: string | null
+          forked_from_recipe_id: string | null
           household_id: string
           id: string
           image_path: string | null
@@ -754,6 +755,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          forked_from_recipe_id?: string | null
           household_id: string
           id?: string
           image_path?: string | null
@@ -777,6 +779,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          forked_from_recipe_id?: string | null
           household_id?: string
           id?: string
           image_path?: string | null
@@ -796,6 +799,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "recipe_forked_from_recipe_id_fkey"
+            columns: ["forked_from_recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recipe_household_id_fkey"
             columns: ["household_id"]
@@ -1355,8 +1365,32 @@ export type Database = {
     Functions: {
       accept_household_invite: { Args: { p_code: string }; Returns: string }
       accept_recipe_pool_invite: {
-        Args: { p_household_id: string; p_code: string }
+        Args: { p_code: string; p_household_id: string }
         Returns: string
+      }
+      consume_ai_credit: {
+        Args: { p_household_id: string; p_limit?: number; p_source?: string }
+        Returns: number
+      }
+      create_household_invite: {
+        Args: { p_household_id: string }
+        Returns: {
+          accepted_at: string | null
+          accepted_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          household_id: string
+          id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "household_invite"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_recipe_pool: {
         Args: { p_household_id: string; p_name: string }
@@ -1395,62 +1429,11 @@ export type Database = {
         }
       }
       delete_recipe_pool: { Args: { p_pool_id: string }; Returns: undefined }
-      get_recipe_pool_members: {
-        Args: { p_pool_id: string }
-        Returns: {
-          household_id: string
-          household_name: string
-          role: string
-          joined_at: string
-          email: string
-        }[]
-      }
-      is_pool_member: { Args: { p_pool_id: string }; Returns: boolean }
-      is_pool_owner: { Args: { p_pool_id: string }; Returns: boolean }
-      is_recipe_creator: { Args: { p_recipe_id: string }; Returns: boolean }
-      is_recipe_shared_with_me: { Args: { p_recipe_id: string }; Returns: boolean }
-      my_pool_ids: { Args: never; Returns: string[] }
-      set_recipe_pools: {
-        Args: { p_recipe_id: string; p_pool_ids: string[] }
-        Returns: undefined
-      }
-      leave_recipe_pool: {
-        Args: { p_household_id: string; p_pool_id: string }
-        Returns: undefined
-      }
-      share_all_with_pool: {
-        Args: { p_household_id: string; p_pool_id: string }
-        Returns: number
-      }
-      consume_ai_credit: {
-        Args: { p_household_id: string; p_limit?: number; p_source?: string }
-        Returns: number
-      }
-      create_household_invite: {
-        Args: { p_household_id: string }
-        Returns: {
-          accepted_at: string | null
-          accepted_by: string | null
-          code: string
-          created_at: string
-          created_by: string | null
-          expires_at: string
-          household_id: string
-          id: string
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "household_invite"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      gen_invite_code: { Args: never; Returns: string }
       delete_shopping_category: {
         Args: { p_id: string; p_reassign_to?: string }
         Returns: undefined
       }
+      gen_invite_code: { Args: never; Returns: string }
       generate_shopping_list: {
         Args: {
           p_end: string
@@ -1481,11 +1464,32 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_recipe_pool_members: {
+        Args: { p_pool_id: string }
+        Returns: {
+          email: string
+          household_id: string
+          household_name: string
+          joined_at: string
+          role: string
+        }[]
+      }
       is_household_member: {
         Args: { p_household_id: string }
         Returns: boolean
       }
       is_household_owner: { Args: { p_household_id: string }; Returns: boolean }
+      is_pool_member: { Args: { p_pool_id: string }; Returns: boolean }
+      is_pool_owner: { Args: { p_pool_id: string }; Returns: boolean }
+      is_recipe_creator: { Args: { p_recipe_id: string }; Returns: boolean }
+      is_recipe_shared_with_me: {
+        Args: { p_recipe_id: string }
+        Returns: boolean
+      }
+      leave_recipe_pool: {
+        Args: { p_household_id: string; p_pool_id: string }
+        Returns: undefined
+      }
       match_canonical_ingredient: {
         Args: { p_household_id: string; p_raw: string; p_threshold?: number }
         Returns: {
@@ -1495,10 +1499,23 @@ export type Database = {
           score: number
         }[]
       }
+      my_pool_ids: { Args: never; Returns: string[] }
       resolve_canonical: { Args: { p_id: string }; Returns: string }
       save_recipe: {
         Args: { p_ingredients: Json; p_recipe: Json; p_recipe_id?: string }
         Returns: string
+      }
+      seed_shopping_categories: {
+        Args: { p_household_id: string }
+        Returns: undefined
+      }
+      set_recipe_pools: {
+        Args: { p_pool_ids: string[]; p_recipe_id: string }
+        Returns: undefined
+      }
+      share_all_with_pool: {
+        Args: { p_household_id: string; p_pool_id: string }
+        Returns: number
       }
     }
     Enums: {

@@ -58,10 +58,11 @@ export function useSaveRecipe() {
       ingredients: RecipeIngredientDraft[];
       recipeId?: string;
       cookbookIds?: string[];
+      forkedFromId?: string;
     }
   >({
-    mutationFn: ({ form, ingredients, recipeId, cookbookIds }) =>
-      saveRecipe(householdId as string, form, ingredients, recipeId, cookbookIds),
+    mutationFn: ({ form, ingredients, recipeId, cookbookIds, forkedFromId }) =>
+      saveRecipe(householdId as string, form, ingredients, recipeId, cookbookIds, forkedFromId),
     onSuccess: (id) => {
       invalidate();
       void qc.invalidateQueries({ queryKey: recipeKeys.detail(id) });

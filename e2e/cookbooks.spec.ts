@@ -94,13 +94,15 @@ test('cookbook: share, join, add, opt out, and creator-only edits across two hou
   await member.goto('/recipes');
   await expect(recipeLink(member, 'Owner Roast')).toBeVisible({ timeout: 15000 });
 
-  // Opening it: read-only. A cookbook recipe still belongs to the household that
-  // added it, so nobody else edits, favorites or deletes it.
+  // Opening it: a cookbook recipe still belongs to the household that added it,
+  // so nobody else edits it in place, favorites or deletes it — but a non-owner
+  // can fork it into their own copy (covered end to end in recipe-fork.spec.ts).
   await recipeLink(member, 'Owner Roast').click();
   await expect(member.getByRole('heading', { name: 'Owner Roast' })).toBeVisible();
-  await expect(member.getByRole('link', { name: 'Edit' })).toHaveCount(0);
+  await expect(member.getByRole('link', { name: 'Edit', exact: true })).toHaveCount(0);
+  await expect(member.getByRole('link', { name: 'Edit a copy' })).toBeVisible();
   await expect(member.getByRole('button', { name: /favorites/ })).toHaveCount(0);
-  await expect(member.getByText('only they can edit or delete it')).toBeVisible();
+  await expect(member.getByText('makes your own version')).toBeVisible();
 
   // Member adds their own recipe — shared into the cookbook by default…
   await createRecipe(member, 'Member Salad', '1 head lettuce\n2 tomatoes');
