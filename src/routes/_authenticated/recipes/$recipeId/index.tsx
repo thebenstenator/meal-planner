@@ -121,7 +121,14 @@ function RecipeDetailPage() {
 
       <RecipeCostCard ingredients={recipe.ingredients} servings={recipe.servings} />
 
-      <RecipeCompanion />
+      <RecipeCompanion
+        recipe={{
+          title: recipe.title,
+          servings: recipe.servings,
+          ingredients: recipe.ingredients.map((i) => i.rawText),
+          instructions: recipe.instructions,
+        }}
+      />
 
       <section>
         <div className="mb-2 flex items-center justify-between">
