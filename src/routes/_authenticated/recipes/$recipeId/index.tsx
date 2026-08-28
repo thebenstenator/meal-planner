@@ -11,6 +11,7 @@ import {
   canFavoriteRecipe,
   cookbooksICanEvictFrom,
 } from '@/features/recipes/permissions';
+import { RecipeCompanion } from '@/features/recipes/components/recipe-companion';
 import { scaledAmount } from '@/features/recipes/scale';
 import { useCookbooks, useUnshareRecipe } from '@/features/recipes/use-cookbook';
 import { useRecipe, useSetFavorite, useSoftDeleteRecipe } from '@/features/recipes/use-recipes';
@@ -119,6 +120,8 @@ function RecipeDetailPage() {
       {recipe.description && <p className="text-muted-foreground">{recipe.description}</p>}
 
       <RecipeCostCard ingredients={recipe.ingredients} servings={recipe.servings} />
+
+      <RecipeCompanion />
 
       <section>
         <div className="mb-2 flex items-center justify-between">
