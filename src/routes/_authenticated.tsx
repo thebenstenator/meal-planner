@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
 import { AppHeader } from '@/app/app-header';
+import { BottomNav } from '@/app/bottom-nav';
 
 /**
  * Protected-route wrapper. Any route placed under `_authenticated/` requires a
@@ -29,7 +30,11 @@ function AuthenticatedLayout() {
   return (
     <div className="min-h-dvh">
       <AppHeader />
-      <Outlet />
+      {/* Bottom padding on mobile so content clears the fixed bottom nav. */}
+      <div className="pb-16 md:pb-0">
+        <Outlet />
+      </div>
+      <BottomNav />
     </div>
   );
 }

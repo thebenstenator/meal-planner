@@ -5,6 +5,19 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Mobile nav + per-person start page
+
+- **Bottom navigation on phones.** The primary destinations (Plan / Ideas /
+  Recipes / Pantry / List) move to a thumb-reachable bottom bar on mobile — with
+  icons — that tucks away when you scroll down and slides back when you scroll
+  up. The top header keeps just the household name, sync status, and account
+  menu on mobile; desktop keeps the full top nav.
+- **Choose your start page.** A per-person "Start page" setting (in Household
+  settings) picks which page the app opens on when you boot it up — Plan by
+  default. It's stored per device, so two people in one household can land on
+  different pages (one on Plan, another on List). Applies to a cold app launch
+  and to signing back in; a brand-new sign-up still starts on Home.
+
 ### Pricing refinements
 
 - **Price a pantry item in place.** Each pantry row's ⋮ menu has "Set price" /

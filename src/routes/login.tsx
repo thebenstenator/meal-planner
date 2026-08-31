@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GOOGLE_OAUTH_ENABLED } from '@/features/auth/context';
 import { useAuth } from '@/features/auth/use-auth';
+import { getLandingPref } from '@/features/preferences/landing';
 import { credentialsSchema, type Credentials } from '@/schemas/auth';
 
 const loginSearchSchema = z.object({
@@ -47,7 +48,9 @@ function LoginPage() {
       } else {
         await signUp(values, name);
       }
-      await navigate({ to: redirect ?? '/app' });
+      // A returning sign-in honours your chosen start page; a brand-new sign-up
+      // lands on Home (the onboarding hub). An explicit deep link always wins.
+      await navigate({ to: redirect ?? (mode === 'sign-in' ? getLandingPref() : '/app') });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Something went wrong');
     }
