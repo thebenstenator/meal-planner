@@ -15,8 +15,9 @@ All notable changes to this project are documented here. One entry per slice
 - **Choose your start page.** A per-person "Start page" setting (in Household
   settings) picks which page the app opens on when you boot it up — Plan by
   default. It's stored per device, so two people in one household can land on
-  different pages (one on Plan, another on List). Applies to a cold app launch
-  and to signing back in; a brand-new sign-up still starts on Home.
+  different pages (one on Plan, another on List). Applies when you boot the app
+  (an installed PWA or a bookmark to the root); the login form itself still lands
+  on Home.
 
 ### Pricing refinements
 

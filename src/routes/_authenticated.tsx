@@ -31,7 +31,7 @@ function AuthenticatedLayout() {
     <div className="min-h-dvh">
       <AppHeader />
       {/* Bottom padding on mobile so content clears the fixed bottom nav. */}
-      <div className="pb-16 md:pb-0">
+      <div className="pb-20 md:pb-0">
         <Outlet />
       </div>
       <BottomNav />

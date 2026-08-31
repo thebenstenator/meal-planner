@@ -17,6 +17,9 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
+      // Pad for the home-indicator safe area so labels aren't clipped on notched
+      // phones (0 on the emulated Pixel 7 used in tests).
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       className={cn(
         'bg-background fixed inset-x-0 bottom-0 z-40 border-t transition-transform duration-200 md:hidden',
         hidden && 'translate-y-full',
