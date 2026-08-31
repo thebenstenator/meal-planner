@@ -58,8 +58,9 @@ test('plan entries sync across two sessions in realtime', async ({ browser }) =>
   await expect(pageA.getByText('Eating out').first()).toBeVisible();
   await expect(pageB.getByText('Eating out').first()).toBeVisible({ timeout: 15000 });
 
-  // A removes it; it disappears for B too.
-  await pageA.getByRole('button', { name: 'Remove entry' }).first().click();
+  // A removes it (via the chip's ⋮ menu); it disappears for B too.
+  await pageA.getByRole('button', { name: /^Actions for/ }).first().click();
+  await pageA.getByRole('menuitem', { name: 'Remove' }).click();
   await expect(pageB.getByText('Eating out')).toHaveCount(0, { timeout: 15000 });
 
   await ctxA.close();

@@ -63,3 +63,28 @@ test('shows a consumption-based recipe cost from a captured price', async ({ pag
   await page.getByRole('link', { name: /Cost Test/ }).click();
   await expect(page.getByTestId('recipe-cost')).toContainText('$2.50');
 });
+
+// A manually set meal price overrides the ingredient-derived cost, and clearing
+// it falls back to the calculation.
+test('a manual meal price wins over the ingredient cost', async ({ page }) => {
+  await signUp(page, uniqueEmail('mealprice'));
+
+  await page.goto('/recipes/new');
+  await page.getByLabel('Title').fill('Flat Price');
+  await page.getByLabel('Paste ingredients').fill('1 mystery item');
+  await page.getByRole('button', { name: 'Add rows' }).click();
+  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await expect(page.getByRole('heading', { name: 'Flat Price' })).toBeVisible();
+
+  // No store/prices yet: the cost card offers to set a flat price.
+  await page.getByRole('button', { name: 'set a price' }).click();
+  await page.getByLabel('Meal price').fill('12.00');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByTestId('recipe-cost')).toContainText('$12.00');
+  await expect(page.getByText(/Set manually/)).toBeVisible();
+
+  // Clearing it returns to the "no prices" prompt.
+  await page.getByRole('button', { name: 'Edit price' }).click();
+  await page.getByRole('button', { name: 'Use ingredient cost' }).click();
+  await expect(page.getByTestId('recipe-cost')).toHaveCount(0);
+});

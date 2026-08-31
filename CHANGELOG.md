@@ -5,6 +5,26 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Pricing refinements
+
+- **Price a pantry item in place.** Each pantry row's ⋮ menu has "Set price" /
+  "Edit price" — a small inline editor (price + package size) that records a
+  price at your default store, the same shape the shopping list and receipt
+  scanner feed. The current price shows on the row.
+- **Set a meal's price directly.** A recipe can carry a manual meal price
+  (`recipe.manual_cost_cents`) set from the recipe cost card or the planner meal
+  card. When set it **wins** over the ingredient-derived cost everywhere cost is
+  shown; "use ingredient cost" clears it back to the calculation.
+- **Confirm prices when you scan a receipt.** Finishing a trip now lists the
+  items the receipt matched to your list with editable prices (seeded from the
+  scan), so what you confirm updates each item's store price. The standalone
+  /receipts review keeps its per-line prices.
+- **Take a photo, not just pick one.** Both scan surfaces offer an explicit
+  "Take photo" (`capture="environment"`) alongside "Choose photos", so the camera
+  is one tap away instead of dropping you into the gallery.
+- **Cleaner meal card.** The planner chip keeps the meal name and cost on its
+  face and moves cook / set-price / move / remove behind a single ⋮ menu.
+
 ### Shopping list categories (store sections)
 
 - Lists are grouped into **store sections** — Produce, Bakery, Meat, Dairy &

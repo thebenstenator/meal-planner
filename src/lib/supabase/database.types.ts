@@ -739,6 +739,7 @@ export type Database = {
           instructions: string | null
           is_favorite: boolean
           last_cooked_on: string | null
+          manual_cost_cents: number | null
           meal_types: string[]
           notes: string | null
           prep_minutes: number | null
@@ -763,6 +764,7 @@ export type Database = {
           instructions?: string | null
           is_favorite?: boolean
           last_cooked_on?: string | null
+          manual_cost_cents?: number | null
           meal_types?: string[]
           notes?: string | null
           prep_minutes?: number | null
@@ -787,6 +789,7 @@ export type Database = {
           instructions?: string | null
           is_favorite?: boolean
           last_cooked_on?: string | null
+          manual_cost_cents?: number | null
           meal_types?: string[]
           notes?: string | null
           prep_minutes?: number | null

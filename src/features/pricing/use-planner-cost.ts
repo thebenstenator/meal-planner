@@ -9,6 +9,8 @@ import { supabase } from '@/lib/supabase/client';
 interface RecipeCostInput {
   recipeId: string;
   servings: number;
+  /** A flat manual price (cents) at base servings; when set it wins over ingredients. */
+  manualCostCents: number | null;
   ingredients: CostableIngredient[];
 }
 
@@ -21,7 +23,7 @@ async function fetchRecipeCostInputs(ids: string[]): Promise<RecipeCostInput[]> 
   if (ids.length === 0) return [];
 
   const [{ data: recipes, error: rErr }, { data: rows, error: iErr }] = await Promise.all([
-    supabase.from('recipe').select('id, servings').in('id', ids),
+    supabase.from('recipe').select('id, servings, manual_cost_cents').in('id', ids),
     supabase
       .from('recipe_ingredient')
       .select('recipe_id, canonical_ingredient_id, quantity, unit, is_optional')
@@ -31,7 +33,13 @@ async function fetchRecipeCostInputs(ids: string[]): Promise<RecipeCostInput[]> 
   if (iErr) throw iErr;
 
   const byId = new Map<string, RecipeCostInput>();
-  for (const r of recipes ?? []) byId.set(r.id, { recipeId: r.id, servings: r.servings ?? 1, ingredients: [] });
+  for (const r of recipes ?? [])
+    byId.set(r.id, {
+      recipeId: r.id,
+      servings: r.servings ?? 1,
+      manualCostCents: r.manual_cost_cents,
+      ingredients: [],
+    });
   for (const row of rows ?? []) {
     byId.get(row.recipe_id)?.ingredients.push({
       canonicalId: row.canonical_ingredient_id,
@@ -105,12 +113,24 @@ export function usePlannerCosts(entries: PlanEntry[]): PlannerCosts {
     const costForEntry = (entry: PlanEntry): EntryCost => {
       if (entry.kind !== 'recipe' || !entry.recipeId)
         return { cents: null, perServingCents: null, unpriced: false };
-      const rc = costByRecipe.get(entry.recipeId);
       const input = inputById.get(entry.recipeId);
-      if (!rc || !input || rc.pricedCount === 0)
-        return { cents: null, perServingCents: null, unpriced: true };
+      if (!input) return { cents: null, perServingCents: null, unpriced: true };
       const scale =
         entry.servingsOverride && input.servings ? entry.servingsOverride / input.servings : 1;
+
+      // A manual meal price wins: it's a fully priced meal regardless of store or
+      // ingredient prices, split evenly across servings and scaled by any override.
+      if (input.manualCostCents != null) {
+        return {
+          cents: Math.round(input.manualCostCents * scale),
+          perServingCents: Math.round(input.manualCostCents / Math.max(1, input.servings)),
+          unpriced: false,
+        };
+      }
+
+      const rc = costByRecipe.get(entry.recipeId);
+      if (!rc || rc.pricedCount === 0)
+        return { cents: null, perServingCents: null, unpriced: true };
       return {
         cents: Math.round(rc.totalCents * scale),
         perServingCents: rc.perServingCents,

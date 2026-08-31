@@ -8,6 +8,7 @@ import { useEntitlement } from '@/features/billing/use-entitlement';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { usePricingSettings, useStores } from '@/features/pricing/use-pricing';
 import type { ReceiptLineDraft } from '@/features/receipts/api';
+import { PhotoInput } from '@/features/receipts/components/photo-input';
 import { centsToDollars, dollarsToCents } from '@/features/receipts/money';
 import {
   useDeleteTrip,
@@ -170,16 +171,22 @@ function CaptureStep({
 }) {
   return (
     <div className="space-y-4">
-      <label className="border-input hover:bg-accent block cursor-pointer rounded-lg border border-dashed p-6 text-center text-sm">
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => onAddFiles(e.target.files)}
-        />
-        Add receipt photos ({images.length}/6)
-      </label>
+      <div className="grid grid-cols-2 gap-2">
+        <PhotoInput
+          onAddFiles={onAddFiles}
+          capture
+          className="border-input hover:bg-accent flex cursor-pointer items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm"
+        >
+          📷 Take photo
+        </PhotoInput>
+        <PhotoInput
+          onAddFiles={onAddFiles}
+          className="border-input hover:bg-accent flex cursor-pointer items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm"
+        >
+          Choose photos
+        </PhotoInput>
+      </div>
+      <p className="text-muted-foreground text-center text-xs">{images.length}/6 photos added</p>
 
       {images.length > 0 && (
         <ul className="grid grid-cols-3 gap-2">

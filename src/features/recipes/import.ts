@@ -128,6 +128,7 @@ function buildDetail(
     rating: null,
     timesCooked: 0,
     isFavorite: false,
+    manualCostCents: null,
     ingredients,
   };
 }

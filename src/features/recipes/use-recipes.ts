@@ -10,6 +10,7 @@ import {
   restoreRecipe,
   saveRecipe,
   setRecipeFavorite,
+  setRecipeManualCost,
   softDeleteRecipe,
   type RecipeIngredientDraft,
 } from '@/features/recipes/api';
@@ -82,6 +83,25 @@ export function useSetFavorite(recipeId: string) {
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: recipeKeys.detail(recipeId) });
+      invalidate();
+    },
+  });
+}
+
+/**
+ * Set or clear (null) a recipe's manual meal price. Invalidates the recipe detail
+ * *and* the planner cost inputs so the meal card / budget bar re-cost immediately.
+ * Keyed by recipe rather than a detail object, so the planner can call it with
+ * just an entry's recipeId.
+ */
+export function useSetRecipeManualCost(recipeId: string) {
+  const qc = useQueryClient();
+  const invalidate = useInvalidateRecipes();
+  return useMutation<void, Error, number | null>({
+    mutationFn: (cents) => setRecipeManualCost(recipeId, cents),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: recipeKeys.detail(recipeId) });
+      void qc.invalidateQueries({ queryKey: ['recipe-cost-inputs'] });
       invalidate();
     },
   });

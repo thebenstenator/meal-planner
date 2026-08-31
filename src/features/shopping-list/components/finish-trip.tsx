@@ -19,6 +19,7 @@ import {
 } from '@/features/pantry/use-pantry';
 import { useListPricing } from '@/features/pricing/use-list-pricing';
 import type { ReceiptLineDraft } from '@/features/receipts/api';
+import { PhotoInput } from '@/features/receipts/components/photo-input';
 import { centsToDollars, dollarsToCents } from '@/features/receipts/money';
 import { useSaveTrip, useScanReceipt } from '@/features/receipts/use-receipts';
 import { fileToImage, ImportError } from '@/features/recipes/import';
@@ -161,6 +162,10 @@ function FinishTripDialog({
   const [images, setImages] = useState<Img[]>([]);
   const [recon, setRecon] = useState<Recon | null>(null);
   const [receiptLines, setReceiptLines] = useState<ReceiptLineDraft[]>([]);
+  // Editable price per receipt line, keyed by its index in `receiptLines`. This
+  // is the confirmation the shopper checks — seeded from the scanned prices, then
+  // saved back onto the matched items so it sharpens future estimates.
+  const [receiptPrices, setReceiptPrices] = useState<Record<number, string>>({});
   const [receiptDate, setReceiptDate] = useState<string | null>(null);
   const [missedSel, setMissedSel] = useState<Record<string, boolean>>({});
   const [offListSel, setOffListSel] = useState<Record<number, boolean>>({});
@@ -189,6 +194,7 @@ function FinishTripDialog({
       );
       const r = reconcileTrip(drafts, items);
       setReceiptLines(drafts);
+      setReceiptPrices(Object.fromEntries(drafts.map((d, i) => [i, centsToDollars(d.priceCents)])));
       setRecon(r);
       setReceiptDate(parsed.purchasedOn);
       if (parsed.totalCents != null) setTotal(centsToDollars(parsed.totalCents));
@@ -234,12 +240,18 @@ function FinishTripDialog({
     setBusy(true);
     setError(null);
     try {
+      // Fold the confirmed prices back onto the receipt lines before saving, so
+      // matched items record what the shopper actually confirmed paying.
+      const pricedReceiptLines = receiptLines.map((l, i) => ({
+        ...l,
+        priceCents: dollarsToCents(receiptPrices[i] ?? '') ?? l.priceCents,
+      }));
       await save.mutateAsync({
         storeId: pricing.storeId,
         purchasedOn: receiptDate ?? todayISO(),
         totalCents,
         note: listName,
-        lines: recon ? receiptLines : linesFromList(),
+        lines: recon ? pricedReceiptLines : linesFromList(),
       });
 
       if (recon) {
@@ -340,6 +352,10 @@ function FinishTripDialog({
               {step === 'review' && recon && (
                 <ReviewLists
                   recon={recon}
+                  receiptLines={receiptLines}
+                  prices={receiptPrices}
+                  onPrice={(i, v) => setReceiptPrices((p) => ({ ...p, [i]: v }))}
+                  hasStore={!!pricing.storeId}
                   missedSel={missedSel}
                   onMissed={(id, v) => setMissedSel((p) => ({ ...p, [id]: v }))}
                   offListSel={offListSel}
@@ -456,16 +472,21 @@ function ScanEntry({
   }
   if (images.length === 0) {
     return (
-      <label className="hover:bg-accent cursor-pointer rounded-md border px-3 py-2 text-sm">
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => onAddFiles(e.target.files)}
-        />
-        Scan receipt
-      </label>
+      <div className="flex items-center gap-2">
+        <PhotoInput
+          onAddFiles={onAddFiles}
+          capture
+          className="hover:bg-accent cursor-pointer rounded-md border px-3 py-2 text-sm"
+        >
+          📷 Take photo
+        </PhotoInput>
+        <PhotoInput
+          onAddFiles={onAddFiles}
+          className="hover:bg-accent cursor-pointer rounded-md border px-3 py-2 text-sm"
+        >
+          Choose photo
+        </PhotoInput>
+      </div>
     );
   }
   return (
@@ -487,19 +508,58 @@ function ReviewSummary({ recon }: { recon: Recon }) {
 
 function ReviewLists({
   recon,
+  receiptLines,
+  prices,
+  onPrice,
+  hasStore,
   missedSel,
   onMissed,
   offListSel,
   onOffList,
 }: {
   recon: Recon;
+  receiptLines: ReceiptLineDraft[];
+  prices: Record<number, string>;
+  onPrice: (index: number, value: string) => void;
+  hasStore: boolean;
   missedSel: Record<string, boolean>;
   onMissed: (id: string, value: boolean) => void;
   offListSel: Record<number, boolean>;
   onOffList: (index: number, value: boolean) => void;
 }) {
+  // Everything the receipt matched to your list — bought and ticked, or bought
+  // and missed — is a thing you paid for; let the shopper confirm each price.
+  const bought = [...recon.confirmed, ...recon.missed];
+
   return (
     <div className="space-y-3">
+      {bought.length > 0 && (
+        <section className="space-y-1">
+          <h3 className="text-sm font-medium">Prices for what you bought</h3>
+          <p className="text-muted-foreground text-xs">
+            {hasStore
+              ? 'Confirm what each cost — these update your store prices.'
+              : 'Confirm what each cost. Set a default store to also save these as price history.'}
+          </p>
+          {bought.map(({ line, item }) => {
+            const idx = receiptLines.indexOf(line);
+            return (
+              <div key={item.id} className="flex items-center gap-2 text-sm">
+                <span className="min-w-0 flex-1 truncate">{item.displayName}</span>
+                <span className="text-muted-foreground">$</span>
+                <Input
+                  inputMode="decimal"
+                  aria-label={`Price paid for ${item.displayName}`}
+                  value={prices[idx] ?? ''}
+                  onChange={(e) => onPrice(idx, e.target.value)}
+                  className="h-8 w-20"
+                />
+              </div>
+            );
+          })}
+        </section>
+      )}
+
       {recon.missed.length > 0 && (
         <section className="space-y-1">
           <h3 className="text-sm font-medium">On the receipt, not checked off</h3>

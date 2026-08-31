@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useHousehold } from '@/features/household/use-household';
 import { useRecipeCost } from '@/features/pricing/use-recipe-cost';
 import {
@@ -14,7 +15,13 @@ import {
 import { RecipeCompanion } from '@/features/recipes/components/recipe-companion';
 import { scaledAmount } from '@/features/recipes/scale';
 import { useCookbooks, useUnshareRecipe } from '@/features/recipes/use-cookbook';
-import { useRecipe, useSetFavorite, useSoftDeleteRecipe } from '@/features/recipes/use-recipes';
+import {
+  useRecipe,
+  useSetFavorite,
+  useSetRecipeManualCost,
+  useSoftDeleteRecipe,
+} from '@/features/recipes/use-recipes';
+import { centsToDollars, dollarsToCents } from '@/features/receipts/money';
 import { formatCurrency } from '@/lib/utils/format-currency';
 
 export const Route = createFileRoute('/_authenticated/recipes/$recipeId/')({
@@ -119,7 +126,13 @@ function RecipeDetailPage() {
 
       {recipe.description && <p className="text-muted-foreground">{recipe.description}</p>}
 
-      <RecipeCostCard ingredients={recipe.ingredients} servings={recipe.servings} />
+      <RecipeCostCard
+        recipeId={recipe.id}
+        ingredients={recipe.ingredients}
+        servings={recipe.servings}
+        manualCostCents={recipe.manualCostCents}
+        canEdit={canEdit}
+      />
 
       <RecipeCompanion
         recipe={{
@@ -272,18 +285,77 @@ function Centered({ children }: { children: React.ReactNode }) {
 }
 
 function RecipeCostCard({
+  recipeId,
   ingredients,
   servings,
+  manualCostCents,
+  canEdit,
 }: {
+  recipeId: string;
   ingredients: { quantity: number | null; unit: string | null; canonicalId: string | null; isOptional: boolean }[];
   servings: number;
+  manualCostCents: number | null;
+  canEdit: boolean;
 }) {
-  const cost = useRecipeCost(ingredients, servings);
+  const cost = useRecipeCost(ingredients, servings, manualCostCents);
+  const setCost = useSetRecipeManualCost(recipeId);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+
+  function open() {
+    setValue(centsToDollars(manualCostCents));
+    setEditing(true);
+  }
+  function save() {
+    const cents = dollarsToCents(value);
+    if (cents == null) return;
+    setCost.mutate(cents, { onSuccess: () => setEditing(false) });
+  }
 
   if (cost.isLoading) return null;
 
-  // No default store / no prices captured yet — point the user at pricing.
-  if (!cost.storeId || cost.pricedCount === 0) {
+  const editor = editing ? (
+    <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3 text-sm">
+      <span className="text-muted-foreground">$</span>
+      <Input
+        autoFocus
+        inputMode="decimal"
+        aria-label="Meal price"
+        placeholder="0.00"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            save();
+          }
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        className="h-8 w-24"
+      />
+      <Button type="button" size="sm" onClick={save} disabled={setCost.isPending}>
+        Save
+      </Button>
+      {manualCostCents != null && (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => setCost.mutate(null, { onSuccess: () => setEditing(false) })}
+          disabled={setCost.isPending}
+        >
+          Use ingredient cost
+        </Button>
+      )}
+      <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
+        Cancel
+      </Button>
+    </div>
+  ) : null;
+
+  // No manual price, and no store/prices to compute one — point at pricing, but
+  // still let an owner set a flat price directly.
+  if (manualCostCents == null && (!cost.storeId || cost.pricedCount === 0)) {
     return (
       <div className="bg-muted/40 rounded-lg border p-4 text-sm">
         <span className="text-muted-foreground">
@@ -294,6 +366,15 @@ function RecipeCostCard({
         <Link to="/stores" className="underline">
           {cost.storeId ? 'Add prices' : 'Set up pricing'}
         </Link>
+        {canEdit && !editing && (
+          <>
+            {' · '}
+            <button type="button" className="underline" onClick={open}>
+              set a price
+            </button>
+          </>
+        )}
+        {editor}
       </div>
     );
   }
@@ -301,22 +382,34 @@ function RecipeCostCard({
   return (
     <div className="rounded-lg border p-4">
       <div className="flex items-baseline justify-between">
-        <span className="text-sm font-medium">Estimated cost</span>
+        <span className="text-sm font-medium">
+          {cost.isManual ? 'Meal price' : 'Estimated cost'}
+        </span>
         <span className="text-xl font-semibold" data-testid="recipe-cost">
           {formatCurrency(cost.totalCents)}
         </span>
       </div>
       <div className="text-muted-foreground mt-1 flex items-baseline justify-between text-sm">
         <span>{formatCurrency(cost.perServingCents)} / serving</span>
-        {cost.unpricedCount > 0 && (
+        {!cost.isManual && cost.unpricedCount > 0 && (
           <span>
             {cost.unpricedCount} of {cost.pricedCount + cost.unpricedCount} not priced
           </span>
         )}
       </div>
-      <p className="text-muted-foreground mt-2 text-xs">
-        Based on the amount this recipe uses, at your default store.
-      </p>
+      <div className="text-muted-foreground mt-2 flex items-center justify-between text-xs">
+        <span>
+          {cost.isManual
+            ? 'Set manually — overrides the ingredient-based cost.'
+            : 'Based on the amount this recipe uses, at your default store.'}
+        </span>
+        {canEdit && !editing && (
+          <button type="button" className="underline" onClick={open}>
+            {cost.isManual ? 'Edit price' : 'Set price'}
+          </button>
+        )}
+      </div>
+      {editor}
     </div>
   );
 }

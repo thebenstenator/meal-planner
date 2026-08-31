@@ -55,12 +55,19 @@ export function usePriceIndex(canonicalIds: string[]): PriceIndex {
 export interface RecipeCostResult extends RecipeCost {
   storeId: string | null;
   isLoading: boolean;
+  /** True when the figure is a manually set meal price, not derived from ingredients. */
+  isManual: boolean;
 }
 
-/** Consumption cost of one recipe at the default store. */
+/**
+ * Consumption cost of one recipe at the default store. When `manualCostCents` is
+ * set it wins: the figure is that flat price (no store or ingredient prices
+ * needed), split evenly across servings.
+ */
 export function useRecipeCost(
   ingredients: CostableIngredient[],
   servings: number,
+  manualCostCents?: number | null,
 ): RecipeCostResult {
   const canonicalIds = useMemo(
     () => ingredients.map((i) => i.canonicalId).filter((id): id is string => !!id),
@@ -69,7 +76,18 @@ export function useRecipeCost(
   const index = usePriceIndex(canonicalIds);
 
   return useMemo(() => {
+    if (manualCostCents != null) {
+      return {
+        totalCents: manualCostCents,
+        perServingCents: Math.round(manualCostCents / Math.max(1, servings)),
+        pricedCount: 0,
+        unpricedCount: 0,
+        storeId: index.storeId,
+        isLoading: index.isLoading,
+        isManual: true,
+      };
+    }
     const cost = recipeCost(ingredients, servings, index.priceByCanonical, index.infoByCanonical);
-    return { ...cost, storeId: index.storeId, isLoading: index.isLoading };
-  }, [ingredients, servings, index]);
+    return { ...cost, storeId: index.storeId, isLoading: index.isLoading, isManual: false };
+  }, [ingredients, servings, manualCostCents, index]);
 }

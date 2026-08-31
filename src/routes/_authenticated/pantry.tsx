@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,10 @@ import type { ScannedProduct } from '@/features/scanner/open-food-facts';
 import type { PackageLine, PantryItem, PantryLocation } from '@/features/pantry/api';
 import { PantryBulkImport } from '@/features/pantry/components/bulk-import';
 import { usePantry, usePantryMutations } from '@/features/pantry/use-pantry';
+import type { CurrentPrice } from '@/features/pricing/api';
+import { useAddPrice, useCurrentPrices, usePricingSettings } from '@/features/pricing/use-pricing';
+import { centsToDollars, dollarsToCents } from '@/features/receipts/money';
+import { formatCurrency } from '@/lib/utils/format-currency';
 import { parseTypedDate, toISO } from '@/features/planner/dates';
 import { useHousehold } from '@/features/household/use-household';
 
@@ -58,6 +62,15 @@ function PantryPage() {
   const { householdId } = useHousehold();
   const { data, isLoading, isError } = usePantry();
   const { add } = usePantryMutations();
+
+  // Current prices at the default store, so each row can show and edit its price.
+  const { data: settings } = usePricingSettings();
+  const defaultStoreId = settings?.defaultStoreId ?? null;
+  const { data: currentPrices } = useCurrentPrices(defaultStoreId);
+  const priceByCanonical = useMemo(
+    () => new Map((currentPrices ?? []).map((p) => [p.canonicalId, p])),
+    [currentPrices],
+  );
 
   const [picked, setPicked] = useState<{ id: string | null; name: string | null }>({
     id: null,
@@ -313,7 +326,12 @@ function PantryPage() {
             </h2>
             <ul className="divide-y rounded-lg border">
               {locItems.map((item) => (
-                <PantryRow key={item.id} item={item} />
+                <PantryRow
+                  key={item.id}
+                  item={item}
+                  storeId={defaultStoreId}
+                  price={priceByCanonical.get(item.canonicalId) ?? null}
+                />
               ))}
             </ul>
           </section>
@@ -323,12 +341,23 @@ function PantryPage() {
   );
 }
 
-function PantryRow({ item }: { item: PantryItem }) {
+function PantryRow({
+  item,
+  storeId,
+  price,
+}: {
+  item: PantryItem;
+  /** Default store to write prices against; null when none is set up yet. */
+  storeId: string | null;
+  /** Current price at the default store, if we have one. */
+  price: CurrentPrice | null;
+}) {
   const { update, remove } = usePantryMutations();
   const [qty, setQty] = useState(item.amountUnknown ? '' : String(item.quantity));
   // Owned here so the row's "⋮" menu can open each editor.
   const [editingExpiry, setEditingExpiry] = useState(false);
   const [editingPackages, setEditingPackages] = useState(false);
+  const [editingPrice, setEditingPrice] = useState(false);
   const packaged = item.packages.length > 0;
 
   function commitQty() {
@@ -357,6 +386,17 @@ function PantryRow({ item }: { item: PantryItem }) {
             </span>
           )}
           <ExpiryControl item={item} editing={editingExpiry} setEditing={setEditingExpiry} />
+          {price && !editingPrice && (
+            <button
+              type="button"
+              onClick={() => setEditingPrice(true)}
+              aria-label={`Edit price for ${item.canonicalName}`}
+              className="text-muted-foreground mt-0.5 block text-xs underline-offset-2 hover:underline"
+            >
+              {formatCurrency(price.priceCents)}
+              {price.packageQuantity > 0 && ` / ${formatAmount(price.packageQuantity)} ${price.packageUnit}`}
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {packaged ? (
@@ -397,6 +437,10 @@ function PantryRow({ item }: { item: PantryItem }) {
                 label: packaged ? 'Edit sizes' : 'Add sizes',
                 onSelect: () => setEditingPackages(true),
               },
+              {
+                label: price ? 'Edit price' : 'Set price',
+                onSelect: () => setEditingPrice(true),
+              },
               { label: 'Remove', onSelect: () => remove.mutate(item.id), destructive: true },
             ]}
           />
@@ -405,7 +449,111 @@ function PantryRow({ item }: { item: PantryItem }) {
       {editingPackages && (
         <PackageEditor item={item} onClose={() => setEditingPackages(false)} />
       )}
+      {editingPrice && (
+        <PriceEditor
+          item={item}
+          storeId={storeId}
+          price={price}
+          onClose={() => setEditingPrice(false)}
+        />
+      )}
     </li>
+  );
+}
+
+/**
+ * In-row editor for a pantry item's price at the default store. Writes an
+ * ordinary price_record (source 'manual') for the item's canonical ingredient,
+ * which is the same shape the shopping list and receipt scanner feed — so a
+ * price set here immediately sharpens recipe and budget estimates. Prefills the
+ * package size from the item's containers (or its unit) so a whole-package price
+ * is the default, matching how the store sells it.
+ */
+function PriceEditor({
+  item,
+  storeId,
+  price,
+  onClose,
+}: {
+  item: PantryItem;
+  storeId: string | null;
+  price: CurrentPrice | null;
+  onClose: () => void;
+}) {
+  const addPrice = useAddPrice();
+  const firstPkg = item.packages[0];
+  const [dollars, setDollars] = useState(centsToDollars(price?.priceCents ?? null));
+  const [size, setSize] = useState(
+    String(price?.packageQuantity ?? firstPkg?.size ?? ''),
+  );
+  const [unit, setUnit] = useState(price?.packageUnit ?? firstPkg?.unit ?? item.unit ?? 'each');
+
+  if (!storeId) {
+    return (
+      <div className="text-muted-foreground mt-2 rounded-md border p-2 text-xs">
+        Set a default store to record prices.{' '}
+        <Link to="/stores" className="underline">
+          Set up pricing
+        </Link>
+      </div>
+    );
+  }
+
+  function save() {
+    const priceCents = dollarsToCents(dollars);
+    const packageQuantity = Number(size);
+    if (priceCents == null || !Number.isFinite(packageQuantity) || packageQuantity <= 0) return;
+    addPrice.mutate(
+      {
+        canonicalId: item.canonicalId,
+        storeId: storeId as string,
+        priceCents,
+        packageQuantity,
+        packageUnit: unit.trim() || 'each',
+      },
+      { onSuccess: onClose },
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2 rounded-md border p-2">
+      <div className="flex flex-wrap items-center gap-1.5 text-sm">
+        <span className="text-muted-foreground">$</span>
+        <Input
+          autoFocus
+          inputMode="decimal"
+          aria-label={`Price for ${item.canonicalName}`}
+          placeholder="0.00"
+          value={dollars}
+          onChange={(e) => setDollars(e.target.value)}
+          className="h-9 w-20"
+        />
+        <span className="text-muted-foreground">for</span>
+        <Input
+          inputMode="decimal"
+          aria-label={`Package size for ${item.canonicalName}`}
+          placeholder="size"
+          value={size}
+          onChange={(e) => setSize(e.target.value)}
+          className="h-9 w-16"
+        />
+        <Input
+          aria-label={`Package unit for ${item.canonicalName}`}
+          placeholder="unit"
+          value={unit}
+          onChange={(e) => setUnit(e.target.value)}
+          className="h-9 w-20"
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={save} disabled={addPrice.isPending}>
+          {addPrice.isPending ? 'Saving…' : 'Save price'}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </div>
   );
 }
 

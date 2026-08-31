@@ -56,7 +56,7 @@ test('scan a receipt (stubbed), save the trip, and see it as spend', async ({ pa
   // Attach a photo via the real file-chooser (hidden input).
   const [chooser] = await Promise.all([
     page.waitForEvent('filechooser'),
-    page.getByText(/Add receipt photos/).click(),
+    page.getByText('Choose photos').click(),
   ]);
   await chooser.setFiles({ name: 'receipt.png', mimeType: 'image/png', buffer: PNG_1X1 });
 

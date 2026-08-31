@@ -65,6 +65,9 @@ export interface RecipeDetail {
   rating: number | null;
   timesCooked: number;
   isFavorite: boolean;
+  /** A manually set total cost at base servings, in cents. When set it overrides
+   * the ingredient-derived cost. NULL = compute from ingredient prices. */
+  manualCostCents: number | null;
   ingredients: RecipeIngredientDraft[];
 }
 
@@ -136,6 +139,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
     rating: data.rating,
     timesCooked: data.times_cooked,
     isFavorite: data.is_favorite,
+    manualCostCents: data.manual_cost_cents,
     ingredients: (data.recipe_ingredient ?? []).map((ri) => ({
       id: ri.id,
       rawText: ri.raw_text,
@@ -244,6 +248,20 @@ export async function listLibraryForAutofill(householdId: string): Promise<Libra
 
 export async function setRecipeFavorite(id: string, favorite: boolean): Promise<void> {
   const { error } = await supabase.from('recipe').update({ is_favorite: favorite }).eq('id', id);
+  if (error) throw error;
+}
+
+/**
+ * Set (or clear, with null) a recipe's manual total cost in cents. A direct
+ * column update rather than a trip through the save_recipe RPC — this is a small
+ * standalone edit reachable from the recipe cost card and the planner meal card,
+ * and it must not touch ingredients or provenance.
+ */
+export async function setRecipeManualCost(id: string, cents: number | null): Promise<void> {
+  const { error } = await supabase
+    .from('recipe')
+    .update({ manual_cost_cents: cents })
+    .eq('id', id);
   if (error) throw error;
 }
 

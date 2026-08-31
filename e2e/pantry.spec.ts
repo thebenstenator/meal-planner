@@ -199,9 +199,10 @@ test('cooking a meal removes its ingredients from the pantry', async ({ page }) 
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByLabel('Quantity of cream cheese')).toHaveValue('16');
 
-  // Cook the meal → 8 oz leaves the pantry.
+  // Cook the meal (via the chip's ⋮ menu) → 8 oz leaves the pantry.
   await page.goto('/planner');
-  await page.getByRole('button', { name: 'Mark cooked' }).click({ force: true });
+  await page.getByRole('button', { name: /^Actions for/ }).first().click();
+  await page.getByRole('menuitem', { name: 'Mark cooked' }).click();
   await page.waitForLoadState('networkidle');
 
   await page.goto('/pantry');
