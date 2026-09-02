@@ -172,7 +172,7 @@ function ShoppingListDetail() {
       </div>
 
       {lowItems.length > 0 && (
-        <section className="rounded-lg border border-amber-300/60 bg-amber-50/40 p-3">
+        <section className="rounded-lg border border-amber-300/60 bg-amber-50/40 p-3 dark:border-amber-800/60 dark:bg-amber-950/30">
           <h2 className="text-sm font-medium">Running low</h2>
           <p className="text-muted-foreground mb-2 text-xs">
             From your pantry — add what you want to restock.

@@ -240,7 +240,7 @@ function CategorizeBanner({ uncategorized }: { uncategorized: number }) {
 
   if (categorize.isSuccess) {
     return (
-      <p className="rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+      <p className="rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
         Categorized {categorize.data} recipe{categorize.data === 1 ? '' : 's'}. You can fine-tune
         any of them from the recipe’s edit page.
       </p>
@@ -248,8 +248,8 @@ function CategorizeBanner({ uncategorized }: { uncategorized: number }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-600/30 bg-amber-50 px-3 py-2">
-      <p className="min-w-0 flex-1 text-sm text-amber-900">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-600/30 bg-amber-50 px-3 py-2 dark:bg-amber-950">
+      <p className="min-w-0 flex-1 text-sm text-amber-900 dark:text-amber-200">
         {uncategorized} recipe{uncategorized === 1 ? " isn't" : "s aren't"} categorized, so auto-fill
         skips {uncategorized === 1 ? 'it' : 'them'}. Sort {uncategorized === 1 ? 'it' : 'them'} by
         type?

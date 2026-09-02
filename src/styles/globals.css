@@ -5,50 +5,53 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Palette: "Teal & Stone" — cool teal primary on soft stone, with a matching
+   dark set. Tokens are the single source of truth; components reference them via
+   the semantic color utilities below, so the whole app re-skins from here. */
 :root {
   --radius: 0.625rem;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.981 0.002 197.1);
+  --foreground: oklch(0.241 0.016 189.2);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.241 0.016 189.2);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.241 0.016 189.2);
+  --primary: oklch(0.535 0.088 203.0);
+  --primary-foreground: oklch(0.995 0.003 197.1);
+  --secondary: oklch(0.953 0.007 185.3);
+  --secondary-foreground: oklch(0.261 0.017 189.8);
+  --muted: oklch(0.957 0.005 183.0);
+  --muted-foreground: oklch(0.517 0.016 191.0);
+  --accent: oklch(0.944 0.016 196.9);
+  --accent-foreground: oklch(0.297 0.037 189.8);
+  --destructive: oklch(0.566 0.164 28.0);
+  --destructive-foreground: oklch(0.993 0.002 17.2);
+  --border: oklch(0.922 0.008 186.9);
+  --input: oklch(0.922 0.008 186.9);
+  --ring: oklch(0.691 0.077 202.0);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: oklch(0.190 0.009 208.8);
+  --foreground: oklch(0.946 0.009 188.1);
+  --card: oklch(0.234 0.013 187.9);
+  --card-foreground: oklch(0.946 0.009 188.1);
+  --popover: oklch(0.234 0.013 187.9);
+  --popover-foreground: oklch(0.946 0.009 188.1);
+  --primary: oklch(0.706 0.108 201.2);
+  --primary-foreground: oklch(0.223 0.032 191.6);
+  --secondary: oklch(0.274 0.015 189.4);
+  --secondary-foreground: oklch(0.946 0.009 188.1);
+  --muted: oklch(0.258 0.015 189.3);
+  --muted-foreground: oklch(0.700 0.017 187.1);
+  --accent: oklch(0.299 0.020 191.0);
+  --accent-foreground: oklch(0.946 0.009 188.1);
+  --destructive: oklch(0.613 0.151 28.2);
+  --destructive-foreground: oklch(0.954 0.017 26.6);
+  --border: oklch(0.299 0.014 189.0);
+  --input: oklch(0.315 0.014 189.1);
+  --ring: oklch(0.706 0.108 201.2);
 }
 
 @theme inline {

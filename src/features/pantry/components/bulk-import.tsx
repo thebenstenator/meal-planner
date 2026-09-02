@@ -152,7 +152,7 @@ export function PantryBulkImport({
                 key={i}
                 className={
                   willCreateRow
-                    ? 'space-y-1 rounded border border-amber-400 bg-amber-50 p-2'
+                    ? 'space-y-1 rounded border border-amber-400 bg-amber-50 p-2 dark:border-amber-700 dark:bg-amber-950'
                     : 'space-y-1 rounded border p-2'
                 }
               >
@@ -167,7 +167,7 @@ export function PantryBulkImport({
                       skipped
                     </span>
                   ) : (
-                    <span className="shrink-0 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
+                    <span className="shrink-0 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900 dark:bg-amber-900 dark:text-amber-100">
                       new
                     </span>
                   )}

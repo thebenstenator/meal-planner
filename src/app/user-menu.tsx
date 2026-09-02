@@ -1,6 +1,10 @@
 import { Link, useNavigate } from '@tanstack/react-router';
+import { Monitor, Moon, Sun } from 'lucide-react';
 import { useState } from 'react';
 
+import { useUiStore } from '@/app/store/ui-store';
+import type { Theme } from '@/app/theme';
+import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/features/auth/use-auth';
 
 // Less-used / settings destinations tucked behind the avatar.
@@ -73,6 +77,8 @@ export function UserMenu() {
               </Link>
             ))}
             <div className="bg-border my-1 h-px" />
+            <ThemeToggle />
+            <div className="bg-border my-1 h-px" />
             <button
               type="button"
               role="menuitem"
@@ -88,6 +94,41 @@ export function UserMenu() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/** A small Light / Dark / System segmented control inside the account menu. */
+function ThemeToggle() {
+  const theme = useUiStore((s) => s.theme);
+  const setTheme = useUiStore((s) => s.setTheme);
+  const options: { value: Theme; label: string; Icon: typeof Sun }[] = [
+    { value: 'light', label: 'Light', Icon: Sun },
+    { value: 'dark', label: 'Dark', Icon: Moon },
+    { value: 'system', label: 'System', Icon: Monitor },
+  ];
+  return (
+    <div className="px-2 py-1.5">
+      <div className="text-muted-foreground mb-1 text-xs">Theme</div>
+      <div className="bg-muted flex rounded-md p-0.5">
+        {options.map(({ value, label, Icon }) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={theme === value}
+            onClick={() => setTheme(value)}
+            className={cn(
+              'flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-xs',
+              theme === value
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" aria-hidden />
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

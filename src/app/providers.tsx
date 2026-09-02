@@ -2,6 +2,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 
 import { router } from '@/app/router';
+import { ThemeWatcher } from '@/app/theme-watcher';
 import { AuthProvider } from '@/features/auth/auth-context';
 import { queryClient } from '@/lib/query/client';
 import { registerOfflineMutations, shouldPersistMutation } from '@/lib/query/offline-mutations';
@@ -31,6 +32,7 @@ export function AppProviders() {
       }}
     >
       <AuthProvider>
+        <ThemeWatcher />
         <RouterProvider router={router} />
       </AuthProvider>
     </PersistQueryClientProvider>

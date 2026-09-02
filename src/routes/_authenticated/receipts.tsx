@@ -113,7 +113,7 @@ function ReceiptsPage() {
       </div>
 
       {saved != null && (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
           Trip saved with {saved} item{saved === 1 ? '' : 's'}. It’s in your spending now.
         </p>
       )}
@@ -310,7 +310,7 @@ function ReviewStep({
             key={i}
             className={
               needsMatch
-                ? 'space-y-1 rounded border border-amber-400 bg-amber-50 p-2'
+                ? 'space-y-1 rounded border border-amber-400 bg-amber-50 p-2 dark:border-amber-700 dark:bg-amber-950'
                 : 'space-y-1 rounded border p-2'
             }
           >
@@ -318,7 +318,7 @@ function ReviewStep({
               <span className="text-muted-foreground truncate text-xs">{line.raw}</span>
               <div className="flex shrink-0 items-center gap-2">
                 {needsMatch ? (
-                  <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
+                  <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900 dark:bg-amber-900 dark:text-amber-100">
                     no price match
                   </span>
                 ) : (

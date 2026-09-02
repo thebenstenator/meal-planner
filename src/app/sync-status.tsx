@@ -21,7 +21,9 @@ export function SyncStatus() {
       data-testid="sync-status"
       className={cn(
         'rounded-full px-2 py-0.5 text-xs font-medium',
-        offline ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800',
+        offline
+          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
+          : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200',
       )}
     >
       {offline

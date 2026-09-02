@@ -5,6 +5,16 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Visual refresh + dark mode
+
+- **New "Teal & Stone" palette.** Replaced the black-and-white theme with a
+  cool teal primary on a soft stone background — warmer and more modern, applied
+  everywhere via the semantic CSS tokens in `globals.css`.
+- **Dark mode.** A real, wired-up dark theme with a Light / Dark / System toggle
+  in the account menu. The choice is saved per device and applied before first
+  paint (inline boot script) so there's no flash; "System" follows the OS live.
+  The `theme-color` meta and status banners (success/warning/sync) adapt too.
+
 ### Mobile nav + per-person start page
 
 - **Bottom navigation on phones.** The primary destinations (Plan / Ideas /
