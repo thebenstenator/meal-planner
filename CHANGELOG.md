@@ -5,6 +5,17 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Shopping list quality-of-life
+
+- **One tap to add from the type-ahead.** Picking an ingredient from the add
+  box's dropdown now puts it on the list immediately — no separate "Add" step.
+  Typing a name and pressing Enter (or Add) still works for anything not in the
+  dropdown.
+- **Rename an item after adding.** Each item's ⋮ menu has a "Rename" action with
+  an inline editor, on both the quick list and the full list. It's a display
+  override (the ingredient link for pricing/pantry is kept) and lasts until the
+  list is regenerated.
+
 ### Visual refresh + dark mode
 
 - **New "Teal & Stone" palette.** Replaced the black-and-white theme with a

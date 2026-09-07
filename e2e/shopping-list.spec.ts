@@ -93,6 +93,34 @@ test('lists capture ad-hoc items inline, deduped', async ({ page }) => {
   await expect(page.getByRole('checkbox', { name: /check off dish soap/i })).toHaveCount(1);
 });
 
+// Picking a match from the type-ahead adds it with no second tap, and an item
+// can be renamed after it's on the list.
+test('adds on dropdown select, and renames an item', async ({ page }) => {
+  await signUp(page, uniqueEmail('addselect'));
+  await page.goto('/shopping-list');
+
+  // Start the list.
+  const box = page.getByPlaceholder('Add something you need…');
+  await box.fill('paper towels');
+  await box.press('Enter');
+  await expect(page.getByRole('checkbox', { name: /check off paper towels/i })).toBeVisible();
+
+  // Type a partial and pick the dropdown match — no "Add" click.
+  await box.fill('banan');
+  const option = page.getByRole('button', { name: /^banana/i });
+  await expect(option).toBeVisible();
+  await option.click();
+  await expect(page.getByRole('checkbox', { name: /check off banana/i })).toBeVisible();
+
+  // Rename paper towels from its ⋮ menu.
+  await page.getByRole('button', { name: 'Actions for paper towels' }).click();
+  await page.getByRole('menuitem', { name: 'Rename' }).click();
+  await page.getByLabel('Item name').fill('Bounty rolls');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Bounty rolls', { exact: true })).toBeVisible();
+  await expect(page.getByText('paper towels', { exact: true })).toHaveCount(0);
+});
+
 // You can keep several named lists (e.g. one per store) and switch between them
 // as tabs; each item lands on the tab that's selected when you add it.
 test('multiple lists as tabs; items land on the selected tab', async ({ page }) => {

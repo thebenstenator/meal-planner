@@ -21,6 +21,7 @@ import type { ShoppingItem, ShoppingListSummary } from '@/features/shopping-list
 import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
 import { FinishTrip } from '@/features/shopping-list/components/finish-trip';
+import { NameEditor } from '@/features/shopping-list/components/name-editor';
 import { readLastList, writeLastList } from '@/features/shopping-list/last-list';
 import { isOwnClickTarget } from '@/features/shopping-list/row-toggle';
 import { useShoppingCategories } from '@/features/shopping-list/use-categories';
@@ -291,9 +292,8 @@ function ListPanel({
     setFeedback(null);
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const name = (typed.trim() || picked.name?.trim()) ?? '';
+  async function addByName(raw: string) {
+    const name = raw.trim();
     if (name === '') {
       setFeedback({ type: 'error', message: 'Type something you need (e.g. “dish soap”).' });
       return;
@@ -311,6 +311,11 @@ function ListPanel({
     } catch {
       setFeedback({ type: 'error', message: 'Couldn’t add that — please try again.' });
     }
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    void addByName(typed.trim() || picked.name?.trim() || '');
   }
 
   return (
@@ -380,10 +385,9 @@ function ListPanel({
             key={comboKey}
             value={picked}
             seedName={seed || undefined}
-            onSelect={(id, name) => {
-              setPicked({ id, name });
-              setTyped(name ?? '');
-              setFeedback(null);
+            // Picking from the dropdown adds it straight away — no second tap.
+            onSelect={(_id, name) => {
+              if (name) void addByName(name);
             }}
             onTextChange={(t) => {
               setTyped(t);
@@ -434,6 +438,7 @@ function ListPanel({
                   }
                   pantryTracked={shouldTrackInPantry(item, pantryPrefs ?? {})}
                   onSetPantryTracked={(tracked) => setPantryTracked.mutate({ item, tracked })}
+                  onRename={(name) => edits.renameItem.mutate({ itemId: item.id, name })}
                   onRemove={() => edits.removeItem.mutate(item.id)}
                 />
               ))}
@@ -498,6 +503,7 @@ function ItemRow({
   onSetCategory,
   pantryTracked,
   onSetPantryTracked,
+  onRename,
   onRemove,
 }: {
   item: ShoppingItem;
@@ -507,9 +513,11 @@ function ItemRow({
   /** Whether checking this off adds it to the pantry (pref, else the heuristic). */
   pantryTracked: boolean;
   onSetPantryTracked: (tracked: boolean) => void;
+  onRename: (name: string) => void;
   onRemove: () => void;
 }) {
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const quantityText =
     item.totalQuantity != null ? `${trim(item.totalQuantity)} ${item.unit ?? ''}`.trim() : null;
 
@@ -529,18 +537,32 @@ function ItemRow({
           onChange={(e) => onToggle(e.target.checked)}
           aria-label={`Check off ${item.displayName}`}
         />
-        <span
-          className={cn(
-            'min-w-0 flex-1 truncate text-sm',
-            item.isChecked && 'text-muted-foreground line-through',
-          )}
-        >
-          {item.displayName}
-          {quantityText && <span className="text-muted-foreground"> · {quantityText}</span>}
-        </span>
+        {renaming ? (
+          <div data-no-toggle className="min-w-0 flex-1">
+            <NameEditor
+              value={item.displayName}
+              onSave={(name) => {
+                if (name && name !== item.displayName) onRename(name);
+                setRenaming(false);
+              }}
+              onCancel={() => setRenaming(false)}
+            />
+          </div>
+        ) : (
+          <span
+            className={cn(
+              'min-w-0 flex-1 truncate text-sm',
+              item.isChecked && 'text-muted-foreground line-through',
+            )}
+          >
+            {item.displayName}
+            {quantityText && <span className="text-muted-foreground"> · {quantityText}</span>}
+          </span>
+        )}
         <RowMenu
           label={`Actions for ${item.displayName}`}
           actions={[
+            { label: 'Rename', onSelect: () => setRenaming(true) },
             { label: 'Change category', onSelect: () => setCategoryOpen((v) => !v) },
             { label: 'Remove', onSelect: onRemove, destructive: true },
           ]}

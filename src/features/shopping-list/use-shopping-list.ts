@@ -17,6 +17,7 @@ import {
   setItemActualCost,
   setItemCategory,
   setItemChecked,
+  updateItemName,
   updateItemQuantity,
   type SmartAddResult,
 } from '@/features/shopping-list/api';
@@ -236,8 +237,31 @@ export function useItemEdits(listId: string) {
     mutationFn: (itemId) => deleteItem(itemId),
     onSuccess: invalidate,
   });
+  const renameItem = useMutation<void, Error, { itemId: string; name: string }>({
+    mutationFn: ({ itemId, name }) => updateItemName(itemId, name),
+    // Optimistic: swap the label in place so it doesn't flash the old name.
+    onMutate: ({ itemId, name }) => {
+      const prev = qc.getQueryData(listKeys.detail(listId));
+      qc.setQueryData(listKeys.detail(listId), (old: unknown) => {
+        const data = old as
+          | { summary: unknown; items: Array<{ id: string; displayName: string }> }
+          | undefined;
+        if (!data) return old;
+        return {
+          ...data,
+          items: data.items.map((i) => (i.id === itemId ? { ...i, displayName: name.trim() } : i)),
+        };
+      });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      const prev = (ctx as { prev?: unknown } | undefined)?.prev;
+      if (prev !== undefined) qc.setQueryData(listKeys.detail(listId), prev);
+    },
+    onSettled: invalidate,
+  });
 
-  return { addItem, overrideQuantity, removeItem };
+  return { addItem, overrideQuantity, removeItem, renameItem };
 }
 
 /**

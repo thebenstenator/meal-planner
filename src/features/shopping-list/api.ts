@@ -415,6 +415,16 @@ export async function setItemCategory(itemId: string, category: string): Promise
   if (error) throw error;
 }
 
+/** Rename what an item shows on the list. A display override — the canonical
+ * link (for pricing/pantry) is left intact. Lasts until the list is regenerated. */
+export async function updateItemName(itemId: string, name: string): Promise<void> {
+  const { error } = await supabase
+    .from('shopping_list_item')
+    .update({ display_name: name.trim() })
+    .eq('id', itemId);
+  if (error) throw error;
+}
+
 /** Manual override of an item's quantity/unit (lasts until regeneration). */
 export async function updateItemQuantity(
   itemId: string,

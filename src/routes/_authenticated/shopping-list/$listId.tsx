@@ -24,6 +24,7 @@ import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list
 import { CategoryManager } from '@/features/shopping-list/components/category-manager';
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
 import { FinishTrip } from '@/features/shopping-list/components/finish-trip';
+import { NameEditor } from '@/features/shopping-list/components/name-editor';
 import { isOwnClickTarget } from '@/features/shopping-list/row-toggle';
 import { useShoppingCategories } from '@/features/shopping-list/use-categories';
 import {
@@ -256,6 +257,7 @@ function ShoppingListDetail() {
                 onOverride={(q, u) =>
                   edits.overrideQuantity.mutate({ itemId: item.id, totalQuantity: q, unit: u })
                 }
+                onRename={(name) => edits.renameItem.mutate({ itemId: item.id, name })}
                 onDelete={() => edits.removeItem.mutate(item.id)}
                 onSetConversion={(density) =>
                   item.canonicalId ? setConversion(item.canonicalId, density) : undefined
@@ -285,6 +287,7 @@ function ItemRow({
   onSetPantryTracked,
   onSetActualCost,
   onOverride,
+  onRename,
   onDelete,
   onSetConversion,
 }: {
@@ -300,6 +303,7 @@ function ItemRow({
   onSetPantryTracked: (tracked: boolean) => void;
   onSetActualCost: (cents: number | null) => void;
   onOverride: (quantity: number | null, unit: string | null) => void;
+  onRename: (name: string) => void;
   onDelete: () => void;
   onSetConversion: (density: number) => void;
 }) {
@@ -307,6 +311,7 @@ function ItemRow({
   // Only one row panel is open at a time — they'd otherwise stack up and push
   // the rest of the list off screen.
   const [panel, setPanel] = useState<'none' | 'quantity' | 'category'>('none');
+  const [renaming, setRenaming] = useState(false);
   const [qty, setQty] = useState(item.totalQuantity?.toString() ?? '');
   const [unit, setUnit] = useState(item.unit ?? '');
   const [dismissed, setDismissed] = useState(false);
@@ -338,9 +343,22 @@ function ItemRow({
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className={cn('font-medium', item.isChecked && 'text-muted-foreground line-through')}>
-              {item.displayName}
-            </span>
+            {renaming ? (
+              <span data-no-toggle className="min-w-0 flex-1">
+                <NameEditor
+                  value={item.displayName}
+                  onSave={(name) => {
+                    if (name && name !== item.displayName) onRename(name);
+                    setRenaming(false);
+                  }}
+                  onCancel={() => setRenaming(false)}
+                />
+              </span>
+            ) : (
+              <span className={cn('font-medium', item.isChecked && 'text-muted-foreground line-through')}>
+                {item.displayName}
+              </span>
+            )}
             {item.isManual && <Badge variant="secondary">added</Badge>}
             {!item.canonicalId && !item.adHocName && <Badge variant="outline">unmatched</Badge>}
             {item.unresolved && (
@@ -352,6 +370,7 @@ function ItemRow({
               <RowMenu
                 label={`Actions for ${item.displayName}`}
                 actions={[
+                  { label: 'Rename', onSelect: () => setRenaming(true) },
                   {
                     label: 'Edit quantity',
                     onSelect: () => setPanel((p) => (p === 'quantity' ? 'none' : 'quantity')),
@@ -704,9 +723,8 @@ function AddItemForm({
     setFeedback(null);
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const name = (typed.trim() || picked.name?.trim()) ?? '';
+  async function addByName(raw: string) {
+    const name = raw.trim();
     if (name === '') {
       setFeedback({ type: 'error', message: 'Type an item to add.' });
       return;
@@ -731,6 +749,11 @@ function AddItemForm({
     }
   }
 
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    void addByName(typed.trim() || picked.name?.trim() || '');
+  }
+
   return (
     <form className="space-y-2 rounded-lg border p-3" onSubmit={submit}>
       <div className="flex flex-wrap items-end gap-2">
@@ -739,10 +762,10 @@ function AddItemForm({
             key={comboKey}
             value={picked}
             seedName={seed || undefined}
-            onSelect={(id, name) => {
-              setPicked({ id, name });
-              setTyped(name ?? '');
-              setFeedback(null);
+            // Picking from the dropdown adds it straight away (with any qty/unit
+            // typed) — no separate Add tap.
+            onSelect={(_id, name) => {
+              if (name) void addByName(name);
             }}
             onTextChange={(t) => {
               setTyped(t);
