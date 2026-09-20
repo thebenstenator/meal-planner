@@ -25,7 +25,7 @@ export type {
   PurchaseSuggestion,
 } from '@/lib/ingredients/types';
 
-export { parse, parseLines } from '@/lib/ingredients/parse';
+export { parse, parseLines, parseQuantity } from '@/lib/ingredients/parse';
 export { cleanName, resolveUnit } from '@/lib/ingredients/normalize';
 export { convert, canConvert, type ConvertResult } from '@/lib/ingredients/convert';
 export { roundToPurchase } from '@/lib/ingredients/round';

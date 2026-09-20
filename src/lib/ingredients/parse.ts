@@ -104,6 +104,19 @@ function parseNumber(input: string): NumberParse | null {
   return null;
 }
 
+/**
+ * Parse a user-typed quantity on its own — decimals ("0.25"), fractions ("1/2",
+ * "1 1/2"), unicode ("½"), or word numbers ("a", "two") — into a number, or null
+ * when blank or unreadable. Powers the recipe editor's quantity field, which has
+ * to accept more than whole numbers.
+ */
+export function parseQuantity(text: string): number | null {
+  const s = preprocessFractions(text.trim());
+  if (s === '') return null;
+  const parsed = parseNumber(s);
+  return parsed ? parsed.value : null;
+}
+
 // ---------------------------------------------------------------------------
 // Measure parsing (quantity + optional parenthetical + optional unit)
 // ---------------------------------------------------------------------------

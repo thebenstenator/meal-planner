@@ -5,6 +5,17 @@ All notable changes to this project are documented here. One entry per slice
 
 ## [Unreleased]
 
+### Recipe editor: fractions + amount inference
+
+- **The quantity field takes fractions and decimals now.** "1/2", "1 1/2", "½",
+  and "0.25" all work — the old field silently coerced everything back to whole
+  numbers (you couldn't even type a decimal point). Entries are parsed on
+  blur/Enter; an unreadable value snaps back to the last good one.
+- **Editing the line updates the amount.** Change an ingredient's text — e.g.
+  "½ cup orange juice" to "¼ cup" — and the quantity/unit re-read from it
+  automatically. It only re-parses when you actually change the text, so a
+  quantity you set by hand isn't overwritten.
+
 ### Shopping list quality-of-life
 
 - **One tap to add from the type-ahead.** Picking an ingredient from the add

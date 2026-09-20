@@ -1,6 +1,31 @@
 import { describe, expect, it } from 'vitest';
 
-import { parse } from '@/lib/ingredients/parse';
+import { parse, parseQuantity } from '@/lib/ingredients/parse';
+
+describe('parseQuantity', () => {
+  it('parses decimals', () => {
+    expect(parseQuantity('0.25')).toBe(0.25);
+    expect(parseQuantity('2')).toBe(2);
+  });
+
+  it('parses fractions and mixed numbers', () => {
+    expect(parseQuantity('1/2')).toBe(0.5);
+    expect(parseQuantity('1 1/2')).toBe(1.5);
+    expect(parseQuantity('3/4')).toBe(0.75);
+  });
+
+  it('parses unicode fractions and word numbers', () => {
+    expect(parseQuantity('½')).toBe(0.5);
+    expect(parseQuantity('1½')).toBe(1.5);
+    expect(parseQuantity('a')).toBe(1);
+  });
+
+  it('returns null for blank or unreadable input', () => {
+    expect(parseQuantity('')).toBeNull();
+    expect(parseQuantity('   ')).toBeNull();
+    expect(parseQuantity('abc')).toBeNull();
+  });
+});
 
 describe('parse — quantities', () => {
   it('parses a simple quantity + unit + name', () => {
