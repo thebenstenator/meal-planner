@@ -53,7 +53,10 @@ test('generates one consolidated, rounded line from two recipes', async ({ page 
 
   // 8 oz + 4 oz => 12 oz => buy 2 x 8 oz.
   await expect(page.getByText('cream cheese').first()).toBeVisible();
-  await expect(page.getByText('12 oz')).toBeVisible();
+  // The consolidated amount sits in the row's editable quantity box, unit beside it.
+  const qty = page.getByRole('textbox', { name: 'How many cream cheese' });
+  await expect(qty).toHaveValue('12');
+  await expect(qty.locator('xpath=following-sibling::span')).toHaveText('oz');
   await expect(page.getByText(/buy 2 × 8 oz/)).toBeVisible();
 
   // Provenance: two recipes contributed.
@@ -70,7 +73,31 @@ test('generates one consolidated, rounded line from two recipes', async ({ page 
   await page.getByRole('button', { name: 'Regenerate' }).click();
   await expect(page.getByText('paper towels', { exact: true })).toBeVisible();
   // The consolidated line is still correct after regenerating.
-  await expect(page.getByText('12 oz')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'How many cream cheese' })).toHaveValue('12');
+});
+
+// Any item can carry a "how many" — typed into the row's box, saved on leaving
+// it, and still there on a reload (i.e. on the other person's phone).
+test('sets an item quantity from the row box', async ({ page }) => {
+  await signUp(page, uniqueEmail('qty'));
+  await page.goto('/shopping-list');
+
+  const box = page.getByPlaceholder('Add something you need…');
+  await box.fill('dish soap');
+  await box.press('Enter');
+  const check = page.getByRole('checkbox', { name: /check off dish soap/i });
+  await expect(check).toBeVisible();
+
+  const qty = page.getByRole('textbox', { name: 'How many dish soap' });
+  await expect(qty).toHaveValue('');
+  await qty.fill('3');
+  await qty.press('Enter');
+  await expect(qty).toHaveValue('3');
+  // Typing in the box doesn't check the item off.
+  await expect(check).not.toBeChecked();
+
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: 'How many dish soap' })).toHaveValue('3');
 });
 
 // Jot items anytime with no plan; the first item starts a list, items are
