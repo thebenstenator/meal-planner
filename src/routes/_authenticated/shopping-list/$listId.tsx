@@ -25,6 +25,7 @@ import { CategoryManager } from '@/features/shopping-list/components/category-ma
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
 import { FinishTrip } from '@/features/shopping-list/components/finish-trip';
 import { NameEditor } from '@/features/shopping-list/components/name-editor';
+import { QuantityBox } from '@/features/shopping-list/components/quantity-box';
 import { isOwnClickTarget } from '@/features/shopping-list/row-toggle';
 import { useShoppingCategories } from '@/features/shopping-list/use-categories';
 import {
@@ -318,11 +319,11 @@ function ItemRow({
   const [density, setDensity] = useState('');
   const [pricingOpen, setPricingOpen] = useState(false);
 
+  // Resolved quantities live in the row's quantity box; only an unresolved
+  // merge needs its parts spelled out.
   const quantityText = item.unresolved
     ? (item.subTotals ?? []).map((s) => `${trim(s.quantity)} ${s.unit}`).join(' + ')
-    : item.totalQuantity != null
-      ? `${trim(item.totalQuantity)} ${item.unit ?? ''}`
-      : null;
+    : null;
 
   return (
     // Tap anywhere on the row to check it off. The checkbox stays the accessible
@@ -366,14 +367,30 @@ function ItemRow({
                 needs conversion
               </Badge>
             )}
-            <span className="ml-auto">
+            <span className="ml-auto flex items-center gap-2">
+              {/* Unresolved items show their un-merged parts below instead —
+                  one number can't stand for "1 cup + 200 g". */}
+              {!item.unresolved && (
+                <QuantityBox
+                  itemName={item.displayName}
+                  quantity={item.totalQuantity}
+                  unit={item.unit}
+                  onSave={(q) => onOverride(q, item.unit)}
+                />
+              )}
               <RowMenu
                 label={`Actions for ${item.displayName}`}
                 actions={[
                   { label: 'Rename', onSelect: () => setRenaming(true) },
                   {
                     label: 'Edit quantity',
-                    onSelect: () => setPanel((p) => (p === 'quantity' ? 'none' : 'quantity')),
+                    onSelect: () => {
+                      // Start from the current values — the quantity box may
+                      // have changed them since this row mounted.
+                      setQty(item.totalQuantity?.toString() ?? '');
+                      setUnit(item.unit ?? '');
+                      setPanel((p) => (p === 'quantity' ? 'none' : 'quantity'));
+                    },
                   },
                   {
                     label: 'Change category',

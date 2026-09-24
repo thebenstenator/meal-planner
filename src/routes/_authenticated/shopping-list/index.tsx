@@ -22,6 +22,7 @@ import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
 import { FinishTrip } from '@/features/shopping-list/components/finish-trip';
 import { NameEditor } from '@/features/shopping-list/components/name-editor';
+import { QuantityBox } from '@/features/shopping-list/components/quantity-box';
 import { readLastList, writeLastList } from '@/features/shopping-list/last-list';
 import { isOwnClickTarget } from '@/features/shopping-list/row-toggle';
 import { useShoppingCategories } from '@/features/shopping-list/use-categories';
@@ -48,10 +49,6 @@ export const Route = createFileRoute('/_authenticated/shopping-list/')({
   validateSearch: searchSchema,
   component: ShoppingListsPage,
 });
-
-function trim(n: number): string {
-  return Number(n.toFixed(2)).toString();
-}
 
 function ShoppingListsPage() {
   const navigate = useNavigate();
@@ -439,6 +436,13 @@ function ListPanel({
                   pantryTracked={shouldTrackInPantry(item, pantryPrefs ?? {})}
                   onSetPantryTracked={(tracked) => setPantryTracked.mutate({ item, tracked })}
                   onRename={(name) => edits.renameItem.mutate({ itemId: item.id, name })}
+                  onSetQuantity={(quantity) =>
+                    edits.overrideQuantity.mutate({
+                      itemId: item.id,
+                      totalQuantity: quantity,
+                      unit: item.unit,
+                    })
+                  }
                   onRemove={() => edits.removeItem.mutate(item.id)}
                 />
               ))}
@@ -504,6 +508,7 @@ function ItemRow({
   pantryTracked,
   onSetPantryTracked,
   onRename,
+  onSetQuantity,
   onRemove,
 }: {
   item: ShoppingItem;
@@ -514,12 +519,11 @@ function ItemRow({
   pantryTracked: boolean;
   onSetPantryTracked: (tracked: boolean) => void;
   onRename: (name: string) => void;
+  onSetQuantity: (quantity: number | null) => void;
   onRemove: () => void;
 }) {
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
-  const quantityText =
-    item.totalQuantity != null ? `${trim(item.totalQuantity)} ${item.unit ?? ''}`.trim() : null;
 
   return (
     // Tap anywhere on the row to check it off. The checkbox stays the accessible
@@ -556,9 +560,14 @@ function ItemRow({
             )}
           >
             {item.displayName}
-            {quantityText && <span className="text-muted-foreground"> · {quantityText}</span>}
           </span>
         )}
+        <QuantityBox
+          itemName={item.displayName}
+          quantity={item.totalQuantity}
+          unit={item.unit}
+          onSave={onSetQuantity}
+        />
         <RowMenu
           label={`Actions for ${item.displayName}`}
           actions={[

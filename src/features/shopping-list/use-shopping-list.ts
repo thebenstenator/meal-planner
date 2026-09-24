@@ -234,7 +234,30 @@ export function useItemEdits(listId: string) {
   >({
     mutationFn: ({ itemId, totalQuantity, unit }) =>
       updateItemQuantity(itemId, { totalQuantity, unit }),
-    onSuccess: invalidate,
+    // Optimistic: the row's quantity box shows the new number as soon as you
+    // leave it, rather than snapping back until the refetch lands.
+    onMutate: ({ itemId, totalQuantity, unit }) => {
+      const prev = qc.getQueryData(listKeys.detail(listId));
+      qc.setQueryData(listKeys.detail(listId), (old: unknown) => {
+        const data = old as
+          | {
+              summary: unknown;
+              items: Array<{ id: string; totalQuantity: number | null; unit: string | null }>;
+            }
+          | undefined;
+        if (!data) return old;
+        return {
+          ...data,
+          items: data.items.map((i) => (i.id === itemId ? { ...i, totalQuantity, unit } : i)),
+        };
+      });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      const prev = (ctx as { prev?: unknown } | undefined)?.prev;
+      if (prev !== undefined) qc.setQueryData(listKeys.detail(listId), prev);
+    },
+    onSettled: invalidate,
   });
   const removeItem = useMutation<void, Error, string>({
     mutationFn: (itemId) => deleteItem(itemId),
