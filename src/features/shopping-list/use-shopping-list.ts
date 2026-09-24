@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useHousehold } from '@/features/household/use-household';
 import {
+  addItemsToList,
   addSmartItem,
   clearCheckedItems,
   createShoppingList,
@@ -19,9 +20,11 @@ import {
   setItemChecked,
   updateItemName,
   updateItemQuantity,
+  type ListItemInput,
   type SmartAddResult,
 } from '@/features/shopping-list/api';
 import { setIngredientCategory } from '@/features/shopping-list/categories-api';
+import { buildRecipeShoppingItems, type GeneratedItem } from '@/features/shopping-list/generate';
 import { offlineMutationKeys } from '@/lib/query/offline-mutations';
 
 export function useShoppingLists() {
@@ -280,6 +283,54 @@ export function useAddToRunningList() {
       const listId = await getOrCreateRunningList(householdId as string);
       const result = await addSmartItem(householdId as string, listId, input);
       return { result, listId };
+    },
+    onSuccess: ({ listId }) => {
+      void qc.invalidateQueries({ queryKey: listKeys.all(householdId ?? 'none') });
+      void qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
+    },
+  });
+}
+
+/**
+ * The ingredients a single recipe still needs, scaled to `targetServings` and
+ * with whatever's already in the pantry subtracted out — the candidates for the
+ * recipe's "add to shopping list" checklist. Only fetched while `enabled`
+ * (i.e. the dialog is open), and re-run when the target servings change.
+ */
+export function useRecipeNeededItems(
+  recipeId: string,
+  ingredients: Parameters<typeof buildRecipeShoppingItems>[1],
+  recipeServings: number,
+  targetServings: number,
+  enabled: boolean,
+) {
+  const { householdId } = useHousehold();
+  return useQuery<GeneratedItem[]>({
+    queryKey: ['recipe-needed-items', recipeId, targetServings, householdId ?? 'none'],
+    queryFn: () =>
+      buildRecipeShoppingItems(householdId as string, ingredients, recipeServings, targetServings),
+    enabled: enabled && !!householdId,
+  });
+}
+
+/**
+ * Add a batch of items onto a list — the recipe checklist's "add" step. A null
+ * `listId` targets the household's standing running list (created on first use),
+ * so the flow works before any named list exists. Returns the list they landed
+ * on, for a "view list" follow-up.
+ */
+export function useAddItemsToList() {
+  const { householdId } = useHousehold();
+  const qc = useQueryClient();
+  return useMutation<
+    { listId: string },
+    Error,
+    { listId: string | null; items: ListItemInput[] }
+  >({
+    mutationFn: async ({ listId, items }) => {
+      const targetId = listId ?? (await getOrCreateRunningList(householdId as string));
+      await addItemsToList(targetId, items);
+      return { listId: targetId };
     },
     onSuccess: ({ listId }) => {
       void qc.invalidateQueries({ queryKey: listKeys.all(householdId ?? 'none') });

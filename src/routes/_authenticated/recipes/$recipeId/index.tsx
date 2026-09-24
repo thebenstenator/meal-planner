@@ -12,6 +12,7 @@ import {
   canFavoriteRecipe,
   cookbooksICanEvictFrom,
 } from '@/features/recipes/permissions';
+import { AddToListDialog } from '@/features/recipes/components/add-to-list-dialog';
 import { RecipeCompanion } from '@/features/recipes/components/recipe-companion';
 import { scaledAmount } from '@/features/recipes/scale';
 import { useCookbooks, useUnshareRecipe } from '@/features/recipes/use-cookbook';
@@ -39,6 +40,7 @@ function RecipeDetailPage() {
   const favorite = useSetFavorite(recipeId);
   const [confirming, setConfirming] = useState(false);
   const [servings, setServings] = useState<number | null>(null);
+  const [addingToList, setAddingToList] = useState(false);
 
   if (isLoading) {
     return <Centered>Loading…</Centered>;
@@ -210,7 +212,20 @@ function RecipeDetailPage() {
             <li className="text-muted-foreground text-sm">No ingredients yet.</li>
           )}
         </ul>
+        {recipe.ingredients.length > 0 && (
+          <Button className="mt-3" onClick={() => setAddingToList(true)}>
+            Add to shopping list
+          </Button>
+        )}
       </section>
+
+      {addingToList && (
+        <AddToListDialog
+          recipe={{ id: recipe.id, ingredients: recipe.ingredients, servings: recipe.servings }}
+          targetServings={targetServings}
+          onClose={() => setAddingToList(false)}
+        />
+      )}
 
       {recipe.instructions && (
         <section>

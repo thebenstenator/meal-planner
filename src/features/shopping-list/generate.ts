@@ -35,6 +35,57 @@ export interface GeneratedItem {
   sources: GenItemSource[];
 }
 
+/** A recipe reduced to what the consolidation engine needs, plus how much of it
+ * to buy (servings_override / base servings). `ref` ties each line back to its
+ * source for the "why is this here?" trail. */
+interface RecipeInput {
+  ingredients: Array<{
+    id: string | null;
+    quantity: number | null;
+    unit: string | null;
+    canonicalId: string | null;
+    rawText: string;
+  }>;
+  scale: number;
+  /** Plan entry this recipe came from, if any — folded into each line's ref. */
+  entryId: string | null;
+}
+
+interface BuiltInputs {
+  inputs: ConsolidationInput[];
+  displayByKey: Map<string, string>;
+  canonicalIds: Set<string>;
+}
+
+/** Flatten recipes into engine inputs, keyed by canonical id (or cleaned name
+ * for unmatched lines) so the same ingredient across recipes consolidates. */
+function buildInputs(recipes: RecipeInput[]): BuiltInputs {
+  const inputs: ConsolidationInput[] = [];
+  const displayByKey = new Map<string, string>();
+  const canonicalIds = new Set<string>();
+
+  for (const { ingredients, scale, entryId } of recipes) {
+    for (const ing of ingredients) {
+      const canonicalId = ing.canonicalId;
+      const cleaned = cleanName(ing.rawText).name || ing.rawText.trim();
+      const key = canonicalId ?? `${UNMATCHED}${cleaned}`;
+      if (canonicalId) canonicalIds.add(canonicalId);
+      if (!displayByKey.has(key)) displayByKey.set(key, cleaned);
+
+      inputs.push({
+        canonicalId: key,
+        quantity: ing.quantity,
+        unit: (ing.unit as Unit | null) ?? null,
+        scale,
+        ref: `${ing.id ?? ''}|${entryId ?? ''}`,
+        name: cleaned,
+      });
+    }
+  }
+
+  return { inputs, displayByKey, canonicalIds };
+}
+
 /**
  * Build the consolidated shopping-list items for a date range by running the
  * plan's recipes through the engine. leftovers/eating_out/note plan entries are
@@ -58,32 +109,60 @@ export async function buildShoppingItems(
     .lte('date', end);
   if (error) throw error;
 
-  const inputs: ConsolidationInput[] = [];
-  const displayByKey = new Map<string, string>();
-  const canonicalIds = new Set<string>();
-
-  for (const entry of data ?? []) {
+  const recipes: RecipeInput[] = (data ?? []).flatMap((entry) => {
     const recipe = entry.recipe;
-    if (!recipe) continue;
-    const scale = entry.servings_override ? entry.servings_override / recipe.servings : 1;
+    if (!recipe) return [];
+    return [
+      {
+        scale: entry.servings_override ? entry.servings_override / recipe.servings : 1,
+        entryId: entry.id,
+        ingredients: (recipe.recipe_ingredient ?? []).map((ing) => ({
+          id: ing.id,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          canonicalId: ing.canonical_ingredient_id,
+          rawText: ing.raw_text,
+        })),
+      },
+    ];
+  });
 
-    for (const ing of recipe.recipe_ingredient ?? []) {
-      const canonicalId = ing.canonical_ingredient_id;
-      const cleaned = cleanName(ing.raw_text).name || ing.raw_text.trim();
-      const key = canonicalId ?? `${UNMATCHED}${cleaned}`;
-      if (canonicalId) canonicalIds.add(canonicalId);
-      if (!displayByKey.has(key)) displayByKey.set(key, cleaned);
+  return consolidateWithPantry(householdId, buildInputs(recipes), subtractPantry);
+}
 
-      inputs.push({
-        canonicalId: key,
-        quantity: ing.quantity,
-        unit: (ing.unit as Unit | null) ?? null,
-        scale,
-        ref: `${ing.id}|${entry.id}`,
-        name: cleaned,
-      });
-    }
-  }
+/**
+ * Build the "need to buy" items for a single recipe, scaled from its base
+ * servings to `targetServings`. Same engine and pantry subtraction as the plan
+ * path — with `subtractPantry`, anything already on hand drops out — so the
+ * recipe's "add to shopping list" flow and the plan generator agree on what's
+ * needed.
+ */
+export async function buildRecipeShoppingItems(
+  householdId: string,
+  ingredients: RecipeInput['ingredients'],
+  recipeServings: number,
+  targetServings: number,
+  subtractPantry = true,
+): Promise<GeneratedItem[]> {
+  const scale = recipeServings > 0 ? targetServings / recipeServings : 1;
+  return consolidateWithPantry(
+    householdId,
+    buildInputs([{ ingredients, scale, entryId: null }]),
+    subtractPantry,
+  );
+}
+
+/**
+ * Shared tail of the builders: fetch conversion facts and category overrides,
+ * consolidate, subtract the pantry, and shape the rows. Split out so the plan
+ * and single-recipe paths differ only in how they gather their inputs.
+ */
+async function consolidateWithPantry(
+  householdId: string,
+  built: BuiltInputs,
+  subtractPantry: boolean,
+): Promise<GeneratedItem[]> {
+  const { inputs, displayByKey, canonicalIds } = built;
 
   // Fetch conversion facts for the matched canonical ingredients.
   const lookup = new Map<string, CanonicalInfo>();

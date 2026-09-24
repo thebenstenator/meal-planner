@@ -402,6 +402,88 @@ export async function addSmartItem(
   return 'added';
 }
 
+export interface ListItemInput {
+  canonicalId: string | null;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  category: string | null;
+}
+
+/**
+ * Add a batch of items (e.g. a recipe's needed ingredients) onto a list. Merges
+ * into what's already there: a matched item is found by canonical id, an
+ * unmatched one by name, and when the units line up the quantities are summed
+ * rather than duplicating the row. Everything else is inserted as a manual item
+ * so it survives regeneration. Best-effort category: the caller's, else deduced.
+ */
+export async function addItemsToList(listId: string, items: ListItemInput[]): Promise<void> {
+  if (items.length === 0) return;
+
+  const { data: existingRows, error: exErr } = await supabase
+    .from('shopping_list_item')
+    .select('id, canonical_ingredient_id, ad_hoc_name, display_name, total_quantity, unit')
+    .eq('shopping_list_id', listId);
+  if (exErr) throw exErr;
+
+  const byCanonical = new Map<string, (typeof existingRows)[number]>();
+  const byName = new Map<string, (typeof existingRows)[number]>();
+  for (const row of existingRows ?? []) {
+    if (row.canonical_ingredient_id) byCanonical.set(row.canonical_ingredient_id, row);
+    else if (row.ad_hoc_name) byName.set(row.ad_hoc_name.trim().toLowerCase(), row);
+  }
+
+  const toInsert: Array<{
+    shopping_list_id: string;
+    canonical_ingredient_id: string | null;
+    ad_hoc_name: string | null;
+    display_name: string;
+    total_quantity: number | null;
+    unit: string | null;
+    category: string;
+    is_manual: boolean;
+  }> = [];
+  for (const item of items) {
+    const existing = item.canonicalId
+      ? byCanonical.get(item.canonicalId)
+      : byName.get(item.name.trim().toLowerCase());
+
+    if (existing) {
+      // Already on the list — bump the quantity when the units agree and both
+      // are measured, otherwise leave the row as-is (it already covers the need).
+      const cur = existing.total_quantity;
+      if (
+        item.quantity != null &&
+        cur != null &&
+        (existing.unit ?? null) === (item.unit ?? null)
+      ) {
+        const { error } = await supabase
+          .from('shopping_list_item')
+          .update({ total_quantity: Number(cur) + item.quantity })
+          .eq('id', existing.id);
+        if (error) throw error;
+      }
+      continue;
+    }
+
+    toInsert.push({
+      shopping_list_id: listId,
+      canonical_ingredient_id: item.canonicalId,
+      ad_hoc_name: item.canonicalId ? null : item.name,
+      display_name: item.name,
+      total_quantity: item.quantity,
+      unit: item.unit,
+      category: item.category ?? deduceCategory(item.name),
+      is_manual: true,
+    });
+  }
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from('shopping_list_item').insert(toInsert);
+    if (error) throw error;
+  }
+}
+
 /**
  * File an item under a category. Remembering it for the ingredient (so the
  * choice survives regeneration and applies next time) is a separate,
