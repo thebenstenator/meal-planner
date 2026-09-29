@@ -831,6 +831,7 @@ export type Database = {
           quantity: number | null
           raw_text: string
           recipe_id: string
+          section: string | null
           unit: string | null
           updated_at: string
         }
@@ -846,6 +847,7 @@ export type Database = {
           quantity?: number | null
           raw_text: string
           recipe_id: string
+          section?: string | null
           unit?: string | null
           updated_at?: string
         }
@@ -861,6 +863,7 @@ export type Database = {
           quantity?: number | null
           raw_text?: string
           recipe_id?: string
+          section?: string | null
           unit?: string | null
           updated_at?: string
         }

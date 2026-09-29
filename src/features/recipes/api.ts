@@ -26,6 +26,9 @@ export interface RecipeIngredientDraft {
   isOptional: boolean;
   parseConfidence: number | null;
   needsReview: boolean;
+  /** Heading this ingredient sits under ("Lemon curd"), or null. Consecutive
+   * rows with the same section form one group. */
+  section: string | null;
 }
 
 export interface RecipeSummary {
@@ -151,6 +154,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
       isOptional: ri.is_optional,
       parseConfidence: ri.parse_confidence,
       needsReview: ri.needs_review,
+      section: ri.section,
     })),
   };
 }
@@ -192,6 +196,7 @@ export async function saveRecipe(
       is_optional: i.isOptional,
       parse_confidence: i.parseConfidence,
       needs_review: i.needsReview,
+      section: i.section?.trim() || null,
     }));
 
   const { data, error } = await supabase.rpc('save_recipe', {

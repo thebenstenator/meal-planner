@@ -26,6 +26,7 @@ const parsedIngredientSchema = z.object({
   descriptor: z.string().nullable(),
   is_optional: z.boolean(),
   confidence: z.number().min(0).max(1),
+  section: z.string().nullable(),
 });
 const parsedRecipeSchema = z.object({
   title: z.string(),
@@ -59,8 +60,18 @@ const RECIPE_JSON_SCHEMA = {
           descriptor: { type: ['string', 'null'] },
           is_optional: { type: 'boolean' },
           confidence: { type: 'number' },
+          section: { type: ['string', 'null'] },
         },
-        required: ['raw_text', 'quantity', 'unit', 'name', 'descriptor', 'is_optional', 'confidence'],
+        required: [
+          'raw_text',
+          'quantity',
+          'unit',
+          'name',
+          'descriptor',
+          'is_optional',
+          'confidence',
+          'section',
+        ],
       },
     },
   },
@@ -77,6 +88,7 @@ Rules:
 - descriptor: prep notes like "softened", "finely chopped", or null.
 - is_optional: true only if the line says optional.
 - confidence: 0-1, your confidence in that line's parse.
+- section: if the ingredients are grouped under subheadings (e.g. "Lemon curd:", "For the frosting"), the subheading this line sits under, without the trailing colon (e.g. "Lemon curd"); otherwise null. Subheadings are NOT ingredients — never emit one as its own entry.
 - servings/prep_minutes/cook_minutes: integers or null.
 - instructions: the method as markdown, or null.
 Return only the structured object.`;

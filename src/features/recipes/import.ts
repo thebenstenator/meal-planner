@@ -17,6 +17,9 @@ interface ParsedIngredient {
   descriptor: string | null;
   is_optional: boolean;
   confidence: number;
+  /** Heading the line sits under on the page ("Lemon curd"), or null. Optional
+   * so an older deployed parse-recipe function still reads fine. */
+  section?: string | null;
 }
 
 export interface ParsedRecipe {
@@ -157,6 +160,7 @@ export async function toImportDetail(
         isOptional: ing.is_optional,
         parseConfidence: ing.confidence,
         needsReview: match === null || ing.confidence < LOW_CONFIDENCE,
+        section: ing.section?.trim() || null,
       };
     }),
   );

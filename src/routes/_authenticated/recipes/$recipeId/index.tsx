@@ -15,6 +15,7 @@ import {
 import { AddToListDialog } from '@/features/recipes/components/add-to-list-dialog';
 import { RecipeCompanion } from '@/features/recipes/components/recipe-companion';
 import { scaledAmount } from '@/features/recipes/scale';
+import { groupBySection } from '@/features/recipes/sections';
 import { useCookbooks, useUnshareRecipe } from '@/features/recipes/use-cookbook';
 import {
   useRecipe,
@@ -188,30 +189,47 @@ function RecipeDetailPage() {
             Scaled from {recipe.servings} — amounts below are for {targetServings} servings.
           </p>
         )}
-        <ul className="space-y-1.5">
-          {recipe.ingredients.map((ing) => {
-            const amount = scaled
-              ? scaledAmount(ing.quantity, ing.unit, recipe.servings, targetServings)
-              : null;
-            return (
-              <li key={ing.id ?? ing.rawText} className="flex items-center gap-2 text-sm">
-                <span>{ing.rawText}</span>
-                {amount && <span className="font-medium text-emerald-700">→ {amount}</span>}
-                {ing.isOptional && <span className="text-muted-foreground text-xs">(optional)</span>}
-                {ing.canonicalName ? (
-                  <Badge variant="outline">{ing.canonicalName}</Badge>
-                ) : (
-                  <Badge variant="outline" className="text-amber-600">
-                    needs match
-                  </Badge>
-                )}
-              </li>
-            );
-          })}
-          {recipe.ingredients.length === 0 && (
-            <li className="text-muted-foreground text-sm">No ingredients yet.</li>
-          )}
-        </ul>
+        {recipe.ingredients.length === 0 && (
+          <p className="text-muted-foreground text-sm">No ingredients yet.</p>
+        )}
+        {/* One list per section ("Lemon curd", "Lemon cookies"); a recipe
+            without sections is a single untitled group. */}
+        <div className="space-y-4">
+          {groupBySection(recipe.ingredients).map((group) => (
+            <div key={`${group.section ?? ''}-${group.items[0]?.index ?? 0}`}>
+              {group.section && (
+                <h3 className="text-muted-foreground mb-1.5 text-sm font-semibold">
+                  {group.section}
+                </h3>
+              )}
+              <ul className="space-y-1.5">
+                {group.items.map(({ row: ing }) => {
+                  const amount = scaled
+                    ? scaledAmount(ing.quantity, ing.unit, recipe.servings, targetServings)
+                    : null;
+                  return (
+                    <li key={ing.id ?? ing.rawText} className="flex items-center gap-2 text-sm">
+                      <span>{ing.rawText}</span>
+                      {amount && (
+                        <span className="font-medium text-emerald-700">→ {amount}</span>
+                      )}
+                      {ing.isOptional && (
+                        <span className="text-muted-foreground text-xs">(optional)</span>
+                      )}
+                      {ing.canonicalName ? (
+                        <Badge variant="outline">{ing.canonicalName}</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-amber-600">
+                          needs match
+                        </Badge>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
         {recipe.ingredients.length > 0 && (
           <Button className="mt-3" onClick={() => setAddingToList(true)}>
             Add to shopping list

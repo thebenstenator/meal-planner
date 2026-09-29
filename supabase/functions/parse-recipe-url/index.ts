@@ -11,6 +11,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { z } from 'npm:zod@3.23.8';
 
+import { decodeEntities, stripTags, withGroupHeadings } from './ingredient-groups.ts';
+
 const MODEL = Deno.env.get('RECIPE_PARSE_MODEL') ?? 'claude-haiku-4-5';
 
 const CORS = {
@@ -67,21 +69,6 @@ function findRecipeNode(blocks: unknown[]): Record<string, unknown> | null {
     }
   }
   return null;
-}
-
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#0?39;|&apos;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)));
-}
-
-function stripTags(s: string): string {
-  return decodeEntities(s.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
 }
 
 /** ISO-8601 duration (PT1H30M) -> minutes, or null. */
@@ -161,7 +148,7 @@ const RECIPE_JSON_SCHEMA = {
 const SYSTEM_PROMPT = `You extract a single recipe from the text of a web page.
 Rules:
 - title: the recipe name.
-- ingredient_lines: an array of the ingredient lines, each VERBATIM as written (e.g. "2 (8 oz) packages cream cheese, softened"). One entry per ingredient.
+- ingredient_lines: an array of the ingredient lines, each VERBATIM as written (e.g. "2 (8 oz) packages cream cheese, softened"). One entry per ingredient. If the ingredients are grouped under subheadings (e.g. "Lemon curd", "For the frosting"), include each subheading as its own entry, ending in a colon (e.g. "Lemon curd:"), immediately before the ingredients it covers.
 - instructions: the numbered method as plain text, or null.
 - servings/prep_minutes/cook_minutes: integers or null.
 - Ignore ads, comments, navigation and unrelated text.
@@ -315,6 +302,9 @@ Deno.serve(async (req) => {
     const node = findRecipeNode(jsonLdBlocks(html));
     const fromLd = node ? recipeFromJsonLd(node) : null;
     if (fromLd) {
+      // JSON-LD flattens ingredient groups; recover their headings from the
+      // plugin markup so "Lemon curd" / "Lemon cookies" stay separate.
+      fromLd.ingredient_lines = withGroupHeadings(html, fromLd.ingredient_lines);
       return json({ recipe: fromLd, source: url, usedAi: false });
     }
 

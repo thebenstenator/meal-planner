@@ -1,5 +1,6 @@
 import { matchCanonical } from '@/features/ingredients/api';
 import type { RecipeIngredientDraft } from '@/features/recipes/api';
+import { assignSections } from '@/features/recipes/sections';
 import { parse } from '@/lib/ingredients';
 
 const LOW_CONFIDENCE = 0.6;
@@ -7,6 +8,7 @@ const LOW_CONFIDENCE = 0.6;
 function toDraft(
   parsed: ReturnType<typeof parse>,
   match: Awaited<ReturnType<typeof matchCanonical>>,
+  section: string | null = null,
 ): RecipeIngredientDraft {
   return {
     rawText: parsed.raw,
@@ -20,6 +22,7 @@ function toDraft(
     parseConfidence: parsed.confidence,
     // Surface for a two-tap human fix when we couldn't match or weren't sure.
     needsReview: match === null || parsed.confidence < LOW_CONFIDENCE,
+    section,
   };
 }
 
@@ -36,20 +39,19 @@ export async function parseIngredientLine(
 /**
  * Parse a pasted block of ingredient lines through the engine, then match each
  * to a canonical ingredient. One matcher call per line, run in parallel.
+ * Heading lines ("Lemon curd:", "For the frosting") aren't ingredients — they
+ * become the section of the lines beneath them.
  */
 export async function parseIngredientBlock(
   householdId: string,
   text: string,
 ): Promise<RecipeIngredientDraft[]> {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+  const lines = assignSections(text.split(/\r?\n/));
 
-  const parsed = lines.map(parse);
+  const parsed = lines.map((l) => parse(l.line));
   const matches = await Promise.all(
     parsed.map((p) => (p.name ? matchCanonical(householdId, p.name).catch(() => null) : null)),
   );
 
-  return parsed.map((p, i) => toDraft(p, matches[i] ?? null));
+  return parsed.map((p, i) => toDraft(p, matches[i] ?? null, lines[i]?.section ?? null));
 }

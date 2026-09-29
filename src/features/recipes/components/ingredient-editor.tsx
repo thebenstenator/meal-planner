@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import type { RecipeIngredientDraft } from '@/features/recipes/api';
 import { parseIngredientBlock } from '@/features/recipes/parse-block';
+import { groupBySection, hasSections } from '@/features/recipes/sections';
 import { parse, parseQuantity } from '@/lib/ingredients';
 
 interface Props {
@@ -28,6 +29,7 @@ const EMPTY_ROW: RecipeIngredientDraft = {
   isOptional: false,
   parseConfidence: null,
   needsReview: false,
+  section: null,
 };
 
 export function IngredientEditor({ householdId, value, onChange, showPaste = true }: Props) {
@@ -39,6 +41,50 @@ export function IngredientEditor({ householdId, value, onChange, showPaste = tru
   }
   function remove(index: number) {
     onChange(value.filter((_, i) => i !== index));
+  }
+
+  const sectioned = hasSections(value);
+  // Where each section's run of rows starts (→ its rows' indexes) and ends, so
+  // the list can draw a heading above it and a "+ row" button below it.
+  const groupStarts = new Map<number, number[]>();
+  const groupEnds = new Set<number>();
+  for (const group of groupBySection(value)) {
+    const indexes = group.items.map((it) => it.index);
+    groupStarts.set(indexes[0] ?? 0, indexes);
+    groupEnds.add(indexes[indexes.length - 1] ?? 0);
+  }
+  const sectionNames = [
+    ...new Set(value.map((r) => r.section?.trim()).filter((s): s is string => !!s)),
+  ];
+
+  /** Rename one section (a run of rows), or clear it to drop the heading. */
+  function renameSection(indexes: number[], name: string) {
+    const section = name.trim() || null;
+    onChange(value.map((row, i) => (indexes.includes(i) ? { ...row, section } : row)));
+  }
+  /** Add a blank row at the end of a section. */
+  function addRowAfter(index: number, section: string | null) {
+    const next = [...value];
+    next.splice(index + 1, 0, { ...EMPTY_ROW, section });
+    onChange(next);
+  }
+  /** Move a row to the end of another section (or the unsectioned top). */
+  function moveToSection(index: number, section: string | null) {
+    const row = value[index];
+    if (!row) return;
+    const rest = value.filter((_, i) => i !== index);
+    let at = 0;
+    if (section !== null) {
+      const last = rest.map((r) => r.section?.trim() || null).lastIndexOf(section);
+      at = last === -1 ? rest.length : last + 1;
+    }
+    rest.splice(at, 0, { ...row, section });
+    onChange(rest);
+  }
+  function addSection() {
+    let name = 'New section';
+    for (let n = 2; sectionNames.includes(name); n++) name = `New section ${n}`;
+    onChange([...value, { ...EMPTY_ROW, section: name }]);
   }
 
   async function parseBlock() {
@@ -80,9 +126,25 @@ export function IngredientEditor({ householdId, value, onChange, showPaste = tru
             <span className="text-muted-foreground font-normal"> · {reviewCount} to review</span>
           )}
         </span>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...value, { ...EMPTY_ROW }])}>
-          Add row
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={addSection}>
+            Add section
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            // A new row continues whatever section the list ends in.
+            onClick={() =>
+              onChange([
+                ...value,
+                { ...EMPTY_ROW, section: value[value.length - 1]?.section ?? null },
+              ])
+            }
+          >
+            Add row
+          </Button>
+        </div>
       </div>
 
       {value.length === 0 && (
@@ -93,72 +155,150 @@ export function IngredientEditor({ householdId, value, onChange, showPaste = tru
 
       <ul className="space-y-3">
         {value.map((row, i) => (
-          <li key={i} className="space-y-2 rounded-lg border p-3">
-            <div className="flex items-center gap-2">
-              <RawTextInput
-                label={`Ingredient ${i + 1} text`}
-                value={row.rawText}
-                onChange={(text) => update(i, { rawText: text })}
-                // Edit the line, and the amount/unit follow it: "½ cup" → "¼ cup"
-                // re-reads to 0.25. Only fires when the text actually changed, so
-                // it never clobbers a quantity you set by hand.
-                onReparse={(text) => {
-                  const p = parse(text);
-                  update(i, { quantity: p.quantity, unit: p.unit, parsedName: p.name || null });
-                }}
-              />
-              <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)}>
-                Remove
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-[1fr_5rem_5rem] gap-2">
-              <CanonicalCombobox
-                value={{ id: row.canonicalId, name: row.canonicalName }}
-                seedName={row.parsedName}
-                onSelect={(id, name) =>
-                  update(i, { canonicalId: id, canonicalName: name, needsReview: id === null })
-                }
-                placeholder="Match to ingredient…"
-              />
-              <QuantityInput
-                label={`Ingredient ${i + 1} quantity`}
-                value={row.quantity}
-                onCommit={(q) => update(i, { quantity: q })}
-              />
-              <Input
-                aria-label={`Ingredient ${i + 1} unit`}
-                value={row.unit ?? ''}
-                onChange={(e) => update(i, { unit: e.target.value || null })}
-                placeholder="unit"
-              />
-            </div>
-
-            <div className="flex items-center gap-3 text-sm">
-              <label className="flex items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  checked={row.isOptional}
-                  onChange={(e) => update(i, { isOptional: e.target.checked })}
+          <Fragment key={i}>
+            {sectioned && groupStarts.has(i) && (
+              <li className="pt-2">
+                {row.section?.trim() ? (
+                  <SectionNameInput
+                    value={row.section.trim()}
+                    onCommit={(name) => renameSection(groupStarts.get(i) ?? [i], name)}
+                  />
+                ) : (
+                  <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    No section
+                  </p>
+                )}
+              </li>
+            )}
+            <li className="space-y-2 rounded-lg border p-3">
+              <div className="flex items-center gap-2">
+                <RawTextInput
+                  label={`Ingredient ${i + 1} text`}
+                  value={row.rawText}
+                  onChange={(text) => update(i, { rawText: text })}
+                  // Edit the line, and the amount/unit follow it: "½ cup" → "¼ cup"
+                  // re-reads to 0.25. Only fires when the text actually changed, so
+                  // it never clobbers a quantity you set by hand.
+                  onReparse={(text) => {
+                    const p = parse(text);
+                    update(i, { quantity: p.quantity, unit: p.unit, parsedName: p.name || null });
+                  }}
                 />
-                Optional
-              </label>
-              {!row.canonicalId ? (
-                <Badge variant="outline" className="text-amber-600">
-                  needs match
-                </Badge>
-              ) : (
-                row.needsReview && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)}>
+                  Remove
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-[1fr_5rem_5rem] gap-2">
+                <CanonicalCombobox
+                  value={{ id: row.canonicalId, name: row.canonicalName }}
+                  seedName={row.parsedName}
+                  onSelect={(id, name) =>
+                    update(i, { canonicalId: id, canonicalName: name, needsReview: id === null })
+                  }
+                  placeholder="Match to ingredient…"
+                />
+                <QuantityInput
+                  label={`Ingredient ${i + 1} quantity`}
+                  value={row.quantity}
+                  onCommit={(q) => update(i, { quantity: q })}
+                />
+                <Input
+                  aria-label={`Ingredient ${i + 1} unit`}
+                  value={row.unit ?? ''}
+                  onChange={(e) => update(i, { unit: e.target.value || null })}
+                  placeholder="unit"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 text-sm">
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={row.isOptional}
+                    onChange={(e) => update(i, { isOptional: e.target.checked })}
+                  />
+                  Optional
+                </label>
+                {sectioned && (
+                  <select
+                    aria-label={`Ingredient ${i + 1} section`}
+                    value={row.section?.trim() || ''}
+                    onChange={(e) => moveToSection(i, e.target.value || null)}
+                    className="border-input bg-background h-8 max-w-40 rounded-md border px-2 text-xs"
+                  >
+                    <option value="">No section</option>
+                    {sectionNames.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {!row.canonicalId ? (
                   <Badge variant="outline" className="text-amber-600">
-                    review
+                    needs match
                   </Badge>
-                )
-              )}
-            </div>
-          </li>
+                ) : (
+                  row.needsReview && (
+                    <Badge variant="outline" className="text-amber-600">
+                      review
+                    </Badge>
+                  )
+                )}
+              </div>
+            </li>
+            {sectioned && groupEnds.has(i) && row.section?.trim() && (
+              <li>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => addRowAfter(i, row.section?.trim() ?? null)}
+                >
+                  + row in {row.section.trim()}
+                </Button>
+              </li>
+            )}
+          </Fragment>
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * A section's heading, editable in place. Held locally while typing and applied
+ * on blur/Enter — renaming on every keystroke would regroup the rows mid-word
+ * (and clearing the box to retype would drop the heading outright). Clearing it
+ * and leaving removes the heading; its rows stay, just ungrouped.
+ */
+function SectionNameInput({
+  value,
+  onCommit,
+}: {
+  value: string;
+  onCommit: (name: string) => void;
+}) {
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  return (
+    <Input
+      aria-label="Section name"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        if (text.trim() !== value) onCommit(text);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.currentTarget.blur();
+        }
+      }}
+      placeholder="Section name (clear to remove)"
+      className="h-9 font-semibold"
+    />
   );
 }
 
