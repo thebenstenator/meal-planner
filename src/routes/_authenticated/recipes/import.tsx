@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/ui/loading';
 import { useHousehold } from '@/features/household/use-household';
 import type { RecipeDetail } from '@/features/recipes/api';
 import { RecipeForm } from '@/features/recipes/components/recipe-form';
@@ -172,7 +173,7 @@ function ImportRecipePage() {
           )}
 
           <Button onClick={parse} disabled={step === 'parsing' || images.length === 0}>
-            {step === 'parsing' ? 'Reading recipe…' : 'Read recipe'}
+            {step === 'parsing' ? <Loading>Reading recipe</Loading> : 'Read recipe'}
           </Button>
         </>
       )}

@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
+import { Loading } from '@/components/ui/loading';
 import { BudgetCard } from '@/features/household/components/budget-card';
 import { InviteCard } from '@/features/household/components/invite-card';
 import { JoinCard } from '@/features/household/components/join-card';
@@ -26,7 +27,7 @@ function HouseholdSettingsPage() {
         </p>
       </div>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+      {isLoading && <p className="text-muted-foreground text-sm"><Loading>Loading</Loading></p>}
       {isError && (
         <p className="text-destructive text-sm">Couldn’t load your household.</p>
       )}

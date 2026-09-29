@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RowMenu } from '@/components/ui/row-menu';
+import { Loading } from '@/components/ui/loading';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { isLowStock } from '@/features/pantry/low-stock';
 import { PantryTrackLine } from '@/features/pantry/components/pantry-track-line';
@@ -67,7 +68,7 @@ function ShoppingListDetail() {
   const pantryMut = usePantryMutations();
   const pricing = useListPricing(data?.items ?? []);
 
-  if (isLoading) return <Centered>Loading…</Centered>;
+  if (isLoading) return <Centered><Loading>Loading</Loading></Centered>;
   if (isError || !data) return <Centered>Couldn’t load this list.</Centered>;
 
   const { summary, items } = data;
@@ -134,7 +135,7 @@ function ShoppingListDetail() {
               onClick={onRegenerate}
               disabled={regenerate.isPending}
             >
-              {regenerate.isPending ? 'Regenerating…' : 'Regenerate'}
+              {regenerate.isPending ? <Loading>Regenerating</Loading> : 'Regenerate'}
             </Button>
           )}
         </div>
@@ -142,7 +143,7 @@ function ShoppingListDetail() {
 
       {managingCategories &&
         (categoriesLoading ? (
-          <p className="text-muted-foreground text-sm">Loading categories…</p>
+          <p className="text-muted-foreground text-sm"><Loading>Loading categories</Loading></p>
         ) : (
           <CategoryManager categories={categories} onClose={() => setManagingCategories(false)} />
         ))}
@@ -795,7 +796,7 @@ function AddItemForm({
         <Input aria-label="Add item unit" className="w-16" placeholder="unit" value={unit} onChange={(e) => setUnit(e.target.value)} />
         <ScanButton size="default" onResult={(p) => onScanned(p.name)} />
         <Button type="submit" disabled={busy}>
-          {busy ? 'Adding…' : 'Add'}
+          {busy ? <Loading>Adding</Loading> : 'Add'}
         </Button>
       </div>
       {feedback && (

@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { BarcodeIcon } from '@/components/icons/barcode';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/ui/loading';
 import { BarcodeScanner } from '@/features/scanner/barcode-scanner';
 import { lookupBarcode, type ScannedProduct } from '@/features/scanner/open-food-facts';
 
@@ -46,7 +47,7 @@ export function ScanButton({ onResult, size = 'default' }: Props) {
       <div className="flex items-center gap-2">
         <Button type="button" variant="outline" size={size} disabled={busy} onClick={() => setOpen(true)}>
           {busy ? (
-            'Looking up…'
+            <Loading>Looking up</Loading>
           ) : (
             <span className="inline-flex items-center gap-1.5">
               <BarcodeIcon className="h-4 w-4" />

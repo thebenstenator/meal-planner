@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loading } from '@/components/ui/loading';
 import { useRenameHousehold } from '@/features/household/use-household-mutations';
 import {
   householdSettingsSchema,
@@ -68,7 +69,7 @@ export function RenameCard({ householdId, currentName, canEdit }: RenameCardProp
           )}
           {canEdit && (
             <Button type="submit" disabled={!isDirty || rename.isPending}>
-              {rename.isPending ? 'Saving…' : 'Save'}
+              {rename.isPending ? <Loading>Saving</Loading> : 'Save'}
             </Button>
           )}
         </form>

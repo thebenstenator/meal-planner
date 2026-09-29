@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loading } from '@/components/ui/loading';
 import { useSetMonthlyBudget } from '@/features/household/use-household-mutations';
 
 interface BudgetCardProps {
@@ -69,7 +70,7 @@ export function BudgetCard({ householdId, monthlyBudgetCents, canEdit }: BudgetC
           {save.isError && <p className="text-destructive text-sm">Couldn’t save. Try again.</p>}
           {canEdit && (
             <Button type="submit" disabled={!dirty || invalid || save.isPending}>
-              {save.isPending ? 'Saving…' : 'Save'}
+              {save.isPending ? <Loading>Saving</Loading> : 'Save'}
             </Button>
           )}
         </form>

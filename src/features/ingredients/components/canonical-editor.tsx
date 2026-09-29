@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loading } from '@/components/ui/loading';
 import type { CanonicalIngredient, CanonicalInput } from '@/features/ingredients/api';
 import {
   useCreateCanonical,
@@ -120,7 +121,7 @@ export function CanonicalEditor({ ingredient, mergeTargets, onDone }: Props) {
 
       <div className="flex gap-2">
         <Button type="submit" disabled={pending || (!formState.isDirty && !ingredient)}>
-          {pending ? 'Saving…' : ingredient ? 'Save changes' : 'Add ingredient'}
+          {pending ? <Loading>Saving</Loading> : ingredient ? 'Save changes' : 'Add ingredient'}
         </Button>
         <Button type="button" variant="ghost" onClick={onDone}>
           Cancel

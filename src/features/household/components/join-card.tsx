@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loading } from '@/components/ui/loading';
 import { useAcceptInvite } from '@/features/household/use-household-mutations';
 import { inviteCodeSchema, type InviteCodeInput } from '@/schemas/auth';
 
@@ -71,7 +72,7 @@ export function JoinCard() {
             </p>
           )}
           <Button type="submit" variant="outline" disabled={accept.isPending}>
-            {accept.isPending ? 'Joining…' : 'Join household'}
+            {accept.isPending ? <Loading>Joining</Loading> : 'Join household'}
           </Button>
         </form>
       </CardContent>

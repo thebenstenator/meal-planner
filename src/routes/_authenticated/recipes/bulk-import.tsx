@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Loading } from '@/components/ui/loading';
 import { useHousehold } from '@/features/household/use-household';
 import {
   draftFromFile,
@@ -147,7 +148,7 @@ function BulkImportPage() {
               />
               <div className="flex flex-wrap items-center gap-2">
                 <Button onClick={() => parseText()} disabled={busy || text.trim() === ''}>
-                  {busy ? 'Reading…' : 'Read recipes'}
+                  {busy ? <Loading>Reading</Loading> : 'Read recipes'}
                 </Button>
                 <label className="text-primary cursor-pointer text-sm underline">
                   <input
@@ -175,7 +176,7 @@ function BulkImportPage() {
                 are skipped and listed.
               </p>
               <Button onClick={importUrls} disabled={busy || urls.trim() === ''}>
-                {busy ? 'Importing…' : 'Import links'}
+                {busy ? <Loading>Importing</Loading> : 'Import links'}
               </Button>
             </>
           )}
@@ -231,7 +232,7 @@ function BulkImportPage() {
 
           <div className="flex gap-2">
             <Button onClick={saveAll} disabled={busy || selectedCount === 0}>
-              {busy ? 'Saving…' : `Save ${selectedCount} recipe${selectedCount === 1 ? '' : 's'}`}
+              {busy ? <Loading>Saving</Loading> : `Save ${selectedCount} recipe${selectedCount === 1 ? '' : 's'}`}
             </Button>
             <Button
               variant="ghost"

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loading } from '@/components/ui/loading';
 import { useHousehold } from '@/features/household/use-household';
 import {
   useAcceptCookbookInvite,
@@ -105,7 +106,7 @@ function CreateCookbookCard({ defaultName, onDone }: { defaultName: string; onDo
             })
           }
         >
-          {create.isPending ? 'Creating…' : 'Create shared cookbook'}
+          {create.isPending ? <Loading>Creating</Loading> : 'Create shared cookbook'}
         </Button>
         {create.isError && (
           <p className="text-destructive text-sm">{create.error.message}</p>
@@ -159,7 +160,7 @@ function JoinCookbookCard({ onDone }: { onDone: () => void }) {
           disabled={accept.isPending || !householdId}
           onClick={submit}
         >
-          {accept.isPending ? 'Joining…' : 'Join cookbook'}
+          {accept.isPending ? <Loading>Joining</Loading> : 'Join cookbook'}
         </Button>
         {accept.isError && (
           <p role="alert" className="text-destructive text-sm">
@@ -218,7 +219,7 @@ function ShareBack({ cookbookId, cookbookName }: { cookbookId: string; cookbookN
                 shareAll.mutate(cookbookId, { onSuccess: () => setConfirming(false) })
               }
             >
-              {shareAll.isPending ? 'Sharing…' : 'Share them'}
+              {shareAll.isPending ? <Loading>Sharing</Loading> : 'Share them'}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setConfirming(false)}>
               Cancel
@@ -290,7 +291,7 @@ function CookbookCard({
 
         <div className="space-y-2">
           <Button size="sm" onClick={() => invite.mutate()} disabled={invite.isPending}>
-            {invite.isPending ? 'Generating…' : 'Invite someone'}
+            {invite.isPending ? <Loading>Generating</Loading> : 'Invite someone'}
           </Button>
           {code && (
             <div className="flex items-center gap-2">
@@ -327,7 +328,7 @@ function CookbookCard({
                   disabled={del.isPending}
                   onClick={() => del.mutate(cookbookId)}
                 >
-                  {del.isPending ? 'Deleting…' : 'Delete cookbook'}
+                  {del.isPending ? <Loading>Deleting</Loading> : 'Delete cookbook'}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setConfirming(false)}>
                   Cancel
@@ -341,7 +342,7 @@ function CookbookCard({
               disabled={leave.isPending || !householdId}
               onClick={() => leave.mutate(cookbookId)}
             >
-              {leave.isPending ? 'Leaving…' : 'Leave cookbook'}
+              {leave.isPending ? <Loading>Leaving</Loading> : 'Leave cookbook'}
             </Button>
           )}
         </div>

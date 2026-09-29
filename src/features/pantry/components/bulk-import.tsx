@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Loading } from '@/components/ui/loading';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { guessCategory } from '@/features/ingredients/guess-category';
 import { useCreateCanonical } from '@/features/ingredients/use-ingredients';
@@ -108,7 +109,7 @@ export function PantryBulkImport({
             One item per line. Columns (name, quantity, unit) from a spreadsheet work too.
           </p>
           <Button type="button" onClick={preview} disabled={parsing || text.trim() === ''}>
-            {parsing ? 'Reading…' : 'Preview'}
+            {parsing ? <Loading>Reading</Loading> : 'Preview'}
           </Button>
         </>
       )}
@@ -204,7 +205,7 @@ export function PantryBulkImport({
 
           <div className="flex gap-2">
             <Button type="button" onClick={addAll} disabled={adding || addable.length === 0}>
-              {adding ? 'Adding…' : `Add ${addable.length} item${addable.length === 1 ? '' : 's'}`}
+              {adding ? <Loading>Adding</Loading> : `Add ${addable.length} item${addable.length === 1 ? '' : 's'}`}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setRows(null)}>
               Back

@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Loading } from '@/components/ui/loading';
 import type { RecipeIngredientDraft } from '@/features/recipes/api';
 import { useAddCanonicalToPantry } from '@/features/pantry/use-pantry';
 import type { ListItemInput } from '@/features/shopping-list/api';
@@ -115,7 +116,7 @@ export function AddToListDialog({
           {result ? (
             <Done result={result} onClose={onClose} />
           ) : isLoading ? (
-            <p className="text-muted-foreground text-sm">Checking your pantry…</p>
+            <p className="text-muted-foreground text-sm"><Loading>Checking your pantry</Loading></p>
           ) : isError ? (
             <p className="text-destructive text-sm">Couldn’t check your pantry. Try again.</p>
           ) : needed.length === 0 ? (
@@ -192,7 +193,7 @@ export function AddToListDialog({
                 </span>
                 <Button onClick={confirm} disabled={busy || (toBuy.length === 0 && toStock.length === 0)}>
                   {busy
-                    ? 'Adding…'
+                    ? <Loading>Adding</Loading>
                     : toBuy.length > 0
                       ? `Add ${toBuy.length} to list`
                       : 'Update pantry'}

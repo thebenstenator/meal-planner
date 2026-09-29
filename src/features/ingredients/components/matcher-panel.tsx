@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loading } from '@/components/ui/loading';
 import { useMatchCanonical } from '@/features/ingredients/use-ingredients';
 
 /**
@@ -48,7 +49,7 @@ export function MatcherPanel() {
             />
           </div>
           <Button type="submit" disabled={match.isPending || raw.trim().length === 0}>
-            {match.isPending ? 'Matching…' : 'Match'}
+            {match.isPending ? <Loading>Matching</Loading> : 'Match'}
           </Button>
         </form>
 

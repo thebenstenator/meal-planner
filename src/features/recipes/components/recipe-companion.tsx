@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/ui/loading';
 import { useHousehold } from '@/features/household/use-household';
 import {
   askCompanion,
@@ -71,7 +72,7 @@ export function RecipeCompanion({ recipe }: { recipe: CompanionRecipe }) {
           />
         </div>
         <Button type="submit" disabled={ask.isPending || question.trim() === ''}>
-          {ask.isPending ? 'Asking…' : 'Ask'}
+          {ask.isPending ? <Loading>Asking</Loading> : 'Ask'}
         </Button>
       </form>
 
@@ -97,7 +98,7 @@ export function RecipeCompanion({ recipe }: { recipe: CompanionRecipe }) {
         </div>
       )}
 
-      {ask.isPending && <p className="text-muted-foreground text-sm">Thinking…</p>}
+      {ask.isPending && <p className="text-muted-foreground text-sm"><Loading>Thinking</Loading></p>}
 
       {limitReached && (
         <p className="text-muted-foreground text-sm">

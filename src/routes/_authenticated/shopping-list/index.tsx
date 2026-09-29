@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RowMenu } from '@/components/ui/row-menu';
+import { Loading } from '@/components/ui/loading';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { PantryTrackLine } from '@/features/pantry/components/pantry-track-line';
 import { shouldTrackInPantry } from '@/features/pantry/track-decision';
@@ -230,7 +231,7 @@ function EmptyList({ onCreated }: { onCreated: (id: string) => void }) {
           placeholder="Add something you need…"
         />
         <Button type="submit" disabled={add.isPending}>
-          {add.isPending ? 'Adding…' : 'Add'}
+          {add.isPending ? <Loading>Adding</Loading> : 'Add'}
         </Button>
       </form>
       {feedback && <p className="text-destructive text-sm">{feedback}</p>}
@@ -395,7 +396,7 @@ function ListPanel({
         </div>
         <ScanButton size="default" onResult={(p) => onScanned(p.name)} />
         <Button type="submit" disabled={edits.addItem.isPending}>
-          {edits.addItem.isPending ? 'Adding…' : 'Add'}
+          {edits.addItem.isPending ? <Loading>Adding</Loading> : 'Add'}
         </Button>
       </form>
       {feedback && (
@@ -697,7 +698,7 @@ function GenerateModal({
             <p className="text-destructive text-sm">Couldn’t generate. Try again.</p>
           )}
           <Button onClick={onGenerate} disabled={generate.isPending} className="w-full">
-            {generate.isPending ? 'Generating…' : 'Generate list'}
+            {generate.isPending ? <Loading>Generating</Loading> : 'Generate list'}
           </Button>
         </div>
       </div>

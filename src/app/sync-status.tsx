@@ -1,6 +1,7 @@
 import { onlineManager, useIsMutating } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
+import { Loading } from '@/components/ui/loading';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -30,7 +31,7 @@ export function SyncStatus() {
         ? pending > 0
           ? `Offline · ${pending} queued`
           : 'Offline'
-        : 'Syncing…'}
+        : <Loading>Syncing</Loading>}
     </span>
   );
 }

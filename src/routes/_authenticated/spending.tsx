@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/ui/loading';
 import { useSpendHistory } from '@/features/pricing/use-spend-history';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format-currency';
@@ -30,7 +31,7 @@ function SpendingPage() {
         </Button>
       </div>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+      {isLoading && <p className="text-muted-foreground text-sm"><Loading>Loading</Loading></p>}
 
       {!isLoading && !storeId && !anySpend && (
         <div className="bg-muted/40 rounded-lg border p-4 text-sm">

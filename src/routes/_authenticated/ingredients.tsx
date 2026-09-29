@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/ui/loading';
 import type { CanonicalIngredient } from '@/features/ingredients/api';
 import { CanonicalEditor } from '@/features/ingredients/components/canonical-editor';
 import { MatcherPanel } from '@/features/ingredients/components/matcher-panel';
@@ -61,7 +62,7 @@ function IngredientsPage() {
         />
       )}
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+      {isLoading && <p className="text-muted-foreground text-sm"><Loading>Loading</Loading></p>}
       {isError && <p className="text-destructive text-sm">Couldn’t load ingredients.</p>}
       {data && items.length === 0 && (
         <p className="text-muted-foreground text-sm">No ingredients match “{search}”.</p>

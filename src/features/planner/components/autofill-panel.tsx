@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/ui/loading';
 import { useEntitlement } from '@/features/billing/use-entitlement';
 import type { NoveltyLevel } from '@/features/planner/autofill';
 import { fromISO } from '@/features/planner/dates';
@@ -222,7 +223,7 @@ function ConfigStep({
       )}
 
       <Button onClick={onGenerate} disabled={generating}>
-        {generating ? 'Building your month…' : 'Build a plan'}
+        {generating ? <Loading>Building your month</Loading> : 'Build a plan'}
       </Button>
     </>
   );
@@ -320,7 +321,7 @@ function ReviewStep({
 
       <div className="flex items-center gap-2 border-t pt-3">
         <Button onClick={onCommit} disabled={committing || keepCount === 0}>
-          {committing ? 'Adding to plan…' : `Fill ${keepCount} meal${keepCount === 1 ? '' : 's'}`}
+          {committing ? <Loading>Adding to plan</Loading> : `Fill ${keepCount} meal${keepCount === 1 ? '' : 's'}`}
         </Button>
         <Button variant="ghost" onClick={onRegenerate} disabled={committing}>
           Start over

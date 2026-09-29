@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loading } from '@/components/ui/loading';
 import { useAuth } from '@/features/auth/use-auth';
 
 /** Set/change your display name (drives the avatar initials and the account menu). */
@@ -57,7 +58,7 @@ export function ProfileCard() {
           </div>
           {error && <p className="text-destructive text-sm">Couldn’t save. Try again.</p>}
           <Button type="submit" disabled={!dirty || saving}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? <Loading>Saving</Loading> : 'Save'}
           </Button>
         </form>
       </CardContent>

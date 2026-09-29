@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/ui/loading';
 import {
   Card,
   CardContent,
@@ -41,7 +42,7 @@ export function InviteCard({ householdId }: { householdId: string }) {
           onClick={() => createInvite.mutate()}
           disabled={createInvite.isPending}
         >
-          {createInvite.isPending ? 'Generating…' : 'Generate invite code'}
+          {createInvite.isPending ? <Loading>Generating</Loading> : 'Generate invite code'}
         </Button>
 
         {createInvite.isError && (

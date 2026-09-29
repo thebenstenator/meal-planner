@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/ui/loading';
 import { useEntitlement } from '@/features/billing/use-entitlement';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import { usePricingSettings, useStores } from '@/features/pricing/use-pricing';
@@ -216,7 +217,7 @@ function CaptureStep({
       )}
 
       <Button onClick={onScan} disabled={scanning || images.length === 0}>
-        {scanning ? 'Reading receipt…' : 'Scan receipt'}
+        {scanning ? <Loading>Reading receipt</Loading> : 'Scan receipt'}
       </Button>
     </div>
   );
@@ -374,7 +375,7 @@ function ReviewStep({
 
       <div className="flex gap-2">
         <Button onClick={onSave} disabled={saving}>
-          {saving ? 'Saving…' : 'Save trip'}
+          {saving ? <Loading>Saving</Loading> : 'Save trip'}
         </Button>
         <Button variant="ghost" onClick={onCancel} disabled={saving}>
           Cancel

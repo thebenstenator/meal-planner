@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Loading } from '@/components/ui/loading';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
 import type { RecipeIngredientDraft } from '@/features/recipes/api';
 import { parseIngredientBlock } from '@/features/recipes/parse-block';
@@ -114,7 +115,7 @@ export function IngredientEditor({ householdId, value, onChange, showPaste = tru
             rows={4}
           />
           <Button type="button" onClick={parseBlock} disabled={parsing || block.trim().length === 0}>
-            {parsing ? 'Adding…' : 'Add rows'}
+            {parsing ? <Loading>Adding</Loading> : 'Add rows'}
           </Button>
         </div>
       )}
@@ -297,7 +298,7 @@ function SectionNameInput({
         }
       }}
       placeholder="Section name (clear to remove)"
-      className="h-9 font-semibold"
+      className="border-primary/40 text-primary h-9 font-semibold"
     />
   );
 }

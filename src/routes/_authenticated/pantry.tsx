@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RowMenu } from '@/components/ui/row-menu';
+import { Loading } from '@/components/ui/loading';
 import { cn } from '@/lib/utils/cn';
 import { daysBetween, expiryLabel } from '@/features/insights/insights';
 import { CanonicalCombobox } from '@/features/ingredients/components/canonical-combobox';
@@ -261,7 +262,7 @@ function PantryPage() {
             ))}
           </select>
           <Button type="submit" disabled={busy || add.isPending}>
-            {busy || add.isPending ? 'Adding…' : 'Add'}
+            {busy || add.isPending ? <Loading>Adding</Loading> : 'Add'}
           </Button>
         </div>
         <div className="flex items-center gap-2">
@@ -304,7 +305,7 @@ function PantryPage() {
       )}
       </div>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+      {isLoading && <p className="text-muted-foreground text-sm"><Loading>Loading</Loading></p>}
       {isError && <p className="text-destructive text-sm">Couldn’t load your pantry.</p>}
 
       {data && items.length === 0 && (
@@ -547,7 +548,7 @@ function PriceEditor({
       </div>
       <div className="flex gap-2">
         <Button type="button" size="sm" onClick={save} disabled={addPrice.isPending}>
-          {addPrice.isPending ? 'Saving…' : 'Save price'}
+          {addPrice.isPending ? <Loading>Saving</Loading> : 'Save price'}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onClose}>
           Cancel
@@ -648,7 +649,7 @@ function PackageEditor({ item, onClose }: { item: PantryItem; onClose: () => voi
       <PackageBuilder drafts={drafts} setDrafts={setDrafts} />
       <div className="flex gap-2">
         <Button type="button" size="sm" onClick={save} disabled={setPackages.isPending}>
-          {setPackages.isPending ? 'Saving…' : 'Save sizes'}
+          {setPackages.isPending ? <Loading>Saving</Loading> : 'Save sizes'}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onClose}>
           Cancel

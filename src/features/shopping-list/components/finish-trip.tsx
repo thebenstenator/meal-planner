@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/ui/loading';
 import { useEntitlement } from '@/features/billing/use-entitlement';
 import { shouldTrackInPantry } from '@/features/pantry/track-decision';
 import {
@@ -109,7 +110,7 @@ function ClearChecked({ listId, count }: { listId: string; count: number }) {
           setConfirming(false);
         }}
       >
-        {clear.isPending ? 'Clearing…' : 'Clear'}
+        {clear.isPending ? <Loading>Clearing</Loading> : 'Clear'}
       </Button>
       <Button size="sm" variant="ghost" className="h-7" onClick={() => setConfirming(false)}>
         Cancel
@@ -372,7 +373,7 @@ function FinishTripDialog({
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button onClick={onLog} disabled={totalCents == null || busy}>
-                  {busy ? 'Logging…' : 'Log trip'}
+                  {busy ? <Loading>Logging</Loading> : 'Log trip'}
                 </Button>
                 {step === 'entry' && !entLoading && (
                   <ScanEntry
@@ -491,7 +492,7 @@ function ScanEntry({
   }
   return (
     <Button variant="outline" onClick={onScan} disabled={scanning}>
-      {scanning ? 'Reading…' : `Read ${images.length} photo${images.length === 1 ? '' : 's'}`}
+      {scanning ? <Loading>Reading</Loading> : `Read ${images.length} photo${images.length === 1 ? '' : 's'}`}
     </Button>
   );
 }
@@ -641,7 +642,7 @@ function LoggedStep({
           </p>
           <div className="flex items-center gap-2">
             <Button onClick={onClear} disabled={clearing}>
-              {clearing ? 'Clearing…' : `Clear ${stillChecked}`}
+              {clearing ? <Loading>Clearing</Loading> : `Clear ${stillChecked}`}
             </Button>
             <Button variant="ghost" onClick={onKeep}>
               Keep them

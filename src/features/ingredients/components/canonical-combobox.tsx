@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/ui/loading';
 import { guessCategory } from '@/features/ingredients/guess-category';
 import { useCanonicalList, useCreateCanonical } from '@/features/ingredients/use-ingredients';
 
@@ -105,7 +106,7 @@ export function CanonicalCombobox({ value, seedName, onSelect, onTextChange, pla
                   );
                 }}
               >
-                {create.isPending ? 'Creating…' : `Create “${trimmed}”`}
+                {create.isPending ? <Loading>Creating</Loading> : `Create “${trimmed}”`}
               </button>
             </li>
           )}

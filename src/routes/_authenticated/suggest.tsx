@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Loading } from '@/components/ui/loading';
 import { useEntitlement } from '@/features/billing/use-entitlement';
 import { useHousehold } from '@/features/household/use-household';
 import { useClassifyIngredients } from '@/features/ingredients/use-ingredients';
@@ -166,7 +167,7 @@ function SuggestPage() {
                   onClick={() => classify.mutate(uncategorized)}
                 >
                   {classify.isPending
-                    ? 'Sorting…'
+                    ? <Loading>Sorting</Loading>
                     : `Auto-sort ${uncategorized.length} uncategorized item${uncategorized.length === 1 ? '' : 's'}`}
                 </button>
               )}
@@ -202,7 +203,7 @@ function SuggestPage() {
             })}
           </div>
           <Button onClick={getIdeas} disabled={step === 'loading' || ingredients.length === 0}>
-            {step === 'loading' ? 'Thinking up ideas…' : 'Get ideas'}
+            {step === 'loading' ? <Loading>Thinking up ideas</Loading> : 'Get ideas'}
           </Button>
         </>
       )}
@@ -315,7 +316,7 @@ function IdeaCard({
               }
             }}
           >
-            {adding ? 'Adding…' : 'Add missing to list'}
+            {adding ? <Loading>Adding</Loading> : 'Add missing to list'}
           </Button>
         )}
       </div>

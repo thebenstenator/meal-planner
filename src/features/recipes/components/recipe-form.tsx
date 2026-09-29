@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Loading } from '@/components/ui/loading';
 import { useHousehold } from '@/features/household/use-household';
 import type { RecipeDetail, RecipeIngredientDraft } from '@/features/recipes/api';
 import { IngredientEditor } from '@/features/recipes/components/ingredient-editor';
@@ -267,7 +268,7 @@ export function RecipeForm({ recipeId, initial, forkFromId, showPaste = true }: 
       <div className="flex gap-2">
         <Button type="submit" disabled={save.isPending}>
           {save.isPending
-            ? 'Saving…'
+            ? <Loading>Saving</Loading>
             : isFork
               ? 'Save as my copy'
               : recipeId

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/ui/loading';
 import { matchesScope, scopeCounts, scopeKey, type RecipeScope } from '@/features/recipes/scope';
 import { useCookbooks } from '@/features/recipes/use-cookbook';
 import {
@@ -152,7 +153,7 @@ function RecipeLibrary() {
         uncategorized={recipes.filter((r) => r.ownedByMe && r.mealTypes.length === 0).length}
       />
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading recipes…</p>}
+      {isLoading && <p className="text-muted-foreground text-sm"><Loading>Loading recipes</Loading></p>}
       {isError && <p className="text-destructive text-sm">Couldn’t load recipes.</p>}
 
       {data && visible.length === 0 && active.kind === 'all' && (
@@ -255,7 +256,7 @@ function CategorizeBanner({ uncategorized }: { uncategorized: number }) {
         type?
       </p>
       <Button size="sm" onClick={() => categorize.mutate()} disabled={categorize.isPending}>
-        {categorize.isPending ? 'Sorting…' : 'Categorize'}
+        {categorize.isPending ? <Loading>Sorting</Loading> : 'Categorize'}
       </Button>
     </div>
   );

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loading } from '@/components/ui/loading';
 import { GOOGLE_OAUTH_ENABLED } from '@/features/auth/context';
 import { useAuth } from '@/features/auth/use-auth';
 import { credentialsSchema, type Credentials } from '@/schemas/auth';
@@ -120,7 +121,7 @@ function LoginPage() {
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting
-            ? 'Please wait…'
+            ? <Loading>Please wait</Loading>
             : mode === 'sign-in'
               ? 'Sign in'
               : 'Create account'}

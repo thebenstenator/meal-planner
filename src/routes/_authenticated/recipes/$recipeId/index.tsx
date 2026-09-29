@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/ui/loading';
 import { useHousehold } from '@/features/household/use-household';
 import { useRecipeCost } from '@/features/pricing/use-recipe-cost';
 import {
@@ -44,7 +45,7 @@ function RecipeDetailPage() {
   const [addingToList, setAddingToList] = useState(false);
 
   if (isLoading) {
-    return <Centered>Loading…</Centered>;
+    return <Centered><Loading>Loading</Loading></Centered>;
   }
   if (isError || !recipe) {
     return <Centered>Couldn’t load this recipe.</Centered>;
@@ -194,11 +195,11 @@ function RecipeDetailPage() {
         )}
         {/* One list per section ("Lemon curd", "Lemon cookies"); a recipe
             without sections is a single untitled group. */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           {groupBySection(recipe.ingredients).map((group) => (
             <div key={`${group.section ?? ''}-${group.items[0]?.index ?? 0}`}>
               {group.section && (
-                <h3 className="text-muted-foreground mb-1.5 text-sm font-semibold">
+                <h3 className="border-primary/30 text-primary mb-2 border-b pb-1 text-sm font-semibold uppercase tracking-wide">
                   {group.section}
                 </h3>
               )}
@@ -301,7 +302,7 @@ function RecipeDetailPage() {
                 await navigate({ to: '/recipes', replace: true });
               }}
             >
-              {del.isPending ? 'Deleting…' : 'Delete'}
+              {del.isPending ? <Loading>Deleting</Loading> : 'Delete'}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setConfirming(false)}>
               Cancel

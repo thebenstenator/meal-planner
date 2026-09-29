@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
+import { Loading } from '@/components/ui/loading';
 import { useHousehold } from '@/features/household/use-household';
 import { RecipeForm } from '@/features/recipes/components/recipe-form';
 import { useRecipe } from '@/features/recipes/use-recipes';
@@ -22,7 +23,7 @@ function EditRecipe() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-semibold">{isFork ? 'Edit a copy' : 'Edit recipe'}</h1>
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+      {isLoading && <p className="text-muted-foreground text-sm"><Loading>Loading</Loading></p>}
       {isError && <p className="text-destructive text-sm">Couldn’t load this recipe.</p>}
       {recipe &&
         (isFork ? (

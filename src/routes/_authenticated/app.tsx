@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/ui/loading';
 import { useEntitlement } from '@/features/billing/use-entitlement';
 import { useHousehold } from '@/features/household/use-household';
 import { expiryLabel, type ExpiringItem } from '@/features/insights/insights';
@@ -21,7 +22,7 @@ function AppHome() {
       <div>
         <h1 className="text-2xl font-semibold">Your kitchen</h1>
         {isLoading ? (
-          <p className="text-muted-foreground mt-1 text-sm">Loading your household…</p>
+          <p className="text-muted-foreground mt-1 text-sm"><Loading>Loading your household</Loading></p>
         ) : (
           <p className="text-muted-foreground mt-1 text-sm" data-testid="active-household">
             {household?.name ?? 'Your household'}

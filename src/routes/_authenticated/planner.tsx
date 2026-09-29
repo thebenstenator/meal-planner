@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { useHousehold } from '@/features/household/use-household';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/ui/loading';
 import { AutofillPanel } from '@/features/planner/components/autofill-panel';
 import { BudgetBar } from '@/features/planner/components/budget-bar';
 import { MonthGrid } from '@/features/planner/components/month-grid';
@@ -155,7 +156,7 @@ function PlannerPage() {
         </div>
       )}
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading plan…</p>}
+      {isLoading && <p className="text-muted-foreground text-sm"><Loading>Loading plan</Loading></p>}
       {isError && <p className="text-destructive text-sm">Couldn’t load the plan.</p>}
 
       {mode === 'month' ? (

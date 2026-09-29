@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Loading } from '@/components/ui/loading';
 import { fetchHouseholdMembers, householdKeys } from '@/features/household/api';
 
 export function MembersCard({ householdId }: { householdId: string }) {
@@ -22,7 +23,7 @@ export function MembersCard({ householdId }: { householdId: string }) {
         <CardDescription>People who can view and edit this household.</CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading && <p className="text-muted-foreground text-sm">Loading members…</p>}
+        {isLoading && <p className="text-muted-foreground text-sm"><Loading>Loading members</Loading></p>}
         {isError && (
           <p className="text-destructive text-sm">Couldn’t load members. Try again.</p>
         )}

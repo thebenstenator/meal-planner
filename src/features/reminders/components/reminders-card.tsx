@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/ui/loading';
 import {
   Card,
   CardContent,
@@ -46,7 +47,7 @@ export function RemindersCard() {
             <p className="text-sm text-emerald-700">Reminders are on for this device.</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" disabled={r.busy} onClick={() => void r.disable()}>
-                {r.busy ? 'Working…' : 'Turn off on this device'}
+                {r.busy ? <Loading>Working</Loading> : 'Turn off on this device'}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => void r.sendTest()}>
                 Send a test
@@ -59,7 +60,7 @@ export function RemindersCard() {
         ) : (
           <div className="space-y-2">
             <Button disabled={r.busy} onClick={() => void r.enable()}>
-              {r.busy ? 'Working…' : 'Turn on reminders'}
+              {r.busy ? <Loading>Working</Loading> : 'Turn on reminders'}
             </Button>
             <p className="text-muted-foreground text-xs">
               You’ll be asked to allow notifications. Turn them on per device.
