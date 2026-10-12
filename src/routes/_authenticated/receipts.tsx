@@ -406,6 +406,7 @@ function TripLog() {
               </div>
               <div className="text-muted-foreground text-xs">
                 {t.itemCount} item{t.itemCount === 1 ? '' : 's'}
+                {t.isEstimated && ' · estimated from list'}
               </div>
             </div>
             <div className="flex items-center gap-3">

@@ -1,4 +1,7 @@
+import { addDays, parseISO } from 'date-fns';
+
 import { resolveOrCreateCanonical } from '@/features/ingredients/resolve';
+import type { OpenCheckedItem } from '@/features/pricing/spend';
 import { deduceCategory } from '@/features/shopping-list/categories';
 import { fetchIngredientCategories } from '@/features/shopping-list/categories-api';
 import { buildShoppingItems } from '@/features/shopping-list/generate';
@@ -129,91 +132,34 @@ export async function getOrCreateRunningList(householdId: string): Promise<strin
   return data.id;
 }
 
-export interface CheckedItem {
-  canonicalId: string | null;
-  quantity: number | null;
-  unit: string | null;
-  actualCostCents: number | null;
-}
-
 /**
- * Checked-off (bought) items across shopping lists whose date range overlaps the
- * given month — the raw material for actual-spend tracking. Lists without a date
- * range are excluded (their month is ambiguous).
+ * Checked-off items no logged trip accounts for yet, checked off within
+ * [start, end] (local dates, inclusive) — the "open" half of actual spend (ADR
+ * 0016). Covers every list, including running/store lists with no date range.
  */
-export async function fetchMonthCheckedItems(
+export async function fetchOpenCheckedItems(
   householdId: string,
-  monthStart: string,
-  monthEnd: string,
-): Promise<CheckedItem[]> {
-  const { data: lists, error } = await supabase
-    .from('shopping_list')
-    .select('id')
-    .eq('household_id', householdId)
-    .lte('date_range_start', monthEnd)
-    .gte('date_range_end', monthStart);
-  if (error) throw error;
-  const ids = (lists ?? []).map((l) => l.id);
-  if (ids.length === 0) return [];
-
-  const { data: items, error: itemErr } = await supabase
+  start: string,
+  end: string,
+): Promise<OpenCheckedItem[]> {
+  const { data, error } = await supabase
     .from('shopping_list_item')
-    .select('canonical_ingredient_id, total_quantity, unit, actual_cost_cents')
-    .in('shopping_list_id', ids)
-    .eq('is_checked', true);
-  if (itemErr) throw itemErr;
+    .select(
+      'canonical_ingredient_id, total_quantity, unit, actual_cost_cents, checked_at, shopping_list!inner(household_id)',
+    )
+    .eq('shopping_list.household_id', householdId)
+    .eq('is_checked', true)
+    .is('trip_id', null)
+    .gte('checked_at', parseISO(start).toISOString())
+    .lt('checked_at', addDays(parseISO(end), 1).toISOString());
+  if (error) throw error;
 
-  return (items ?? []).map((i) => ({
+  return (data ?? []).map((i) => ({
     canonicalId: i.canonical_ingredient_id,
     quantity: i.total_quantity,
     unit: i.unit,
     actualCostCents: i.actual_cost_cents,
-  }));
-}
-
-export interface CheckedItemWithMonth extends CheckedItem {
-  /** yyyy-MM the item's list belongs to (by its date-range start). */
-  month: string;
-}
-
-/**
- * Checked-off items across all lists whose date range overlaps [rangeStart,
- * rangeEnd], each tagged with its list's month — for month-over-month history.
- */
-export async function fetchCheckedItemsByMonth(
-  householdId: string,
-  rangeStart: string,
-  rangeEnd: string,
-): Promise<CheckedItemWithMonth[]> {
-  const { data: lists, error } = await supabase
-    .from('shopping_list')
-    .select('id, date_range_start')
-    .eq('household_id', householdId)
-    .not('date_range_start', 'is', null)
-    .lte('date_range_start', rangeEnd)
-    .gte('date_range_end', rangeStart);
-  if (error) throw error;
-
-  const monthByList = new Map<string, string>();
-  for (const l of lists ?? []) {
-    if (l.date_range_start) monthByList.set(l.id, l.date_range_start.slice(0, 7));
-  }
-  const ids = [...monthByList.keys()];
-  if (ids.length === 0) return [];
-
-  const { data: items, error: itemErr } = await supabase
-    .from('shopping_list_item')
-    .select('canonical_ingredient_id, total_quantity, unit, actual_cost_cents, shopping_list_id')
-    .in('shopping_list_id', ids)
-    .eq('is_checked', true);
-  if (itemErr) throw itemErr;
-
-  return (items ?? []).map((i) => ({
-    canonicalId: i.canonical_ingredient_id,
-    quantity: i.total_quantity,
-    unit: i.unit,
-    actualCostCents: i.actual_cost_cents,
-    month: monthByList.get(i.shopping_list_id) ?? '',
+    checkedAt: i.checked_at as string,
   }));
 }
 
@@ -307,7 +253,18 @@ export async function setItemActualCost(itemId: string, cents: number | null): P
   if (error) throw error;
 }
 
-export async function deleteShoppingList(listId: string): Promise<void> {
+/** Item id → estimated purchase cost (cents), for archiving checked items. */
+export type CheckedEstimates = Record<string, number>;
+
+/**
+ * Delete a list. Its checked items are cleared first, so whatever was bought off
+ * it stays in spending as an estimated trip.
+ */
+export async function deleteShoppingList(
+  listId: string,
+  estimates: CheckedEstimates,
+): Promise<void> {
+  await clearCheckedItems(listId, estimates);
   const { error } = await supabase.from('shopping_list').delete().eq('id', listId);
   if (error) throw error;
 }
@@ -316,15 +273,29 @@ export async function deleteShoppingList(listId: string): Promise<void> {
  * Clear every checked-off item from a list — the end-of-trip cleanup, leaving
  * behind only what you still need.
  *
- * This is destructive and the checked items are the only record of what was
- * bought, so callers should log the trip first (see the finish-trip flow).
+ * Spend survives the clear (ADR 0016): items no logged trip covers are archived
+ * server-side into an estimated trip per day, priced at their recorded actual
+ * price or the caller's `estimates`, before being deleted.
  */
-export async function clearCheckedItems(listId: string): Promise<void> {
+export async function clearCheckedItems(
+  listId: string,
+  estimates: CheckedEstimates,
+): Promise<void> {
+  const { error } = await supabase.rpc('clear_checked_items', {
+    p_list_id: listId,
+    p_estimates: estimates,
+    p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+  if (error) throw error;
+}
+
+/** Mark list items as accounted for by a logged trip, so they aren't counted again. */
+export async function linkItemsToTrip(tripId: string, itemIds: string[]): Promise<void> {
+  if (itemIds.length === 0) return;
   const { error } = await supabase
     .from('shopping_list_item')
-    .delete()
-    .eq('shopping_list_id', listId)
-    .eq('is_checked', true);
+    .update({ trip_id: tripId })
+    .in('id', itemIds);
   if (error) throw error;
 }
 

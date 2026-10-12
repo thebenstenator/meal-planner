@@ -257,7 +257,7 @@ function ListPanel({
   const toggle = useToggleItem(listId);
   const edits = useItemEdits(listId);
   const rename = useRenameList();
-  const del = useDeleteShoppingList();
+  const del = useDeleteShoppingList(data?.items ?? []);
   const applyToPantry = useApplyPurchaseToPantry();
   const { data: pantryPrefs } = usePantryPrefs();
   const setPantryTracked = useSetPantryTracked();

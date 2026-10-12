@@ -41,7 +41,8 @@ export function useTrips() {
   });
 }
 
-function useInvalidateSpend() {
+/** Refresh every trip- and spend-derived query after spend changes. */
+export function useInvalidateSpend() {
   const qc = useQueryClient();
   const { householdId } = useHousehold();
   return () => {

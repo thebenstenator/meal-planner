@@ -1,13 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
 import { endOfMonth, format, parseISO, startOfMonth, subMonths } from 'date-fns';
 import { useMemo } from 'react';
 
 import { useHousehold } from '@/features/household/use-household';
-import { pricingKeys } from '@/features/pricing/api';
-import { estimateItemCost } from '@/features/pricing/price-item';
-import { usePriceIndex } from '@/features/pricing/use-recipe-cost';
-import { fetchTripTotalsInRange, receiptKeys } from '@/features/receipts/api';
-import { fetchCheckedItemsByMonth } from '@/features/shopping-list/api';
+import { useSpendInRange } from '@/features/pricing/use-spend-range';
 
 export interface MonthSpend {
   month: string; // yyyy-MM
@@ -23,12 +18,11 @@ export interface SpendHistory {
 }
 
 /**
- * Actual grocery spend for each of the last `months` calendar months (purchase
- * cost of checked-off items, attributed to their list's month). One fetch + one
- * price index for the whole window.
+ * Actual grocery spend for each of the last `months` calendar months — one
+ * fetch for the whole window, same rollup as the planner's budget bar.
  */
 export function useSpendHistory(months = 6): SpendHistory {
-  const { householdId, household } = useHousehold();
+  const { household } = useHousehold();
 
   // Stable month keys for the window (recomputed once per mount).
   const { rangeStart, rangeEnd, monthKeys } = useMemo(() => {
@@ -45,60 +39,21 @@ export function useSpendHistory(months = 6): SpendHistory {
     };
   }, [months]);
 
-  const { data: items, isLoading: itemsLoading } = useQuery({
-    queryKey: pricingKeys.spendHistory(householdId ?? 'none', rangeStart, rangeEnd),
-    queryFn: () => fetchCheckedItemsByMonth(householdId as string, rangeStart, rangeEnd),
-    enabled: !!householdId,
-  });
+  const spend = useSpendInRange(rangeStart, rangeEnd);
 
-  const { data: trips } = useQuery({
-    queryKey: receiptKeys.tripTotals(householdId ?? 'none', rangeStart, rangeEnd),
-    queryFn: () => fetchTripTotalsInRange(householdId as string, rangeStart, rangeEnd),
-    enabled: !!householdId,
-  });
-
-  const canonicalIds = useMemo(
-    () => (items ?? []).map((i) => i.canonicalId).filter((id): id is string => !!id),
-    [items],
-  );
-  const index = usePriceIndex(canonicalIds);
-
-  return useMemo(() => {
-    const byMonth = new Map<string, number>(monthKeys.map((k) => [k.month, 0]));
-
-    // Receipt trips: attribute the total to the purchase month.
-    for (const t of trips ?? []) {
-      const month = t.purchasedOn.slice(0, 7); // yyyy-MM
-      if (byMonth.has(month)) byMonth.set(month, (byMonth.get(month) ?? 0) + t.totalCents);
-    }
-
-    for (const item of items ?? []) {
-      if (!byMonth.has(item.month)) continue;
-      // Prefer a recorded actual price over the estimate.
-      if (item.actualCostCents != null) {
-        byMonth.set(item.month, (byMonth.get(item.month) ?? 0) + item.actualCostCents);
-        continue;
-      }
-      const price = item.canonicalId ? index.priceByCanonical.get(item.canonicalId) : undefined;
-      if (!price) continue;
-      const info = (item.canonicalId && index.infoByCanonical.get(item.canonicalId)) || {};
-      const cents = estimateItemCost(item.quantity, item.unit, price, info);
-      if (cents != null) byMonth.set(item.month, (byMonth.get(item.month) ?? 0) + cents);
-    }
-
-    const rows: MonthSpend[] = monthKeys.map((k) => ({
-      month: k.month,
-      label: k.label,
-      actualCents: byMonth.get(k.month) ?? 0,
-    }));
-
-    return {
-      rows,
+  return useMemo(
+    () => ({
+      rows: monthKeys.map((k) => ({
+        month: k.month,
+        label: k.label,
+        actualCents: spend.byMonth.get(k.month) ?? 0,
+      })),
       budgetCents: household?.monthlyBudgetCents ?? null,
-      storeId: index.storeId,
-      isLoading: itemsLoading || index.isLoading,
-    };
-  }, [items, index, monthKeys, household?.monthlyBudgetCents, itemsLoading, trips]);
+      storeId: spend.storeId,
+      isLoading: spend.isLoading,
+    }),
+    [monthKeys, spend, household?.monthlyBudgetCents],
+  );
 }
 
 /** Exposed for tests/formatting: full month label from a yyyy-MM key. */

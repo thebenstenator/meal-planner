@@ -107,12 +107,18 @@ export interface SaveTripInput {
   totalCents: number;
   note: string | null;
   lines: ReceiptLineDraft[];
+  /**
+   * Shopping-list items this trip accounts for. They're linked to the trip so
+   * their estimates stop counting as spend on top of its total (ADR 0016).
+   */
+  coversItemIds?: string[];
 }
 
 /**
  * Persist a reviewed receipt: create the grocery_trip (logs actual spend), its
  * line items, and — for matched lines with a price and a chosen store — append a
- * price_record so future budget estimates get more accurate. Returns the trip id.
+ * price_record so future budget estimates get more accurate. Links any list
+ * items the trip covers. Returns the trip id.
  */
 export async function saveTrip(householdId: string, input: SaveTripInput): Promise<string> {
   const { data: trip, error: tripErr } = await supabase
@@ -144,6 +150,14 @@ export async function saveTrip(householdId: string, input: SaveTripInput): Promi
     if (linesErr) throw linesErr;
   }
 
+  if (input.coversItemIds && input.coversItemIds.length > 0) {
+    const { error: linkErr } = await supabase
+      .from('shopping_list_item')
+      .update({ trip_id: tripId })
+      .in('id', input.coversItemIds);
+    if (linkErr) throw linkErr;
+  }
+
   // Feed prices only when we have a store, a match, and a line price.
   if (input.storeId) {
     for (const l of input.lines) {
@@ -168,13 +182,17 @@ export interface TripSummary {
   totalCents: number;
   storeName: string | null;
   itemCount: number;
+  /** Archived from checked items on clear, priced from estimates. */
+  isEstimated: boolean;
 }
 
 /** Recent trips for the trip log, newest first. */
 export async function listTrips(householdId: string): Promise<TripSummary[]> {
   const { data, error } = await supabase
     .from('grocery_trip')
-    .select('id, purchased_on, total_cents, store(name), trip_line_item(count)')
+    .select(
+      'id, purchased_on, total_cents, is_estimated, store(name), trip_line_item(count)',
+    )
     .eq('household_id', householdId)
     .order('purchased_on', { ascending: false })
     .limit(50);
@@ -185,6 +203,7 @@ export async function listTrips(householdId: string): Promise<TripSummary[]> {
     totalCents: t.total_cents,
     storeName: t.store?.name ?? null,
     itemCount: t.trip_line_item?.[0]?.count ?? 0,
+    isEstimated: t.is_estimated,
   }));
 }
 

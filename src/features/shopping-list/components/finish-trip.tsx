@@ -1,9 +1,11 @@
 // The end of a shopping trip: log what you spent, reconcile a receipt if you
 // want the detail, then clear the list.
 //
-// Ordering is the whole point. The checked-off items are the only record of what
-// was bought, so clearing them is offered last — after the trip is logged — and
-// never as a standalone step inside this flow.
+// Ordering is the whole point. Logging the trip links the checked-off items to
+// it, so they stop counting as spend on their own (ADR 0016); clearing first
+// would archive them as an estimate and the logged total would then count them
+// twice. So clearing is offered last — after the trip is logged — and never as a
+// standalone step inside this flow.
 
 import { format } from 'date-fns';
 import { useState } from 'react';
@@ -42,7 +44,8 @@ function todayISO(): string {
  * while you're still shopping.
  *
  * The bare "clear checked" sits beside it for the trips you don't want to log —
- * a running list you topped up, where the spend isn't worth recording.
+ * a running list you topped up, where typing a total isn't worth it. The spend
+ * still counts, kept as an estimate.
  */
 export function FinishTrip({
   listId,
@@ -62,7 +65,7 @@ export function FinishTrip({
       <Button size="sm" onClick={() => setOpen(true)} data-testid="finish-trip">
         Finish trip
       </Button>
-      <ClearChecked listId={listId} count={checkedCount} />
+      <ClearChecked listId={listId} items={items} count={checkedCount} />
       {/* Mounted only while open so every visit starts clean rather than
           resuming a half-typed total from the last trip. */}
       {open && (
@@ -78,12 +81,20 @@ export function FinishTrip({
 }
 
 /**
- * Clear the checked items without logging anything. Confirms first — this is
- * the one place that throws away the record of what was bought, and there's no
- * undo.
+ * Clear the checked items without typing a trip total. Confirms first, since
+ * the items leave the list for good — though their estimated cost stays in
+ * spending as an estimated trip.
  */
-function ClearChecked({ listId, count }: { listId: string; count: number }) {
-  const clear = useClearCheckedItems(listId);
+function ClearChecked({
+  listId,
+  items,
+  count,
+}: {
+  listId: string;
+  items: ShoppingItem[];
+  count: number;
+}) {
+  const clear = useClearCheckedItems(listId, items);
   const [confirming, setConfirming] = useState(false);
 
   if (!confirming) {
@@ -98,8 +109,8 @@ function ClearChecked({ listId, count }: { listId: string; count: number }) {
     );
   }
   return (
-    <span className="flex items-center gap-2 text-xs">
-      <span className="text-muted-foreground">Clear without logging the spend?</span>
+    <span className="flex flex-wrap items-center gap-2 text-xs">
+      <span className="text-muted-foreground">Clear? The cost stays in spending.</span>
       <Button
         size="sm"
         variant="destructive"
@@ -139,7 +150,7 @@ function FinishTripDialog({
   const toggle = useToggleItem(listId);
   const applyToPantry = useApplyPurchaseToPantry();
   const addToPantry = useAddCanonicalToPantry();
-  const clearChecked = useClearCheckedItems(listId);
+  const clearChecked = useClearCheckedItems(listId, items);
 
   const checked = items.filter((i) => i.isChecked);
   const estimateCents = checked.reduce(
@@ -253,6 +264,15 @@ function FinishTripDialog({
         totalCents,
         note: listName,
         lines: recon ? pricedReceiptLines : linesFromList(),
+        // Everything this total pays for: what's ticked, plus what the receipt
+        // caught you missing (ticked below). Linking them stops their estimates
+        // counting again on top of the trip.
+        coversItemIds: [
+          ...checked.map((i) => i.id),
+          ...(recon?.missed ?? [])
+            .filter(({ item }) => missedSel[item.id])
+            .map(({ item }) => item.id),
+        ],
       });
 
       if (recon) {

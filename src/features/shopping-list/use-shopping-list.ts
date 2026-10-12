@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 import { useHousehold } from '@/features/household/use-household';
+import { useListPricing } from '@/features/pricing/use-list-pricing';
+import { useInvalidateSpend } from '@/features/receipts/use-receipts';
 import {
   addItemsToList,
   addSmartItem,
@@ -20,12 +23,17 @@ import {
   setItemChecked,
   updateItemName,
   updateItemQuantity,
+  type CheckedEstimates,
   type ListItemInput,
+  type ShoppingItem,
   type SmartAddResult,
 } from '@/features/shopping-list/api';
 import { setIngredientCategory } from '@/features/shopping-list/categories-api';
 import { buildRecipeShoppingItems, type GeneratedItem } from '@/features/shopping-list/generate';
 import { offlineMutationKeys } from '@/lib/query/offline-mutations';
+
+/** Query-key head of the open checked-item spend — stale after any check-off or price edit. */
+const OPEN_SPEND = ['open-checked-items'] as const;
 
 export function useShoppingLists() {
   const { householdId } = useHousehold();
@@ -111,6 +119,7 @@ export function useToggleItem(listId: string) {
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
+      void qc.invalidateQueries({ queryKey: OPEN_SPEND });
     },
   });
 }
@@ -142,6 +151,7 @@ export function useSetActualCost(listId: string) {
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
+      void qc.invalidateQueries({ queryKey: OPEN_SPEND });
     },
   });
 }
@@ -191,25 +201,49 @@ export function useSetItemCategory(listId: string) {
   });
 }
 
+/** Purchase estimate per checked item, so clearing or deleting keeps it as spend. */
+function useCheckedEstimates(items: ShoppingItem[]): CheckedEstimates {
+  const pricing = useListPricing(items);
+  return useMemo(() => {
+    const out: CheckedEstimates = {};
+    for (const it of items) {
+      const cents = it.isChecked ? pricing.byItemId.get(it.id)?.estimatedCents : null;
+      if (cents != null) out[it.id] = cents;
+    }
+    return out;
+  }, [items, pricing]);
+}
+
 /**
- * Clear the checked-off items at the end of a trip. Destructive, and those items
- * are the only record of what was bought — the finish-trip flow logs the trip
- * before offering this.
+ * Clear the checked-off items at the end of a trip. Anything a logged trip
+ * doesn't already cover is archived as an estimated trip first, so the spend
+ * stays in the budget (ADR 0016).
  */
-export function useClearCheckedItems(listId: string) {
+export function useClearCheckedItems(listId: string, items: ShoppingItem[]) {
   const qc = useQueryClient();
+  const estimates = useCheckedEstimates(items);
+  const invalidateSpend = useInvalidateSpend();
   return useMutation<void, Error, void>({
-    mutationFn: () => clearCheckedItems(listId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: listKeys.detail(listId) }),
+    mutationFn: () => clearCheckedItems(listId, estimates),
+    onSuccess: () => {
+      invalidateSpend();
+      return qc.invalidateQueries({ queryKey: listKeys.detail(listId) });
+    },
   });
 }
 
-export function useDeleteShoppingList() {
+/** Delete a list; its checked items are archived as spend first, like a clear. */
+export function useDeleteShoppingList(items: ShoppingItem[]) {
   const { householdId } = useHousehold();
   const qc = useQueryClient();
+  const estimates = useCheckedEstimates(items);
+  const invalidateSpend = useInvalidateSpend();
   return useMutation<void, Error, string>({
-    mutationFn: (id) => deleteShoppingList(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: listKeys.all(householdId ?? 'none') }),
+    mutationFn: (id) => deleteShoppingList(id, estimates),
+    onSuccess: () => {
+      invalidateSpend();
+      return qc.invalidateQueries({ queryKey: listKeys.all(householdId ?? 'none') });
+    },
   });
 }
 

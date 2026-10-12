@@ -51,6 +51,9 @@ no migration was needed — just a settings UI and the read.
 
 ## Planned vs. actual: actual is purchase-based, from checked items
 
+> Amended by [0016](0016-spend-ledger.md): logged trips are now the ledger, and
+> checked items count only until a trip covers them or they are cleared.
+
 "Actual spend" for a month is the **purchase-based** cost (`estimateItemCost`,
 whole packages) of items **checked off** on shopping lists whose date range
 overlaps that month — the closest proxy to real spend without receipt capture.

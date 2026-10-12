@@ -166,6 +166,7 @@ export type Database = {
           created_at: string
           household_id: string
           id: string
+          is_estimated: boolean
           note: string | null
           purchased_on: string
           store_id: string | null
@@ -176,6 +177,7 @@ export type Database = {
           created_at?: string
           household_id: string
           id?: string
+          is_estimated?: boolean
           note?: string | null
           purchased_on?: string
           store_id?: string | null
@@ -186,6 +188,7 @@ export type Database = {
           created_at?: string
           household_id?: string
           id?: string
+          is_estimated?: boolean
           note?: string | null
           purchased_on?: string
           store_id?: string | null
@@ -1141,6 +1144,7 @@ export type Database = {
           ad_hoc_name: string | null
           canonical_ingredient_id: string | null
           category: string | null
+          checked_at: string | null
           created_at: string
           display_name: string
           estimated_price_cents: number | null
@@ -1155,6 +1159,7 @@ export type Database = {
           shopping_list_id: string
           sub_totals: Json | null
           total_quantity: number | null
+          trip_id: string | null
           unit: string | null
           unresolved: boolean
           updated_at: string
@@ -1164,6 +1169,7 @@ export type Database = {
           ad_hoc_name?: string | null
           canonical_ingredient_id?: string | null
           category?: string | null
+          checked_at?: string | null
           created_at?: string
           display_name: string
           estimated_price_cents?: number | null
@@ -1178,6 +1184,7 @@ export type Database = {
           shopping_list_id: string
           sub_totals?: Json | null
           total_quantity?: number | null
+          trip_id?: string | null
           unit?: string | null
           unresolved?: boolean
           updated_at?: string
@@ -1187,6 +1194,7 @@ export type Database = {
           ad_hoc_name?: string | null
           canonical_ingredient_id?: string | null
           category?: string | null
+          checked_at?: string | null
           created_at?: string
           display_name?: string
           estimated_price_cents?: number | null
@@ -1201,6 +1209,7 @@ export type Database = {
           shopping_list_id?: string
           sub_totals?: Json | null
           total_quantity?: number | null
+          trip_id?: string | null
           unit?: string | null
           unresolved?: boolean
           updated_at?: string
@@ -1218,6 +1227,13 @@ export type Database = {
             columns: ["shopping_list_id"]
             isOneToOne: false
             referencedRelation: "shopping_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_list_item_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "grocery_trip"
             referencedColumns: ["id"]
           },
         ]
@@ -1373,6 +1389,10 @@ export type Database = {
       accept_recipe_pool_invite: {
         Args: { p_code: string; p_household_id: string }
         Returns: string
+      }
+      clear_checked_items: {
+        Args: { p_estimates?: Json; p_list_id: string; p_tz?: string }
+        Returns: undefined
       }
       consume_ai_credit: {
         Args: { p_household_id: string; p_limit?: number; p_source?: string }
