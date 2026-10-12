@@ -88,3 +88,50 @@ test('a manual meal price wins over the ingredient cost', async ({ page }) => {
   await page.getByRole('button', { name: 'Use ingredient cost' }).click();
   await expect(page.getByTestId('recipe-cost')).toHaveCount(0);
 });
+
+// Cost where you choose (V2 "rank recipes cheapest → most expensive"): the
+// library sorts cheapest per serving first and shows each card's cost, and the
+// planner's recipe picker shows it next to every name.
+test('ranks recipes cheapest first and shows cost in the planner picker', async ({ page }) => {
+  test.slow();
+  await signUp(page, uniqueEmail('costsort'));
+
+  for (const [title, price] of [
+    ['Pricey Pie', '20.00'],
+    ['Cheap Chili', '4.00'],
+    ['Unpriced Udon', null],
+  ] as const) {
+    await page.goto('/recipes/new');
+    await page.getByLabel('Title').fill(title);
+    await page.getByLabel('Paste ingredients').fill('1 mystery item');
+    await page.getByRole('button', { name: 'Add rows' }).click();
+    await submitRecipe(page);
+    await expect(page.getByRole('heading', { name: title })).toBeVisible();
+    if (price) {
+      await page.getByRole('button', { name: 'set a price' }).click();
+      await page.getByLabel('Meal price').fill(price);
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await expect(page.getByTestId('recipe-cost')).toContainText(`$${price}`);
+    }
+  }
+
+  await page.goto('/recipes');
+  const cards = page.getByRole('main').getByRole('listitem').filter({ has: page.getByRole('link') });
+  await expect(cards).toHaveCount(3, { timeout: 15000 });
+  // A–Z by default; cheapest first on request, the unpriced one last.
+  await expect(cards.first()).toContainText('Cheap Chili');
+  await page.getByLabel('Sort recipes').selectOption('cost');
+  await expect(cards.nth(0)).toContainText('Cheap Chili');
+  await expect(cards.nth(1)).toContainText('Pricey Pie');
+  await expect(cards.nth(2)).toContainText('Unpriced Udon');
+  await expect(cards.nth(0).getByTestId('recipe-cost-tag')).toContainText('/serving');
+  // Unpriced shows no cost at all — never $0.
+  await expect(cards.nth(2).getByTestId('recipe-cost-tag')).toHaveCount(0);
+
+  await page.goto('/planner');
+  const panel = await openAddEntry(page, `Add to dinner on ${todayISO()}`);
+  await panel.getByLabel('Search recipes to add').fill('Chili');
+  await expect(
+    panel.getByRole('button', { name: /Cheap Chili/ }).getByTestId('recipe-cost-tag'),
+  ).toContainText('/serv', { timeout: 15000 });
+});

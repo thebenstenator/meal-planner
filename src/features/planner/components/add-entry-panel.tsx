@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { RecipeCostTag } from '@/features/pricing/components/recipe-cost-tag';
+import { useRecipeCosts } from '@/features/pricing/use-planner-cost';
 import { useRecipeList } from '@/features/recipes/use-recipes';
 import { useCreatePlanEntry } from '@/features/planner/use-planner';
 import { cn } from '@/lib/utils/cn';
@@ -21,6 +23,9 @@ export function AddEntryPanel({ date, slot, onClose }: Props) {
   const [servings, setServings] = useState('');
   const [note, setNote] = useState('');
   const { data: recipes } = useRecipeList(recipeSearch, '');
+  const shown = useMemo(() => (recipes ?? []).slice(0, 8), [recipes]);
+  const shownIds = useMemo(() => shown.map((r) => r.id), [shown]);
+  const { detailById } = useRecipeCosts(shownIds);
 
   async function addRecipe(recipeId: string) {
     const override = servings.trim() === '' ? null : Number(servings);
@@ -86,15 +91,16 @@ export function AddEntryPanel({ date, slot, onClose }: Props) {
             />
           </div>
           <ul className="max-h-40 overflow-auto">
-            {(recipes ?? []).slice(0, 8).map((r) => (
+            {shown.map((r) => (
               <li key={r.id}>
                 <button
                   type="button"
-                  className="hover:bg-accent w-full rounded px-2 py-1 text-left text-sm"
+                  className="hover:bg-accent flex w-full items-baseline justify-between gap-2 rounded px-2 py-1 text-left text-sm"
                   onClick={() => addRecipe(r.id)}
                   disabled={create.isPending}
                 >
-                  {r.title}
+                  <span className="min-w-0 truncate">{r.title}</span>
+                  <RecipeCostTag cost={detailById.get(r.id)} short className="shrink-0" />
                 </button>
               </li>
             ))}

@@ -165,13 +165,16 @@ export function usePlannerCosts(entries: PlanEntry[]): PlannerCosts {
 export interface RecipeCosts {
   /** Recipe id → cost of one meal at its base servings (cents); null = couldn't price. */
   costById: Map<string, number | null>;
+  /** Recipe id → the full cost: per serving, and whether some ingredients are unpriced. */
+  detailById: Map<string, EntryCost>;
   isLoading: boolean;
 }
 
 /**
  * Cost of each recipe as one planned meal at its base servings — the same
  * figure the planner shows, for choosing between recipes (e.g. auto-fill's
- * budget). Costed through usePlannerCosts so there's one costing path.
+ * budget, the library's cheapest-first sort). Costed through usePlannerCosts so
+ * there's one costing path.
  */
 export function useRecipeCosts(recipeIds: string[]): RecipeCosts {
   const entries = useMemo(
@@ -196,6 +199,7 @@ export function useRecipeCosts(recipeIds: string[]): RecipeCosts {
   return useMemo(
     () => ({
       costById: new Map(entries.map((e) => [e.id, costs.costForEntry(e).cents])),
+      detailById: new Map(entries.map((e) => [e.id, costs.costForEntry(e)])),
       isLoading: costs.isLoading,
     }),
     [entries, costs],
