@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
 import { useAuth } from '@/features/auth/use-auth';
 import { fetchMyHouseholds, householdKeys, type HouseholdSummary } from '@/features/household/api';
@@ -47,4 +48,30 @@ export function useHousehold(): UseHouseholdResult {
     isError: query.isError,
     setActiveHouseholdId,
   };
+}
+
+/**
+ * For mutations: the active household id, fetched fresh if it isn't known yet.
+ * Right after sign-up the households query can still be loading — or have run a
+ * beat before the new household existed and cached an empty list — and a write
+ * fired then must not go out as `household_id=null`. Refetching also fills the
+ * shared cache, so the rest of the app picks the household up too.
+ */
+export function useEnsureHouseholdId(): () => Promise<string> {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const { householdId } = useHousehold();
+  const activeHouseholdId = useUiStore((s) => s.activeHouseholdId);
+
+  return useCallback(async () => {
+    if (householdId) return householdId;
+    const households = await qc.fetchQuery({
+      queryKey: householdKeys.mine(user?.id ?? 'anon'),
+      queryFn: fetchMyHouseholds,
+      staleTime: 0,
+    });
+    const id = (households.find((h) => h.id === activeHouseholdId) ?? households[0])?.id;
+    if (!id) throw new Error('Your household is still being set up — try again in a moment.');
+    return id;
+  }, [householdId, qc, user?.id, activeHouseholdId]);
 }

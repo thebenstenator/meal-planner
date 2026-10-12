@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-import { useHousehold } from '@/features/household/use-household';
+import { useEnsureHouseholdId, useHousehold } from '@/features/household/use-household';
 import { useListPricing } from '@/features/pricing/use-list-pricing';
 import { useInvalidateSpend } from '@/features/receipts/use-receipts';
 import {
@@ -330,6 +330,7 @@ export function useItemEdits(listId: string) {
  */
 export function useAddToRunningList() {
   const { householdId } = useHousehold();
+  const ensureHouseholdId = useEnsureHouseholdId();
   const qc = useQueryClient();
   return useMutation<
     { result: SmartAddResult; listId: string },
@@ -337,8 +338,9 @@ export function useAddToRunningList() {
     { name: string; quantity: number | null; unit: string | null }
   >({
     mutationFn: async (input) => {
-      const listId = await getOrCreateRunningList(householdId as string);
-      const result = await addSmartItem(householdId as string, listId, input);
+      const id = await ensureHouseholdId();
+      const listId = await getOrCreateRunningList(id);
+      const result = await addSmartItem(id, listId, input);
       return { result, listId };
     },
     onSuccess: ({ listId }) => {
@@ -378,6 +380,7 @@ export function useRecipeNeededItems(
  */
 export function useAddItemsToList() {
   const { householdId } = useHousehold();
+  const ensureHouseholdId = useEnsureHouseholdId();
   const qc = useQueryClient();
   return useMutation<
     { listId: string },
@@ -385,7 +388,7 @@ export function useAddItemsToList() {
     { listId: string | null; items: ListItemInput[] }
   >({
     mutationFn: async ({ listId, items }) => {
-      const targetId = listId ?? (await getOrCreateRunningList(householdId as string));
+      const targetId = listId ?? (await getOrCreateRunningList(await ensureHouseholdId()));
       await addItemsToList(targetId, items);
       return { listId: targetId };
     },
