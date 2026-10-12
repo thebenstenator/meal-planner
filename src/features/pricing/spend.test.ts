@@ -19,6 +19,7 @@ function item(overrides: Partial<OpenCheckedItem>): OpenCheckedItem {
     unit: 'gal',
     actualCostCents: null,
     checkedAt: localISO(2026, 10, 5),
+    category: null,
     ...overrides,
   };
 }

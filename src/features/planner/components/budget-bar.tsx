@@ -1,23 +1,27 @@
 import { Link } from '@tanstack/react-router';
 
+import { ForecastLine } from '@/features/pricing/components/forecast-line';
+import type { MonthForecastResult } from '@/features/pricing/use-month-forecast';
 import { formatCurrency } from '@/lib/utils/format-currency';
 
 interface Props {
   monthLabel: string;
   /** Consumption cost of planned meals this month (a forward estimate). */
   projectedCents: number;
-  /** Purchase cost of checked-off items this month (actual money spent). */
+  /** Logged trips plus open checked items this month (actual money spent). */
   actualCents: number;
   budgetCents: number | null;
   unpricedMeals: number;
   hasStore: boolean;
   isLoading: boolean;
+  /** Where the month is headed; replaces the planned line for current/future months. */
+  forecast: MonthForecastResult;
 }
 
 /**
- * Month-level budget summary for the planner. Compares ACTUAL spend (checked-off
- * shopping items, purchase-based) against the household goal, and shows PLANNED
- * spend (consumption cost of planned meals) as a forward-looking estimate.
+ * Month-level budget summary for the planner. Compares ACTUAL spend against the
+ * household goal, and — for a month still in progress — FORECASTS where it'll
+ * land: spent + still on lists + upcoming meals no list covers yet (ADR 0017).
  */
 export function BudgetBar({
   monthLabel,
@@ -27,15 +31,23 @@ export function BudgetBar({
   unpricedMeals,
   hasStore,
   isLoading,
+  forecast,
 }: Props) {
   if (isLoading) return null;
 
-  const plannedLine = (
-    <span className="text-muted-foreground text-xs">
-      {formatCurrency(projectedCents)} planned from meals
-      {unpricedMeals > 0 && ` · ${unpricedMeals} meal${unpricedMeals === 1 ? '' : 's'} not priced`}
-    </span>
-  );
+  const outlook =
+    // Only forecast when more is coming than is already spent; otherwise the
+    // projection just repeats the line above.
+    forecast.phase === 'past' ||
+    forecast.isLoading ||
+    forecast.projectedCents <= forecast.spentCents ? (
+      <span className="text-muted-foreground text-xs">
+        {formatCurrency(projectedCents)} planned from meals
+        {unpricedMeals > 0 && ` · ${unpricedMeals} meal${unpricedMeals === 1 ? '' : 's'} not priced`}
+      </span>
+    ) : (
+      <ForecastLine forecast={forecast} budgetCents={budgetCents} monthLabel={monthLabel} />
+    );
 
   // No prices to work from at all — nudge toward setup rather than showing $0.
   if (!hasStore) {
@@ -60,7 +72,7 @@ export function BudgetBar({
             Set a monthly budget
           </Link>
         </div>
-        {plannedLine}
+        {outlook}
       </div>
     );
   }
@@ -88,7 +100,7 @@ export function BudgetBar({
           style={{ width: `${over ? 100 : pct}%` }}
         />
       </div>
-      <div>{plannedLine}</div>
+      <div>{outlook}</div>
     </div>
   );
 }

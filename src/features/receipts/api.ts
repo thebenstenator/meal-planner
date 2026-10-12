@@ -7,6 +7,9 @@ export const receiptKeys = {
   trips: (householdId: string) => ['trips', householdId] as const,
   tripTotals: (householdId: string, start: string, end: string) =>
     ['trip-totals', householdId, start, end] as const,
+  /** Trips with their lines, for the monthly breakdown. Shares the tripTotals prefix. */
+  tripLines: (householdId: string, start: string, end: string) =>
+    ['trip-totals', 'lines', householdId, start, end] as const,
   /** Prefix that matches every tripTotals query, for range-agnostic invalidation. */
   tripTotalsAll: () => ['trip-totals'] as const,
 };
@@ -231,4 +234,43 @@ export async function fetchTripTotalsInRange(
     .lte('purchased_on', end);
   if (error) throw error;
   return (data ?? []).map((t) => ({ purchasedOn: t.purchased_on, totalCents: t.total_cents }));
+}
+
+export interface TripWithLines {
+  totalCents: number;
+  isEstimated: boolean;
+  lines: Array<{
+    rawText: string;
+    canonicalId: string | null;
+    /** The canonical ingredient's own category, before household overrides. */
+    canonicalCategory: string | null;
+    priceCents: number | null;
+  }>;
+}
+
+/** Trips purchased within [start, end] with their line items — where the money went. */
+export async function fetchTripsWithLines(
+  householdId: string,
+  start: string,
+  end: string,
+): Promise<TripWithLines[]> {
+  const { data, error } = await supabase
+    .from('grocery_trip')
+    .select(
+      'total_cents, is_estimated, trip_line_item(raw_text, canonical_ingredient_id, price_cents, canonical_ingredient(category))',
+    )
+    .eq('household_id', householdId)
+    .gte('purchased_on', start)
+    .lte('purchased_on', end);
+  if (error) throw error;
+  return (data ?? []).map((t) => ({
+    totalCents: t.total_cents,
+    isEstimated: t.is_estimated,
+    lines: (t.trip_line_item ?? []).map((l) => ({
+      rawText: l.raw_text,
+      canonicalId: l.canonical_ingredient_id,
+      canonicalCategory: l.canonical_ingredient?.category ?? null,
+      priceCents: l.price_cents,
+    })),
+  }));
 }

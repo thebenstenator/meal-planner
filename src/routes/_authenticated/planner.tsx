@@ -26,6 +26,7 @@ import {
 } from '@/features/planner/use-planner';
 import { useMarkCooked } from '@/features/pantry/use-pantry';
 import { useMonthActualSpend } from '@/features/pricing/use-actual-spend';
+import { useMonthForecast } from '@/features/pricing/use-month-forecast';
 import { usePlannerCosts } from '@/features/pricing/use-planner-cost';
 import { cn } from '@/lib/utils/cn';
 import type { Slot } from '@/schemas/plan';
@@ -68,6 +69,7 @@ function PlannerPage() {
     [monthEntries],
   );
   const actual = useMonthActualSpend(monthStart, monthEnd);
+  const forecast = useMonthForecast(monthStart, monthEnd, monthEntries, actual.actualCents);
   const viewCosts = usePlannerCosts(entries);
 
   const actions: PlannerActions = {
@@ -145,6 +147,7 @@ function PlannerPage() {
         unpricedMeals={monthCosts.unpricedMeals}
         hasStore={!!monthCosts.storeId || !!actual.storeId}
         isLoading={monthCosts.isLoading || actual.isLoading}
+        forecast={forecast}
       />
 
       {movingId && (

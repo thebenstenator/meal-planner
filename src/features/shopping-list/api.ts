@@ -145,7 +145,7 @@ export async function fetchOpenCheckedItems(
   const { data, error } = await supabase
     .from('shopping_list_item')
     .select(
-      'canonical_ingredient_id, total_quantity, unit, actual_cost_cents, checked_at, shopping_list!inner(household_id)',
+      'canonical_ingredient_id, total_quantity, unit, actual_cost_cents, checked_at, category, shopping_list!inner(household_id)',
     )
     .eq('shopping_list.household_id', householdId)
     .eq('is_checked', true)
@@ -160,7 +160,69 @@ export async function fetchOpenCheckedItems(
     unit: i.unit,
     actualCostCents: i.actual_cost_cents,
     checkedAt: i.checked_at as string,
+    category: i.category,
   }));
+}
+
+export interface ListRange {
+  start: string;
+  end: string;
+}
+
+export interface ToBuyItem {
+  canonicalId: string | null;
+  quantity: number | null;
+  unit: string | null;
+  actualCostCents: number | null;
+}
+
+/**
+ * What's still to buy for [from, to]: the unchecked items on every list that
+ * shops for those days — dated lists overlapping the window, plus undated
+ * running/store lists when `includeUndated` — and the date ranges of all dated
+ * lists overlapping it (which meals a list already accounts for).
+ */
+export async function fetchToBuy(
+  householdId: string,
+  from: string,
+  to: string,
+  includeUndated: boolean,
+): Promise<{ items: ToBuyItem[]; listRanges: ListRange[] }> {
+  const { data: lists, error } = await supabase
+    .from('shopping_list')
+    .select('id, date_range_start, date_range_end')
+    .eq('household_id', householdId);
+  if (error) throw error;
+
+  const listRanges: ListRange[] = [];
+  const ids: string[] = [];
+  for (const l of lists ?? []) {
+    if (l.date_range_start && l.date_range_end) {
+      if (l.date_range_start > to || l.date_range_end < from) continue;
+      listRanges.push({ start: l.date_range_start, end: l.date_range_end });
+      ids.push(l.id);
+    } else if (includeUndated) {
+      ids.push(l.id);
+    }
+  }
+  if (ids.length === 0) return { items: [], listRanges };
+
+  const { data: items, error: itemErr } = await supabase
+    .from('shopping_list_item')
+    .select('canonical_ingredient_id, total_quantity, unit, actual_cost_cents')
+    .in('shopping_list_id', ids)
+    .eq('is_checked', false);
+  if (itemErr) throw itemErr;
+
+  return {
+    items: (items ?? []).map((i) => ({
+      canonicalId: i.canonical_ingredient_id,
+      quantity: i.total_quantity,
+      unit: i.unit,
+      actualCostCents: i.actual_cost_cents,
+    })),
+    listRanges,
+  };
 }
 
 export async function getShoppingList(

@@ -12,16 +12,38 @@ export interface SpendTrip {
   totalCents: number;
 }
 
-/**
- * A checked-off item no trip accounts for yet ("open" spend). Counted at its
- * recorded actual price, else the purchase-based estimate at current prices.
- */
-export interface OpenCheckedItem {
+/** A list item to price: a recorded actual price wins over the purchase estimate. */
+export interface PriceableItem {
   canonicalId: string | null;
   quantity: number | null;
   unit: string | null;
   actualCostCents: number | null;
+}
+
+/**
+ * A checked-off item no trip accounts for yet ("open" spend). Counted at its
+ * recorded actual price, else the purchase-based estimate at current prices.
+ */
+export interface OpenCheckedItem extends PriceableItem {
   checkedAt: string; // ISO timestamp
+  /** The list's category slug for the item, when it has one. */
+  category: string | null;
+}
+
+/**
+ * What an item costs (or cost): its recorded actual price, else the purchase
+ * estimate at current prices. Null when it can't be priced.
+ */
+export function itemSpendCents(
+  item: PriceableItem,
+  priceByCanonical: Map<string, PriceInfo>,
+  infoByCanonical: Map<string, ConversionInfo>,
+): number | null {
+  if (item.actualCostCents != null) return item.actualCostCents;
+  const price = item.canonicalId ? priceByCanonical.get(item.canonicalId) : undefined;
+  if (!price) return null;
+  const info = (item.canonicalId && infoByCanonical.get(item.canonicalId)) || {};
+  return estimateItemCost(item.quantity, item.unit, price, info);
 }
 
 export interface SpendRollup {
@@ -52,16 +74,9 @@ export function rollupSpend(
   for (const t of trips) add(t.purchasedOn.slice(0, 7), t.totalCents);
 
   for (const item of openItems) {
-    const month = format(new Date(item.checkedAt), 'yyyy-MM');
-    if (item.actualCostCents != null) {
-      add(month, item.actualCostCents);
-      continue;
-    }
-    const price = item.canonicalId ? priceByCanonical.get(item.canonicalId) : undefined;
-    const info = (item.canonicalId && infoByCanonical.get(item.canonicalId)) || {};
-    const cents = price ? estimateItemCost(item.quantity, item.unit, price, info) : null;
+    const cents = itemSpendCents(item, priceByCanonical, infoByCanonical);
     if (cents == null) unpricedCount += 1;
-    else add(month, cents);
+    else add(format(new Date(item.checkedAt), 'yyyy-MM'), cents);
   }
 
   return { byMonth, unpricedCount, openCount: openItems.length };
