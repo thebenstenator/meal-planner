@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { generateList, openAddEntry } from './helpers';
+import { generateList, openAddEntry, submitRecipe } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -147,7 +147,7 @@ test('buying a matched item adds it to the pantry', async ({ page }) => {
   await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
   await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
-  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await submitRecipe(page);
   await expect(page.getByRole('heading', { name: 'Pantry Test' })).toBeVisible();
 
   await page.goto('/planner');
@@ -182,7 +182,7 @@ test('cooking a meal removes its ingredients from the pantry', async ({ page }) 
   await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
   await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
-  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await submitRecipe(page);
   await expect(page.getByRole('heading', { name: 'Cook Test' })).toBeVisible();
 
   await page.goto('/planner');
@@ -247,7 +247,7 @@ test('list generation subtracts pantry stock', async ({ page }) => {
   await page.getByLabel('Paste ingredients').fill('12 oz cream cheese');
   await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
-  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await submitRecipe(page);
   await expect(page.getByRole('heading', { name: 'Offset Test' })).toBeVisible();
 
   await page.goto('/planner');
@@ -283,7 +283,7 @@ test('unquantified pantry stock keeps an item off the generated list', async ({ 
   await page.getByLabel('Paste ingredients').fill('12 oz cream cheese\n2 cups all-purpose flour');
   await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (2)')).toBeVisible();
-  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await submitRecipe(page);
   await expect(page.getByRole('heading', { name: 'Unknown Stock Test' })).toBeVisible();
 
   await page.goto('/planner');

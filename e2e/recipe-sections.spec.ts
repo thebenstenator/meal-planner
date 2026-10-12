@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { submitRecipe } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -45,7 +46,7 @@ test('ingredient sections: pasted headings group the list, and can be renamed', 
   await expect(names.nth(0)).toHaveValue('Lemon curd');
   await expect(names.nth(1)).toHaveValue('Lemon cookies');
 
-  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await submitRecipe(page);
   await expect(page.getByRole('heading', { name: 'Lemon Curd Cookies' })).toBeVisible();
 
   // The recipe page shows each section under its own heading, in order.

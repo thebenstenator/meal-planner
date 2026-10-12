@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { submitRecipe } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -28,7 +29,7 @@ async function createRecipe(
   for (const cookbook of unshareFrom) {
     await page.getByLabel(cookbook, { exact: true }).uncheck();
   }
-  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await submitRecipe(page);
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
 }
 

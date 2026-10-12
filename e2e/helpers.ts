@@ -25,3 +25,16 @@ export async function generateList(page: Page) {
   await page.getByRole('button', { name: 'Generate a list' }).click();
   await page.getByRole('button', { name: 'Generate list' }).click({ force: true });
 }
+
+/**
+ * Submit the new-recipe form. A real click, never `force`: at the phone
+ * viewport the fixed bottom nav can sit over the button, and a forced click
+ * fires at the button's coordinates — landing on the nav, so the recipe is
+ * silently never created. Scrolling it clear and letting Playwright wait for
+ * it to actually receive the click avoids that.
+ */
+export async function submitRecipe(page: Page) {
+  const create = page.getByRole('button', { name: 'Create recipe' });
+  await create.scrollIntoViewIfNeeded();
+  await create.click();
+}

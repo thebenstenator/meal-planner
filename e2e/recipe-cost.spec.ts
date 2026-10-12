@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { generateList, openAddEntry } from './helpers';
+import { generateList, openAddEntry, submitRecipe } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -32,7 +32,7 @@ test('shows a consumption-based recipe cost from a captured price', async ({ pag
   await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
   await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText('Ingredients (1)')).toBeVisible();
-  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await submitRecipe(page);
   await expect(page.getByRole('heading', { name: 'Cost Test' })).toBeVisible();
 
   // Plan it so cream cheese lands on a shopping list we can price.
@@ -73,7 +73,7 @@ test('a manual meal price wins over the ingredient cost', async ({ page }) => {
   await page.getByLabel('Title').fill('Flat Price');
   await page.getByLabel('Paste ingredients').fill('1 mystery item');
   await page.getByRole('button', { name: 'Add rows' }).click();
-  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await submitRecipe(page);
   await expect(page.getByRole('heading', { name: 'Flat Price' })).toBeVisible();
 
   // No store/prices yet: the cost card offers to set a flat price.

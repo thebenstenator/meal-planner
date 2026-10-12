@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { submitRecipe } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -19,11 +20,7 @@ async function createRecipe(page: Page, title: string, ingredient: string) {
   await page.getByLabel('Paste ingredients').fill(ingredient);
   await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText(/Ingredients \(\d+\)/)).toBeVisible();
-  // A real click, not force: on a phone the fixed bottom nav can cover the
-  // button, and a forced click lands on the nav instead.
-  const create = page.getByRole('button', { name: 'Create recipe' });
-  await create.scrollIntoViewIfNeeded();
-  await create.click();
+  await submitRecipe(page);
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
 }
 

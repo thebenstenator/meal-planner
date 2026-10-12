@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { submitRecipe } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -19,7 +20,7 @@ async function createRecipe(page: Page, title: string, ingredients: string) {
   await page.getByLabel('Paste ingredients').fill(ingredients);
   await page.getByRole('button', { name: 'Add rows' }).click();
   await expect(page.getByText(/Ingredients \(\d+\)/)).toBeVisible();
-  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await submitRecipe(page);
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
 }
 

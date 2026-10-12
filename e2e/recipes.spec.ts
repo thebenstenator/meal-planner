@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { submitRecipe } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -35,7 +36,7 @@ test('create a recipe by pasting ingredients, then soft-delete and restore', asy
   // Force-click: on mobile emulation the actionability hit-test intermittently
   // reports a sibling field as the top element even though the button is fully
   // visible and unobstructed (verified via screenshot).
-  await page.getByRole('button', { name: 'Create recipe' }).click({ force: true });
+  await submitRecipe(page);
 
   // Landed on the detail page with a matched canonical ingredient.
   await expect(page.getByRole('heading', { name: 'Test Cheesecake' })).toBeVisible();
