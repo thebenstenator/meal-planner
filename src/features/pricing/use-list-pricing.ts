@@ -54,22 +54,27 @@ export function useListPricing(items: ShoppingItem[]): ListPricing {
       // Ad-hoc / unmatched / unresolved items aren't auto-priceable.
       if (!item.canonicalId || item.unresolved) {
         byItemId.set(item.id, { estimatedCents: null, stale: false, hasPrice: false });
-        unpricedCount += 1;
         continue;
       }
       const price = priceByCanonical.get(item.canonicalId);
       if (!price) {
         byItemId.set(item.id, { estimatedCents: null, stale: false, hasPrice: false });
-        unpricedCount += 1;
         continue;
       }
       const info = infoByCanonical.get(item.canonicalId) ?? {};
       const estimatedCents = estimateItemCost(item.totalQuantity, item.unit, price, info);
       const stale = differenceInCalendarDays(new Date(), new Date(price.observedOn)) > staleDays;
-      if (estimatedCents == null) unpricedCount += 1;
-      else projectedTotalCents += estimatedCents;
       if (stale) staleCount += 1;
       byItemId.set(item.id, { estimatedCents, stale, hasPrice: true });
+    }
+
+    // The projected total is what the trip costs: a recorded paid price where
+    // there is one (as Spent does), else the estimate. An item with neither is
+    // unpriced.
+    for (const item of items) {
+      const cents = item.actualCostCents ?? byItemId.get(item.id)?.estimatedCents ?? null;
+      if (cents == null) unpricedCount += 1;
+      else projectedTotalCents += cents;
     }
 
     return {
