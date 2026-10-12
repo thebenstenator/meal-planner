@@ -14,6 +14,7 @@ import {
   monthDays,
   monthGridDays,
   monthGridRange,
+  toISO,
   weekDays,
   weekRange,
 } from '@/features/planner/dates';
@@ -188,8 +189,16 @@ function PlannerPage() {
       {autofillOpen && (
         <AutofillPanel
           monthLabel={format(anchor, 'MMMM')}
-          days={monthDays(anchor)}
+          // Days already gone aren't worth planning — and the budget's room is
+          // forecast from today.
+          days={monthDays(anchor).filter((d) => d >= toISO(new Date()))}
           occupied={occupied}
+          budgetCents={household?.monthlyBudgetCents ?? null}
+          roomCents={
+            household?.monthlyBudgetCents == null || forecast.isLoading
+              ? null
+              : household.monthlyBudgetCents - forecast.projectedCents
+          }
           onClose={() => setAutofillOpen(false)}
           onDone={() => setAutofillOpen(false)}
         />

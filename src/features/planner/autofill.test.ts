@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { aiTargetForDays, buildMonthPlan, libraryScore, type LibraryRecipe } from '@/features/planner/autofill';
+import {
+  aiTargetForDays,
+  buildMonthPlan,
+  libraryScore,
+  mealCostModel,
+  type Assignment,
+  type LibraryRecipe,
+} from '@/features/planner/autofill';
+import type { Slot } from '@/schemas/plan';
 
 const today = '2026-08-30';
 
@@ -112,5 +120,88 @@ describe('buildMonthPlan', () => {
     const plan = buildMonthPlan({ days: days7, slots: ['dinner'], library: [], aiIdeaCount: 7, novelty: 'many-new', today });
     expect(plan.every((a) => a.source === 'ai')).toBe(true);
     expect(plan.length).toBe(7);
+  });
+});
+
+describe('mealCostModel', () => {
+  it('stands unpriced recipes and AI ideas in at the slot median', () => {
+    const library = lib(4);
+    const costs = new Map<string, number | null>([
+      ['r0', 1000],
+      ['r1', 2000],
+      ['r2', 600],
+      ['r3', null],
+    ]);
+    const cost = mealCostModel(library, costs)!;
+    expect(cost('r1', 'dinner')).toEqual({ cents: 2000, estimated: false });
+    expect(cost('r3', 'dinner')).toEqual({ cents: 1000, estimated: true });
+    expect(cost(undefined, 'dinner')).toEqual({ cents: 1000, estimated: true });
+  });
+
+  it('has no basis for a budget when nothing is priced', () => {
+    expect(mealCostModel(lib(3), new Map())).toBeNull();
+  });
+});
+
+describe('buildMonthPlan with a budget', () => {
+  // r0 is the favorite and the priciest; r1–r2 are cheap. Three recipes rotate,
+  // so every r0 sits between the other two — the case cell-by-cell swapping
+  // couldn't fix without a back-to-back repeat.
+  const library: LibraryRecipe[] = lib(3).map((r, i) => (i === 0 ? { ...r, isFavorite: true } : r));
+  const costs = new Map<string, number | null>([
+    ['r0', 3000],
+    ['r1', 500],
+    ['r2', 600],
+  ]);
+  const cost = mealCostModel(library, costs)!;
+  const days14 = Array.from({ length: 14 }, (_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`);
+  const base = {
+    days: days14,
+    slots: ['dinner'] as Slot[],
+    library,
+    aiIdeaCount: 0,
+    novelty: 'all-favorites' as const,
+    today,
+  };
+  const totalOf = (as: Assignment[]) => as.reduce((s, a) => s + cost(a.recipeId, a.slot).cents, 0);
+  const plain = buildMonthPlan(base);
+
+  it('changes nothing when the budget is generous', () => {
+    expect(buildMonthPlan({ ...base, budget: { cents: 1_000_000, cost } })).toEqual(plain);
+  });
+
+  it('fits the budget, keeping the favorite where the money allows', () => {
+    const budget = 14 * 1000; // ~$10/night against a $30 favorite
+    const plan = buildMonthPlan({ ...base, budget: { cents: budget, cost } });
+    expect(totalOf(plan)).toBeLessThanOrEqual(budget);
+    expect(totalOf(plan)).toBeLessThan(totalOf(plain));
+    const favorites = plan.filter((a) => a.recipeId === 'r0').length;
+    expect(favorites).toBeGreaterThan(0);
+    expect(favorites).toBeLessThan(plain.filter((a) => a.recipeId === 'r0').length);
+  });
+
+  it('goes as cheap as variety allows when the budget is out of reach', () => {
+    const plan = buildMonthPlan({ ...base, budget: { cents: 0, cost } });
+    expect(plan.some((a) => a.recipeId === 'r0')).toBe(false);
+    const ids = plan.map((a) => a.recipeId);
+    for (let i = 1; i < ids.length; i++) expect(ids[i]).not.toBe(ids[i - 1]);
+  });
+
+  it('spends no budget on occupied cells and never fills them', () => {
+    const plan = buildMonthPlan({
+      ...base,
+      isOccupied: (date) => date === '2026-09-01',
+      budget: { cents: 1_000_000, cost },
+    });
+    expect(plan.find((a) => a.date === '2026-09-01')).toBeUndefined();
+    expect(plan).toHaveLength(13);
+  });
+
+  it('counts AI ideas at the stand-in cost and keeps their placement', () => {
+    const withAi = { ...base, aiIdeaCount: 2, novelty: 'many-new' as const };
+    const unbudgeted = buildMonthPlan(withAi);
+    const budgeted = buildMonthPlan({ ...withAi, budget: { cents: 0, cost } });
+    const aiCells = (as: Assignment[]) => as.filter((a) => a.source === 'ai');
+    expect(aiCells(budgeted)).toEqual(aiCells(unbudgeted));
   });
 });

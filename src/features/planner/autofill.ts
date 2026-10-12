@@ -50,6 +50,13 @@ export interface AutofillParams {
   novelty: NoveltyLevel;
   /** yyyy-MM-dd, for "haven't made in a while" staleness. */
   today: string;
+  /** Cells that already have a meal — never proposed over, and no budget spent on them. */
+  isOccupied?: (date: string, slot: Slot) => boolean;
+  /**
+   * Keep the proposal's total under `cents` (ADR 0018), costing each meal with
+   * `cost` (see mealCostModel). Omitted = the plain balanced plan.
+   */
+  budget?: { cents: number; cost: (recipeId: string | undefined, slot: Slot) => MealCost };
 }
 
 export interface Assignment {
@@ -89,10 +96,19 @@ export function aiTargetForDays(days: number, novelty: NoveltyLevel): number {
  * fresh AI ideas evenly through the month, and avoids repeating the same recipe
  * on adjacent slots. Deterministic (stable tiebreak by id) so it's testable and a
  * re-run is predictable.
+ *
+ * With a budget, each cell gets an allowance — what's left of the budget over the
+ * cells left — and takes the next recipe in its rotation that fits it, else the
+ * cheapest one that isn't a repeat. Cheap meals bank slack that lets a pricier
+ * favorite back in later, so favorites appear wherever the money allows; with a
+ * generous budget the plan is identical to the unbudgeted one. Building in order
+ * (rather than swapping meals after) keeps the no-repeat rule satisfiable even
+ * for a small library.
  */
 export function buildMonthPlan(p: AutofillParams): Assignment[] {
   const cells: { date: string; slot: Slot }[] = [];
-  for (const date of p.days) for (const slot of p.slots) cells.push({ date, slot });
+  for (const date of p.days)
+    for (const slot of p.slots) if (!p.isOccupied?.(date, slot)) cells.push({ date, slot });
   const total = cells.length;
   if (total === 0) return [];
 
@@ -133,6 +149,10 @@ export function buildMonthPlan(p: AutofillParams): Assignment[] {
   const recent: string[] = [];
   const window = Math.min(Math.max(0, ranked.length - 1), p.slots.length + 1);
 
+  let remaining = p.budget?.cents ?? Infinity;
+  const costOf = (recipeId: string | undefined, slot: Slot) =>
+    p.budget ? p.budget.cost(recipeId, slot).cents : 0;
+
   for (let i = 0; i < total; i++) {
     const cell = cells[i] as { date: string; slot: Slot };
     const pool = poolBySlot.get(cell.slot) ?? [];
@@ -141,27 +161,89 @@ export function buildMonthPlan(p: AutofillParams): Assignment[] {
     if (wantAi || pool.length === 0) {
       if (aiCursor < p.aiIdeaCount) {
         out.push({ date: cell.date, slot: cell.slot, source: 'ai', aiIndex: aiCursor++ });
+        remaining -= costOf(undefined, cell.slot);
       }
       continue; // nothing eligible and no AI left -> leave the slot empty
     }
 
-    // Next recipe in this slot's pool not used in the recent window (cycle if
-    // all are recent).
+    // Next recipe in this slot's pool not used in the recent window that fits
+    // the allowance. Failing that (budget only), the cheapest one that isn't a
+    // back-to-back repeat — the variety rule relaxes before the budget does,
+    // which a small library needs (three recipes in a strict rotation leave no
+    // choice at all). If every recipe is recent, cycle on.
+    const allowance = remaining / (total - i);
     const cursor = cursorBySlot.get(cell.slot) ?? 0;
-    let pick = pool[cursor % pool.length] as LibraryRecipe;
+    const at = (k: number) => pool[(cursor + k) % pool.length] as LibraryRecipe;
+    let chosen = -1;
     for (let k = 0; k < pool.length; k++) {
-      const cand = pool[(cursor + k) % pool.length] as LibraryRecipe;
-      if (!recent.includes(cand.id)) {
-        pick = cand;
-        cursorBySlot.set(cell.slot, (cursor + k + 1) % pool.length);
+      const cand = at(k);
+      if (!recent.includes(cand.id) && costOf(cand.id, cell.slot) <= allowance) {
+        chosen = k;
         break;
       }
-      if (k === pool.length - 1) cursorBySlot.set(cell.slot, (cursor + 1) % pool.length);
     }
+    if (chosen < 0 && p.budget) {
+      const backToBack = recent.slice(-p.slots.length);
+      for (let k = 0; k < pool.length; k++) {
+        if (backToBack.includes(at(k).id)) continue;
+        if (chosen < 0 || costOf(at(k).id, cell.slot) < costOf(at(chosen).id, cell.slot)) chosen = k;
+      }
+    }
+
+    let pick: LibraryRecipe;
+    if (chosen < 0) {
+      pick = pool[cursor % pool.length] as LibraryRecipe;
+      cursorBySlot.set(cell.slot, (cursor + 1) % pool.length);
+    } else {
+      pick = pool[(cursor + chosen) % pool.length] as LibraryRecipe;
+      cursorBySlot.set(cell.slot, (cursor + chosen + 1) % pool.length);
+    }
+    remaining -= costOf(pick.id, cell.slot);
     out.push({ date: cell.date, slot: cell.slot, source: 'library', recipeId: pick.id });
     recent.push(pick.id);
     while (recent.length > window) recent.shift();
   }
 
   return out;
+}
+
+/** A meal's cost for budgeting, and whether it's a stand-in for an unpriced one. */
+export interface MealCost {
+  cents: number;
+  estimated: boolean;
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const s = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? (s[mid] as number) : Math.round(((s[mid - 1] as number) + (s[mid] as number)) / 2);
+}
+
+/**
+ * How to cost a proposed meal. A priced library recipe costs what it costs. An
+ * unpriced one, or a fresh AI idea (no ingredients priced yet), stands in at the
+ * median priced recipe for that slot — else across the library — so it neither
+ * looks free (and wins every swap) nor blows the budget. Null when nothing in
+ * the library is priced: there's no basis for a budget.
+ */
+export function mealCostModel(
+  library: LibraryRecipe[],
+  costById: Map<string, number | null>,
+): ((recipeId: string | undefined, slot: Slot) => MealCost) | null {
+  const priced = (rs: LibraryRecipe[]) =>
+    rs.map((r) => costById.get(r.id)).filter((c): c is number => c != null);
+  const overall = median(priced(library));
+  if (overall == null) return null;
+
+  const bySlot = new Map<Slot, number>();
+  for (const slot of Object.keys(SLOT_MEAL_TYPES) as Slot[]) {
+    bySlot.set(slot, median(priced(library.filter((r) => eligibleFor(r, slot)))) ?? overall);
+  }
+
+  return (recipeId, slot) => {
+    const known = recipeId ? costById.get(recipeId) : null;
+    if (known != null) return { cents: known, estimated: false };
+    return { cents: bySlot.get(slot) ?? overall, estimated: true };
+  };
 }

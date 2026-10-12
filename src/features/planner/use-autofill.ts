@@ -5,11 +5,13 @@ import { usePantry } from '@/features/pantry/use-pantry';
 import {
   aiTargetForDays,
   buildMonthPlan,
+  mealCostModel,
   type LibraryRecipe,
   type NoveltyLevel,
 } from '@/features/planner/autofill';
 import { createPlanEntry, planKeys } from '@/features/planner/api';
 import { toISO } from '@/features/planner/dates';
+import { keyOf } from '@/features/planner/view';
 import { listLibraryForAutofill, saveRecipe } from '@/features/recipes/api';
 import { ideaToDetail, suggestMeals, type MealIdea } from '@/features/recipes/suggest';
 import type { Slot } from '@/schemas/plan';
@@ -31,6 +33,10 @@ export interface GenerateArgs {
   days: string[];
   slots: Slot[];
   novelty: NoveltyLevel;
+  /** keyOf(date, slot) cells already planned — never proposed over. */
+  occupied: Set<string>;
+  /** Keep the new meals' cost under this (ADR 0018); omitted = no budget. */
+  budget?: { cents: number; costById: Map<string, number | null> };
 }
 
 export interface Proposal {
@@ -38,6 +44,8 @@ export interface Proposal {
   library: LibraryRecipe[];
   /** How many fresh AI ideas actually came back (0 if the level asked for none). */
   aiCount: number;
+  /** The budget pass, when one was asked for and the library has prices to go on. */
+  fit: { targetCents: number; swaps: number; withinBudget: boolean } | null;
 }
 
 // Sensible general-purpose seed when the pantry is empty, so the AI still has
@@ -66,7 +74,7 @@ export function useGenerateProposal() {
   const { data: pantry } = usePantry();
 
   return useMutation<Proposal, Error, GenerateArgs>({
-    mutationFn: async ({ days, slots, novelty }) => {
+    mutationFn: async ({ days, slots, novelty, occupied, budget }) => {
       const id = householdId as string;
       const library = await listLibraryForAutofill(id);
 
@@ -80,14 +88,31 @@ export function useGenerateProposal() {
         ideas = await suggestMeals(id, seed, [], Math.min(5, target));
       }
 
-      const plan = buildMonthPlan({
+      const params = {
         days,
         slots,
         library,
         aiIdeaCount: ideas.length,
         novelty,
         today: toISO(new Date()),
-      });
+        // Only ever fill gaps.
+        isOccupied: (date: string, slot: Slot) => occupied.has(keyOf(date, slot)),
+      };
+      let plan = buildMonthPlan(params);
+
+      let fit: Proposal['fit'] = null;
+      const cost = budget ? mealCostModel(library, budget.costById) : null;
+      if (budget && cost) {
+        const budgeted = buildMonthPlan({ ...params, budget: { cents: budget.cents, cost } });
+        // Same cells in the same order — count where the budget changed the pick.
+        const swaps = budgeted.filter((a, i) => a.recipeId !== plan[i]?.recipeId).length;
+        const totalCents = budgeted.reduce(
+          (sum, a) => sum + cost(a.source === 'library' ? a.recipeId : undefined, a.slot).cents,
+          0,
+        );
+        plan = budgeted;
+        fit = { targetCents: budget.cents, swaps, withinBudget: totalCents <= budget.cents };
+      }
 
       const byId = new Map(library.map((r) => [r.id, r]));
       const rows: ProposalRow[] = plan.map((a) =>
@@ -108,7 +133,7 @@ export function useGenerateProposal() {
             },
       );
 
-      return { rows, library, aiCount: ideas.length };
+      return { rows, library, aiCount: ideas.length, fit };
     },
   });
 }

@@ -95,6 +95,10 @@ nothing but is the ambient, recurring value that justifies staying subscribed.
   promise delivered in one tap, and it's a *monthly ritual* — the single best
   reason to keep a subscription. Code: `src/features/planner/autofill.ts`
   (balancer), `use-autofill.ts`, `components/autofill-panel.tsx`.
+  **BUILT: budget-aware.** "Keep new meals under $___", defaulting to what's
+  left of the month's budget after the forecast. Favorites stay wherever the
+  money allows, and the review shows the total against the limit. No AI cost,
+  and it ties the premium planner to the free budget loop. See ADR 0018.
 - **Meal ideas** (`suggest-meals`) — pantry-aware dinner ideas, saved straight
   to the plan and list. Sell the *integration*, not raw generation (that's the
   moat vs. free ChatGPT).
