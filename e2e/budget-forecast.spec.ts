@@ -79,3 +79,52 @@ test('forecasts the month once per purchase and summarizes where it went', async
   await expect(summary.getByText('Forecast Test')).toBeVisible();
   await expect(summary).toContainText('estimated from your list prices');
 });
+
+/** Jot a manual item onto the full list page and record its price (unchecked). */
+async function addPricedItem(page: Page, name: string, paid: string) {
+  const box = page.getByPlaceholder('Add an item (e.g. paper towels)');
+  await box.fill(name);
+  await box.press('Enter');
+  await expect(page.getByText(name, { exact: true })).toBeVisible({ timeout: 15000 });
+  await page.getByRole('button', { name: 'Add price paid for this item' }).click();
+  await page.getByLabel('Actual price paid').fill(paid);
+  await page.getByLabel('Actual price paid').press('Enter');
+  await expect(
+    page.getByRole('button', { name: `Edit price paid for this item (currently $${paid})` }),
+  ).toBeVisible({ timeout: 15000 });
+}
+
+// The pre-trip check: what's still to buy against what's left of the month —
+// and a checked-off item moves from one side to the other, never counted twice.
+test('checks a list against what is left of the budget before the trip', async ({ page }) => {
+  test.slow();
+  await signUp(page, uniqueEmail('pretrip'));
+
+  await page.goto('/household/settings');
+  await page.getByLabel('Amount (USD / month)').fill('10');
+  await page.getByLabel('Amount (USD / month)').press('Enter');
+  await page.waitForLoadState('networkidle');
+
+  await page.goto('/shopping-list');
+  await page.getByRole('button', { name: '+ New list' }).click();
+  await page.getByLabel('New list name').fill('Corner Shop');
+  await page.getByRole('button', { name: 'Create list' }).click();
+  await page.getByRole('link', { name: 'open full list →' }).click();
+  await expect(page).toHaveURL(/\/shopping-list\/[0-9a-f-]+$/);
+
+  const check = page.getByTestId('trip-budget-check');
+  await addPricedItem(page, 'Paper Towels', '4.00');
+  await expect(check).toContainText('~$4.00 still to buy', { timeout: 15000 });
+  await expect(check).toContainText('leaves $6.00');
+
+  await addPricedItem(page, 'Paper Plates', '8.00');
+  await expect(check).toContainText('~$12.00 still to buy', { timeout: 15000 });
+  await expect(check).toContainText('$2.00 more than the $10.00 left');
+  // The projected total counts paid prices too, not just store estimates.
+  await expect(page.getByTestId('projected-total')).toContainText('$12.00');
+
+  // Bought the towels: $4 spent, $6 left, $8 still to buy — still $2 over.
+  await page.getByRole('checkbox', { name: 'Check off Paper Towels' }).click({ force: true });
+  await expect(check).toContainText('~$8.00 still to buy', { timeout: 15000 });
+  await expect(check).toContainText('$2.00 more than the $6.00 left');
+});

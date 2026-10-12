@@ -21,6 +21,7 @@ import { ScanButton } from '@/features/scanner/scan-button';
 import type { ShoppingItem, ShoppingListSummary } from '@/features/shopping-list/api';
 import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
+import { TripBudgetCheck } from '@/features/pricing/components/trip-budget-check';
 import { FinishTrip } from '@/features/shopping-list/components/finish-trip';
 import { NameEditor } from '@/features/shopping-list/components/name-editor';
 import { QuantityBox } from '@/features/shopping-list/components/quantity-box';
@@ -408,6 +409,8 @@ function ListPanel({
           {feedback.message}
         </p>
       )}
+
+      <TripBudgetCheck items={items} />
 
       {items.length === 0 ? (
         <p className="text-muted-foreground text-sm">Nothing on this list yet.</p>

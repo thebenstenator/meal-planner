@@ -24,6 +24,7 @@ import type { ShoppingItem } from '@/features/shopping-list/api';
 import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
 import { CategoryManager } from '@/features/shopping-list/components/category-manager';
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
+import { TripBudgetCheck } from '@/features/pricing/components/trip-budget-check';
 import { FinishTrip } from '@/features/shopping-list/components/finish-trip';
 import { NameEditor } from '@/features/shopping-list/components/name-editor';
 import { QuantityBox } from '@/features/shopping-list/components/quantity-box';
@@ -173,6 +174,8 @@ function ShoppingListDetail() {
           {pricing.staleCount > 0 && <div>{pricing.staleCount} stale price(s)</div>}
         </div>
       </div>
+
+      <TripBudgetCheck items={items} />
 
       {lowItems.length > 0 && (
         <section className="rounded-lg border border-amber-300/60 bg-amber-50/40 p-3 dark:border-amber-800/60 dark:bg-amber-950/30">
