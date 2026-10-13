@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
 import { AutofillPanel } from '@/features/planner/components/autofill-panel';
 import { BudgetBar } from '@/features/planner/components/budget-bar';
+import { WeekPace } from '@/features/pricing/components/week-pace';
 import { MonthGrid } from '@/features/planner/components/month-grid';
 import { WeekView } from '@/features/planner/components/week-view';
 import {
@@ -150,6 +151,18 @@ function PlannerPage() {
         isLoading={monthCosts.isLoading || actual.isLoading}
         forecast={forecast}
       />
+
+      {mode === 'week' && household?.monthlyBudgetCents != null && (
+        <WeekPace
+          weekStart={range.start}
+          weekEnd={range.end}
+          monthlyBudgetCents={household.monthlyBudgetCents}
+          plannedCents={
+            viewCosts.totalCents +
+            entries.reduce((s, e) => s + (e.kind === 'eating_out' ? (e.costCents ?? 0) : 0), 0)
+          }
+        />
+      )}
 
       {movingId && (
         <div className="bg-muted/50 flex items-center justify-between rounded-md border px-3 py-2 text-sm">

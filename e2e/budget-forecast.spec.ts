@@ -166,3 +166,36 @@ test('counts a meal out in the same budget, as its own category', async ({ page 
   await page.goto('/spending');
   await expect(page.getByTestId('month-summary')).toContainText('$30.00', { timeout: 15000 });
 });
+
+// Weekly pacing: the week's slice of the monthly budget (~$16 of a $70 month)
+// against what's been spent this week — here a $42 meal out, so well over.
+test('paces this week against its share of the monthly budget', async ({ page }) => {
+  test.slow();
+  await signUp(page, uniqueEmail('pace'));
+  const iso = todayISO();
+
+  await page.goto('/household/settings');
+  await page.getByLabel('Amount (USD / month)').fill('70');
+  await page.getByLabel('Amount (USD / month)').press('Enter');
+  await page.waitForLoadState('networkidle');
+
+  await page.goto('/planner');
+  const pace = page.getByTestId('week-pace');
+  await expect(pace).toContainText('This week:', { timeout: 15000 });
+  await expect(pace).toContainText('$0.00 spent of');
+  await expect(pace).toContainText('left');
+
+  const panel = await openAddEntry(page, `Add to dinner on ${iso}`);
+  await panel.getByRole('button', { name: 'Eating out', exact: true }).click();
+  await panel.getByLabel('Eating out cost').fill('42');
+  await panel.getByRole('button', { name: 'Add eating out' }).click();
+
+  await expect(pace).toContainText('$42.00 spent of', { timeout: 15000 });
+  // No store set, but there's spend — the month bar shows it instead of a set-up nudge.
+  await expect(page.getByTestId('budget-bar')).toContainText('$42.00 spent');
+  await expect(pace).toContainText('over');
+
+  // A week ahead is measured by what's planned, not spent.
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(pace).toContainText('$0.00 planned of', { timeout: 15000 });
+});
