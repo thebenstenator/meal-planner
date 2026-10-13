@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
 import { AutofillPanel } from '@/features/planner/components/autofill-panel';
 import { BudgetBar } from '@/features/planner/components/budget-bar';
+import { CheaperSwaps } from '@/features/planner/components/cheaper-swaps';
 import { WeekPace } from '@/features/pricing/components/week-pace';
 import { MonthGrid } from '@/features/planner/components/month-grid';
 import { WeekView } from '@/features/planner/components/week-view';
@@ -163,6 +164,8 @@ function PlannerPage() {
           }
         />
       )}
+
+      <CheaperSwaps entries={entries} label={mode === 'week' ? 'this week' : 'this month'} />
 
       {movingId && (
         <div className="bg-muted/50 flex items-center justify-between rounded-md border px-3 py-2 text-sm">

@@ -10,6 +10,7 @@ import {
   movePlanEntry,
   planKeys,
   setEntryCost,
+  setEntryRecipe,
 } from '@/features/planner/api';
 import { supabase } from '@/lib/supabase/client';
 import type { PlanEntryInput, Slot } from '@/schemas/plan';
@@ -106,6 +107,15 @@ export function useSetEntryCost() {
   const invalidate = useInvalidatePlan();
   return useMutation<void, Error, { id: string; cents: number | null }>({
     mutationFn: ({ id, cents }) => setEntryCost(id, cents),
+    onSuccess: () => invalidate(),
+  });
+}
+
+/** Swap a planned meal to another recipe (a cheaper-swap suggestion, say). */
+export function useSwapEntryRecipe() {
+  const invalidate = useInvalidatePlan();
+  return useMutation<void, Error, { id: string; recipeId: string }>({
+    mutationFn: ({ id, recipeId }) => setEntryRecipe(id, recipeId),
     onSuccess: () => invalidate(),
   });
 }

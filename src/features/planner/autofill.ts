@@ -10,6 +10,8 @@ export interface LibraryRecipe {
   /** What this recipe can fill. Never empty in practice — the autofill query
    * falls back to a title guess so an untagged recipe still lands somewhere. */
   mealTypes: MealType[];
+  /** Base servings, where known — what a planned meal of it serves. */
+  servings?: number;
 }
 
 /**
@@ -25,7 +27,7 @@ export const SLOT_MEAL_TYPES: Record<Slot, MealType[]> = {
   snack: ['snack', 'dessert', 'drink'],
 };
 
-function eligibleFor(recipe: LibraryRecipe, slot: Slot): boolean {
+export function eligibleFor(recipe: LibraryRecipe, slot: Slot): boolean {
   const allowed = SLOT_MEAL_TYPES[slot];
   return recipe.mealTypes.some((t) => allowed.includes(t));
 }

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { submitRecipe } from './helpers';
+import { openAddEntry, submitRecipe } from './helpers';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -102,4 +102,33 @@ test('auto-fill swaps pricier meals for cheaper ones to fit a budget', async ({ 
   await expect(page.getByText(/Swapped \d+ pricier meals? for cheaper ones/)).toBeVisible();
   await expect(page.getByTestId('autofill-total')).toContainText('over your $1.00');
   expect(await steakRows.count()).toBeLessThan(before);
+});
+
+function todayISO(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// Cheaper swaps (ADR 0020): a planned $30 meal with a $5 alternative gets a
+// one-tap swap, and taking it replaces the meal on the plan.
+test('suggests a cheaper swap and applies it in one tap', async ({ page }) => {
+  test.slow();
+  await signUp(page, uniqueEmail('swaps'));
+
+  await pricedRecipe(page, 'Steak Night', '1 lb steak', '30.00');
+  await pricedRecipe(page, 'Bean Chili', '2 cups beans', '5.00');
+
+  await page.goto('/planner');
+  const panel = await openAddEntry(page, `Add to dinner on ${todayISO()}`);
+  await panel.getByLabel('Search recipes to add').fill('Steak');
+  await panel.getByRole('button', { name: /Steak Night/ }).click();
+
+  const swaps = page.getByTestId('cheaper-swaps');
+  await expect(swaps).toContainText('Steak Night → Bean Chili', { timeout: 15000 });
+  await expect(swaps).toContainText('save $25.00');
+
+  await swaps.getByRole('button', { name: 'Swap Steak Night for Bean Chili' }).click();
+  await expect(swaps).toHaveCount(0, { timeout: 15000 });
+  await expect(page.getByText('Bean Chili').first()).toBeVisible();
 });

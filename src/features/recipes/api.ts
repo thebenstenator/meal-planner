@@ -234,7 +234,7 @@ export async function restoreRecipe(id: string): Promise<void> {
 export async function listLibraryForAutofill(householdId: string): Promise<LibraryRecipe[]> {
   const { data, error } = await supabase
     .from('recipe')
-    .select('id, title, meal_types, is_favorite, times_cooked, last_cooked_on')
+    .select('id, title, meal_types, is_favorite, times_cooked, last_cooked_on, servings')
     .eq('household_id', householdId)
     .is('deleted_at', null)
     .limit(500);
@@ -248,6 +248,7 @@ export async function listLibraryForAutofill(householdId: string): Promise<Libra
     // Untagged recipes stay eligible for nothing on purpose: dinner draws only
     // from real mains. The recipe library's "Categorize" nudge backfills these.
     mealTypes: (r.meal_types ?? []) as MealType[],
+    servings: r.servings,
   }));
 }
 

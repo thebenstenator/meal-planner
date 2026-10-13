@@ -136,3 +136,9 @@ export async function fetchDiningInRange(
   if (error) throw error;
   return (data ?? []).map((r) => ({ date: r.date, cents: r.cost_cents as number }));
 }
+
+/** Swap a planned meal to a different recipe, keeping its day, slot and servings. */
+export async function setEntryRecipe(id: string, recipeId: string): Promise<void> {
+  const { error } = await supabase.from('plan_entry').update({ recipe_id: recipeId }).eq('id', id);
+  if (error) throw error;
+}
