@@ -57,6 +57,8 @@ export interface EntryCost {
   perServingCents: number | null;
   /** True when the meal is a recipe we couldn't fully price (no store, no prices, or missing facts). */
   unpriced: boolean;
+  /** Some ingredients priced from the shared reference (ADR 0021) — show it as EST. */
+  estimated: boolean;
 }
 
 export interface PlannerCosts {
@@ -112,9 +114,9 @@ export function usePlannerCosts(entries: PlanEntry[]): PlannerCosts {
 
     const costForEntry = (entry: PlanEntry): EntryCost => {
       if (entry.kind !== 'recipe' || !entry.recipeId)
-        return { cents: null, perServingCents: null, unpriced: false };
+        return { cents: null, perServingCents: null, unpriced: false, estimated: false };
       const input = inputById.get(entry.recipeId);
-      if (!input) return { cents: null, perServingCents: null, unpriced: true };
+      if (!input) return { cents: null, perServingCents: null, unpriced: true, estimated: false };
       const scale =
         entry.servingsOverride && input.servings ? entry.servingsOverride / input.servings : 1;
 
@@ -125,16 +127,18 @@ export function usePlannerCosts(entries: PlanEntry[]): PlannerCosts {
           cents: Math.round(input.manualCostCents * scale),
           perServingCents: Math.round(input.manualCostCents / Math.max(1, input.servings)),
           unpriced: false,
+          estimated: false,
         };
       }
 
       const rc = costByRecipe.get(entry.recipeId);
       if (!rc || rc.pricedCount === 0)
-        return { cents: null, perServingCents: null, unpriced: true };
+        return { cents: null, perServingCents: null, unpriced: true, estimated: false };
       return {
         cents: Math.round(rc.totalCents * scale),
         perServingCents: rc.perServingCents,
         unpriced: rc.unpricedCount > 0,
+        estimated: rc.referenceCount > 0,
       };
     };
 

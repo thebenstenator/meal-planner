@@ -2,15 +2,19 @@ import { differenceInCalendarDays } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-import { fetchConversionInfos, pricingKeys, type CurrentPrice } from '@/features/pricing/api';
+import { fetchConversionInfos, pricingKeys, type EffectivePrice } from '@/features/pricing/api';
 import { estimateItemCost } from '@/features/pricing/price-item';
-import { useCurrentPrices, usePricingSettings } from '@/features/pricing/use-pricing';
+import { useEffectivePrices } from '@/features/pricing/use-effective-prices';
+import { usePricingSettings } from '@/features/pricing/use-pricing';
 import type { ShoppingItem } from '@/features/shopping-list/api';
 
 export interface ItemPricing {
   estimatedCents: number | null;
   stale: boolean;
+  /** Whether the household has its own store price for it (else it's priced from reference). */
   hasPrice: boolean;
+  /** Priced from the shared reference — shown as EST (ADR 0021). */
+  isReference: boolean;
 }
 
 export interface ListPricing {
@@ -19,15 +23,22 @@ export interface ListPricing {
   projectedTotalCents: number;
   unpricedCount: number;
   staleCount: number;
+  /** Items in the projected total priced from the reference (no store or paid price). */
+  referenceCount: number;
+  /** Canonical ids on the list with no price at all — what an AI estimate can fill. */
+  missingPriceIds: string[];
   isLoading: boolean;
 }
 
-/** Price every priceable item in a list against the household's default store. */
+/**
+ * Price every priceable item in a list: the household's default-store price, else
+ * the calibrated reference price (marked isReference, shown EST).
+ */
 export function useListPricing(items: ShoppingItem[]): ListPricing {
   const { data: settings } = usePricingSettings();
-  const storeId = settings?.defaultStoreId ?? null;
+  const prices = useEffectivePrices();
+  const storeId = prices.storeId;
   const staleDays = settings?.priceStaleDays ?? 30;
-  const { data: prices, isLoading: pricesLoading } = useCurrentPrices(storeId);
 
   const canonicalIds = useMemo(
     () => [...new Set(items.map((i) => i.canonicalId).filter((id): id is string => !!id))],
@@ -41,31 +52,34 @@ export function useListPricing(items: ShoppingItem[]): ListPricing {
   });
 
   return useMemo(() => {
-    const priceByCanonical = new Map<string, CurrentPrice>();
-    for (const p of prices ?? []) priceByCanonical.set(p.canonicalId, p);
+    const priceByCanonical: Map<string, EffectivePrice> = prices.byCanonical;
     const infoByCanonical = new Map((infos ?? []).map((i) => [i.canonicalId, i]));
 
     const byItemId = new Map<string, ItemPricing>();
     let projectedTotalCents = 0;
     let unpricedCount = 0;
     let staleCount = 0;
+    let referenceCount = 0;
 
     for (const item of items) {
       // Ad-hoc / unmatched / unresolved items aren't auto-priceable.
       if (!item.canonicalId || item.unresolved) {
-        byItemId.set(item.id, { estimatedCents: null, stale: false, hasPrice: false });
+        byItemId.set(item.id, { estimatedCents: null, stale: false, hasPrice: false, isReference: false });
         continue;
       }
       const price = priceByCanonical.get(item.canonicalId);
       if (!price) {
-        byItemId.set(item.id, { estimatedCents: null, stale: false, hasPrice: false });
+        byItemId.set(item.id, { estimatedCents: null, stale: false, hasPrice: false, isReference: false });
         continue;
       }
       const info = infoByCanonical.get(item.canonicalId) ?? {};
       const estimatedCents = estimateItemCost(item.totalQuantity, item.unit, price, info);
-      const stale = differenceInCalendarDays(new Date(), new Date(price.observedOn)) > staleDays;
+      const isReference = price.source === 'reference';
+      // Staleness is about the household's own prices; the reference has an as-of date instead.
+      const stale =
+        !isReference && differenceInCalendarDays(new Date(), new Date(price.observedOn)) > staleDays;
       if (stale) staleCount += 1;
-      byItemId.set(item.id, { estimatedCents, stale, hasPrice: true });
+      byItemId.set(item.id, { estimatedCents, stale, hasPrice: !isReference, isReference });
     }
 
     // The projected total is what the trip costs: a recorded paid price where
@@ -75,6 +89,7 @@ export function useListPricing(items: ShoppingItem[]): ListPricing {
       const cents = item.actualCostCents ?? byItemId.get(item.id)?.estimatedCents ?? null;
       if (cents == null) unpricedCount += 1;
       else projectedTotalCents += cents;
+      if (item.actualCostCents == null && byItemId.get(item.id)?.isReference) referenceCount += 1;
     }
 
     return {
@@ -83,7 +98,15 @@ export function useListPricing(items: ShoppingItem[]): ListPricing {
       projectedTotalCents,
       unpricedCount,
       staleCount,
-      isLoading: pricesLoading || infosLoading,
+      referenceCount,
+      missingPriceIds: [
+        ...new Set(
+          items
+            .filter((i) => i.canonicalId && !i.unresolved && !priceByCanonical.has(i.canonicalId))
+            .map((i) => i.canonicalId as string),
+        ),
+      ],
+      isLoading: prices.isLoading || infosLoading,
     };
-  }, [items, prices, infos, staleDays, storeId, pricesLoading, infosLoading]);
+  }, [items, prices, infos, staleDays, storeId, infosLoading]);
 }

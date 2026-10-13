@@ -45,6 +45,8 @@ export interface RecipeCost {
   pricedCount: number;
   /** Ingredients we couldn't cost (no canonical match, no price, or no convertible unit). */
   unpricedCount: number;
+  /** Priced ingredients whose price is the shared reference (EST), not the household's. */
+  referenceCount: number;
 }
 
 /**
@@ -61,6 +63,7 @@ export function recipeCost(
   let totalCents = 0;
   let pricedCount = 0;
   let unpricedCount = 0;
+  let referenceCount = 0;
 
   for (const ing of ingredients) {
     if (ing.isOptional) continue;
@@ -77,9 +80,10 @@ export function recipeCost(
     }
     totalCents += cents;
     pricedCount += 1;
+    if (price.isReference) referenceCount += 1;
   }
 
   const rounded = Math.round(totalCents);
   const perServingCents = Math.round(totalCents / Math.max(1, servings));
-  return { totalCents: rounded, perServingCents, pricedCount, unpricedCount };
+  return { totalCents: rounded, perServingCents, pricedCount, unpricedCount, referenceCount };
 }

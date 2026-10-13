@@ -8,6 +8,8 @@ export interface ServingCost {
   perServingCents: number | null;
   /** Some ingredients unpriced — the figure is a floor, not a real price. */
   unpriced: boolean;
+  /** Priced (partly) from typical US prices rather than the household's store. */
+  estimated?: boolean;
 }
 
 export interface SwapSuggestion {
@@ -19,6 +21,8 @@ export interface SwapSuggestion {
   toTitle: string;
   /** What the meal saves at its planned servings. */
   savingsCents: number;
+  /** Either side is priced from typical US prices — the saving is an estimate (EST). */
+  estimated: boolean;
 }
 
 /** A swap has to be worth the bother: at least this much, and this share. */
@@ -83,6 +87,7 @@ export function suggestSwaps(
       toRecipeId: pick.id,
       toTitle: pick.title,
       savingsCents: (current - (priced(pick.id) as number)) * servings,
+      estimated: !!costOf(e.recipeId)?.estimated || !!costOf(pick.id)?.estimated,
     });
   }
 

@@ -464,6 +464,51 @@ export type Database = {
           },
         ]
       }
+      household_price_estimate: {
+        Row: {
+          canonical_ingredient_id: string
+          estimated_at: string
+          household_id: string
+          package_quantity: number
+          package_unit: string
+          price_cents: number
+          source: string
+        }
+        Insert: {
+          canonical_ingredient_id: string
+          estimated_at?: string
+          household_id: string
+          package_quantity: number
+          package_unit: string
+          price_cents: number
+          source?: string
+        }
+        Update: {
+          canonical_ingredient_id?: string
+          estimated_at?: string
+          household_id?: string
+          package_quantity?: number
+          package_unit?: string
+          price_cents?: number
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_price_estimate_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_ingredient"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_price_estimate_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pantry_item: {
         Row: {
           amount_unknown: boolean
@@ -1046,6 +1091,41 @@ export type Database = {
             columns: ["recipe_id"]
             isOneToOne: false
             referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reference_price: {
+        Row: {
+          as_of: string
+          canonical_ingredient_id: string
+          package_quantity: number
+          package_unit: string
+          price_cents: number
+          region: string
+        }
+        Insert: {
+          as_of: string
+          canonical_ingredient_id: string
+          package_quantity: number
+          package_unit: string
+          price_cents: number
+          region?: string
+        }
+        Update: {
+          as_of?: string
+          canonical_ingredient_id?: string
+          package_quantity?: number
+          package_unit?: string
+          price_cents?: number
+          region?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reference_price_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: true
+            referencedRelation: "canonical_ingredient"
             referencedColumns: ["id"]
           },
         ]

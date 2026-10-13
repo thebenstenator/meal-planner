@@ -8,6 +8,7 @@ import { useHousehold } from '@/features/household/use-household';
 import type { PlanEntry } from '@/features/planner/api';
 import { suggestSwaps } from '@/features/planner/swaps';
 import { useSwapEntryRecipe } from '@/features/planner/use-planner';
+import { EstMark } from '@/features/pricing/components/recipe-cost-tag';
 import { useRecipeCosts } from '@/features/pricing/use-planner-cost';
 import { listLibraryForAutofill } from '@/features/recipes/api';
 import { formatCurrency } from '@/lib/utils/format-currency';
@@ -84,7 +85,7 @@ export function CheaperSwaps({
             </span>
             <span className="ml-auto flex shrink-0 items-center gap-2">
               <span className="shrink-0 text-xs text-emerald-600 tabular-nums">
-                save {formatCurrency(s.savingsCents)}
+                {s.estimated && <EstMark />}save {formatCurrency(s.savingsCents)}
               </span>
               <Button
                 size="sm"

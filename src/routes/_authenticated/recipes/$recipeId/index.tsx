@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/ui/loading';
 import { useHousehold } from '@/features/household/use-household';
+import { AiEstimateButton } from '@/features/pricing/components/ai-estimate-button';
+import { EstMark } from '@/features/pricing/components/recipe-cost-tag';
 import { useRecipeCost } from '@/features/pricing/use-recipe-cost';
 import {
   canDeleteRecipe,
@@ -387,16 +389,13 @@ function RecipeCostCard({
     </div>
   ) : null;
 
-  // No manual price, and no store/prices to compute one — point at pricing, but
+  // No manual price, and nothing priced — not even from the reference (an
+  // ingredient the household created itself). Point at pricing, but
   // still let an owner set a flat price directly.
-  if (manualCostCents == null && (!cost.storeId || cost.pricedCount === 0)) {
+  if (manualCostCents == null && cost.pricedCount === 0) {
     return (
       <div className="bg-muted/40 rounded-lg border p-4 text-sm">
-        <span className="text-muted-foreground">
-          {cost.storeId
-            ? 'No prices yet for these ingredients. '
-            : 'Set a default store and prices to estimate cost. '}
-        </span>
+        <span className="text-muted-foreground">No prices yet for these ingredients. </span>
         <Link to="/stores" className="underline">
           {cost.storeId ? 'Add prices' : 'Set up pricing'}
         </Link>
@@ -407,6 +406,11 @@ function RecipeCostCard({
               set a price
             </button>
           </>
+        )}
+        {cost.missingPriceIds.length > 0 && (
+          <div className="mt-2">
+            <AiEstimateButton canonicalIds={cost.missingPriceIds} />
+          </div>
         )}
         {editor}
       </div>
@@ -420,6 +424,7 @@ function RecipeCostCard({
           {cost.isManual ? 'Meal price' : 'Estimated cost'}
         </span>
         <span className="text-xl font-semibold" data-testid="recipe-cost">
+          {!cost.isManual && cost.referenceCount > 0 && <EstMark className="text-xs" />}
           {formatCurrency(cost.totalCents)}
         </span>
       </div>
@@ -435,7 +440,9 @@ function RecipeCostCard({
         <span>
           {cost.isManual
             ? 'Set manually — overrides the ingredient-based cost.'
-            : 'Based on the amount this recipe uses, at your default store.'}
+            : cost.referenceCount > 0
+              ? `Based on the amount this recipe uses. EST: ${cost.referenceCount} ingredient${cost.referenceCount === 1 ? '' : 's'} at typical US prices — add your store’s for an exact cost.`
+              : 'Based on the amount this recipe uses, at your default store.'}
         </span>
         {canEdit && !editing && (
           <button type="button" className="underline" onClick={open}>
@@ -443,6 +450,11 @@ function RecipeCostCard({
           </button>
         )}
       </div>
+      {!cost.isManual && cost.missingPriceIds.length > 0 && (
+        <div className="mt-2">
+          <AiEstimateButton canonicalIds={cost.missingPriceIds} />
+        </div>
+      )}
       {editor}
     </div>
   );

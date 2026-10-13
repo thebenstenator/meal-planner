@@ -62,6 +62,8 @@ test('shows a consumption-based recipe cost from a captured price', async ({ pag
   await page.goto('/recipes');
   await page.getByRole('link', { name: /Cost Test/ }).click();
   await expect(page.getByTestId('recipe-cost')).toContainText('$2.50');
+  // A real store price replaces the estimate — no EST.
+  await expect(page.getByTestId('recipe-cost')).not.toContainText('EST');
 });
 
 // A manually set meal price overrides the ingredient-derived cost, and clearing
@@ -134,4 +136,87 @@ test('ranks recipes cheapest first and shows cost in the planner picker', async 
   await expect(
     panel.getByRole('button', { name: /Cheap Chili/ }).getByTestId('recipe-cost-tag'),
   ).toContainText('/serv', { timeout: 15000 });
+});
+
+// Reference prices (ADR 0021): a brand-new household with no store and no prices
+// still sees what a recipe costs — marked EST, from typical US prices.
+test('estimates a recipe’s cost from typical prices, marked EST', async ({ page }) => {
+  await signUp(page, uniqueEmail('refprice'));
+
+  await page.goto('/recipes/new');
+  await page.getByLabel('Title').fill('Bagel Spread');
+  await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
+  await page.getByRole('button', { name: 'Add rows' }).click();
+  await expect(page.getByText('Ingredients (1)')).toBeVisible();
+  await submitRecipe(page);
+  await expect(page.getByRole('heading', { name: 'Bagel Spread' })).toBeVisible();
+
+  // $2.49 for 8 oz at the reference; no set-up nudge in its place.
+  const cost = page.getByTestId('recipe-cost');
+  await expect(cost).toContainText('EST', { timeout: 15000 });
+  await expect(cost).toContainText('$2.49');
+  await expect(page.getByText('typical US prices')).toBeVisible();
+
+  await page.goto('/recipes');
+  await expect(page.getByTestId('recipe-cost-tag').first()).toContainText('EST');
+});
+
+// AI price estimates (ADR 0022, premium): an ingredient the shared reference
+// doesn't cover gets a one-tap estimate, saved for the household and shown EST.
+// The estimate-prices function is stubbed — no Claude call in tests.
+test('estimates a missing price with AI and costs the recipe from it', async ({ page }) => {
+  test.slow();
+  await signUp(page, uniqueEmail('aiprice'));
+
+  const requested: string[][] = [];
+  await page.route('**/functions/v1/estimate-prices', async (route) => {
+    const headers = {
+      'access-control-allow-origin': '*',
+      'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type',
+      'content-type': 'application/json',
+    };
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({ status: 200, headers, body: 'ok' });
+      return;
+    }
+    const ids: string[] = route.request().postDataJSON().canonical_ids;
+    requested.push(ids);
+    // $12.00 for an 8 oz jar.
+    const estimates = ids.map((id) => ({
+      id,
+      price_cents: 1200,
+      package_quantity: 8,
+      package_unit: 'oz',
+    }));
+    await route.fulfill({ status: 200, headers, body: JSON.stringify({ estimates }) });
+  });
+
+  // Truffle honey isn't a shared ingredient: jotting it on a list creates it for
+  // the household, with no reference price.
+  await page.goto('/shopping-list');
+  const box = page.getByPlaceholder('Add something you need…');
+  await box.fill('truffle honey');
+  await box.press('Enter');
+  await expect(page.getByRole('checkbox', { name: 'Check off truffle honey' })).toBeVisible({
+    timeout: 15000,
+  });
+
+  await page.goto('/recipes/new');
+  await page.getByLabel('Title').fill('Truffle Toast');
+  await page.getByLabel('Paste ingredients').fill('2 oz truffle honey');
+  await page.getByRole('button', { name: 'Add rows' }).click();
+  await expect(page.getByText('Ingredients (1)')).toBeVisible();
+  await submitRecipe(page);
+  await expect(page.getByRole('heading', { name: 'Truffle Toast' })).toBeVisible();
+
+  // No reference price for it, so nothing to show — but premium can estimate.
+  await page.getByRole('button', { name: 'Estimate 1 missing price with AI' }).click();
+  await expect(page.getByTestId('recipe-cost')).toContainText('$3.00', { timeout: 15000 });
+  await expect(page.getByTestId('recipe-cost')).toContainText('EST');
+  expect(requested).toHaveLength(1);
+
+  // Saved for the household: still there after a reload, without asking again.
+  await page.reload();
+  await expect(page.getByTestId('recipe-cost')).toContainText('$3.00', { timeout: 15000 });
+  expect(requested).toHaveLength(1);
 });

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { RowMenu, type RowMenuAction } from '@/components/ui/row-menu';
 import type { PlanEntry } from '@/features/planner/api';
 import { useSetEntryCost } from '@/features/planner/use-planner';
+import { EstMark } from '@/features/pricing/components/recipe-cost-tag';
 import { entryLabel } from '@/features/planner/view';
 import { centsToDollars, dollarsToCents } from '@/features/receipts/money';
 import { useSetRecipeManualCost } from '@/features/recipes/use-recipes';
@@ -17,6 +18,8 @@ interface Props {
   entry: PlanEntry;
   costCents?: number | null;
   perServingCents?: number | null;
+  /** The recipe cost uses typical US prices for some ingredients — shown EST. */
+  costEstimated?: boolean;
   onToggleCooked?: () => void;
   isMoving: boolean;
   onStartMove: () => void;
@@ -32,6 +35,7 @@ export function EntryChip({
   entry,
   costCents,
   perServingCents,
+  costEstimated = false,
   onToggleCooked,
   isMoving,
   onStartMove,
@@ -86,7 +90,10 @@ export function EntryChip({
           )}
           {shownCents != null && (
             <span className="text-muted-foreground flex flex-col items-end leading-tight tabular-nums">
-              <span>{formatCurrency(shownCents)}</span>
+              <span>
+                {!isDining && costEstimated && <EstMark />}
+                {formatCurrency(shownCents)}
+              </span>
               {perServingCents != null && (
                 <span className="text-[10px]">{formatCurrency(perServingCents)}/sv</span>
               )}

@@ -4,6 +4,8 @@ export interface PriceInfo {
   priceCents: number;
   packageQuantity: number;
   packageUnit: string;
+  /** Priced from the shared reference (ADR 0021), not the household's store — an estimate. */
+  isReference?: boolean;
 }
 
 export interface ConversionInfo {

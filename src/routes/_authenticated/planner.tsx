@@ -148,7 +148,12 @@ function PlannerPage() {
         actualCents={actual.actualCents}
         budgetCents={household?.monthlyBudgetCents ?? null}
         unpricedMeals={monthCosts.unpricedMeals}
-        canTrack={!!monthCosts.storeId || !!actual.storeId || actual.actualCents > 0}
+        canTrack={
+          !!monthCosts.storeId ||
+          !!actual.storeId ||
+          actual.actualCents > 0 ||
+          monthCosts.pricedMeals > 0
+        }
         isLoading={monthCosts.isLoading || actual.isLoading}
         forecast={forecast}
       />
@@ -196,7 +201,7 @@ function PlannerPage() {
           actions={actions}
           costForEntry={(e) => {
             const c = viewCosts.costForEntry(e);
-            return { total: c.cents, perServing: c.perServingCents };
+            return { total: c.cents, perServing: c.perServingCents, estimated: c.estimated };
           }}
           onToggleCooked={(e) => markCooked.mutate({ entry: e, cooked: !e.cookedAt })}
         />

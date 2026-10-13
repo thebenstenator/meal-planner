@@ -60,7 +60,9 @@ test('auto-fill a month from the recipe library (all favorites)', async ({ page 
 
 async function pricedRecipe(page: Page, title: string, ingredient: string, price: string) {
   await createRecipe(page, title, ingredient);
-  await page.getByRole('button', { name: 'set a price' }).click();
+  // "set a price" when nothing's priced; "Set price" when the recipe already has
+  // an estimate (ADR 0021) — same editor either way.
+  await page.getByRole('button', { name: /^set a price$|^Set price$/ }).click();
   await page.getByLabel('Meal price').fill(price);
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByTestId('recipe-cost')).toContainText(`$${price}`);

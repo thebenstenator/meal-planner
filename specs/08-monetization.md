@@ -130,6 +130,10 @@ nothing but is the ambient, recurring value that justifies staying subscribed.
 **2. Unlimited AI (the cost-recovery gate):**
 - **Unlimited (or high-cap) AI**: recipe photo/PDF/URL import + meal ideas +
   auto-fill + receipt scanning, all drawing on the same metered credit pool.
+- **AI price estimates** — **BUILT** (ADR 0022). Typical prices for ingredients
+  the free reference prices (ADR 0021) don't cover — usually ones a household
+  created itself. Premium-only, one credit per batch, only when asked; shown
+  as EST like reference prices.
 
 **3. Power-user analytics (bonus, not the pitch):**
 - Multiple stores + price comparison

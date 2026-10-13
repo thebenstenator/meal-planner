@@ -12,7 +12,11 @@ interface Props {
   days: string[];
   entriesByKey: Map<string, PlanEntry[]>;
   actions: PlannerActions;
-  costForEntry?: (entry: PlanEntry) => { total: number | null; perServing: number | null };
+  costForEntry?: (entry: PlanEntry) => {
+    total: number | null;
+    perServing: number | null;
+    estimated: boolean;
+  };
   onToggleCooked?: (entry: PlanEntry) => void;
 }
 
@@ -55,7 +59,11 @@ function SlotCell({
   slot: Slot;
   entries: PlanEntry[];
   actions: PlannerActions;
-  costForEntry?: (entry: PlanEntry) => { total: number | null; perServing: number | null };
+  costForEntry?: (entry: PlanEntry) => {
+    total: number | null;
+    perServing: number | null;
+    estimated: boolean;
+  };
   onToggleCooked?: (entry: PlanEntry) => void;
 }) {
   const isAdding =
@@ -74,6 +82,7 @@ function SlotCell({
             entry={entry}
             costCents={costForEntry?.(entry).total ?? null}
             perServingCents={costForEntry?.(entry).perServing ?? null}
+            costEstimated={costForEntry?.(entry).estimated ?? false}
             onToggleCooked={onToggleCooked ? () => onToggleCooked(entry) : undefined}
             isMoving={moving === entry.id}
             onStartMove={() => actions.startMove(entry.id)}

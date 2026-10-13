@@ -24,6 +24,8 @@ import type { ShoppingItem } from '@/features/shopping-list/api';
 import { groupByCategory, type ShoppingCategory } from '@/features/shopping-list/categories';
 import { CategoryManager } from '@/features/shopping-list/components/category-manager';
 import { CategorySelect } from '@/features/shopping-list/components/category-select';
+import { AiEstimateButton } from '@/features/pricing/components/ai-estimate-button';
+import { EstMark } from '@/features/pricing/components/recipe-cost-tag';
 import { TripBudgetCheck } from '@/features/pricing/components/trip-budget-check';
 import { FinishTrip } from '@/features/shopping-list/components/finish-trip';
 import { NameEditor } from '@/features/shopping-list/components/name-editor';
@@ -156,6 +158,7 @@ function ShoppingListDetail() {
               Projected total
             </div>
             <div className="text-xl font-semibold" data-testid="projected-total">
+              {pricing.referenceCount > 0 && <EstMark className="text-xs" />}
               {formatCurrency(pricing.projectedTotalCents)}
             </div>
           </div>
@@ -167,10 +170,14 @@ function ShoppingListDetail() {
           </div>
         </div>
         <div className="text-muted-foreground text-right text-xs">
-          {!pricing.storeId && <div>Set a default store to price items.</div>}
-          {pricing.storeId && pricing.unpricedCount > 0 && (
-            <div>{pricing.unpricedCount} item(s) unpriced</div>
+          {pricing.referenceCount > 0 && (
+            <div>
+              EST = typical US prices.{' '}
+              {pricing.storeId ? 'Set your store’s for exact totals.' : 'Set a default store to use yours.'}
+            </div>
           )}
+          {pricing.unpricedCount > 0 && <div>{pricing.unpricedCount} item(s) unpriced</div>}
+          <AiEstimateButton canonicalIds={pricing.missingPriceIds} />
           {pricing.staleCount > 0 && <div>{pricing.staleCount} stale price(s)</div>}
         </div>
       </div>
@@ -428,6 +435,7 @@ function ItemRow({
             estimatedCents={pricing?.estimatedCents ?? null}
             actualCents={item.actualCostCents}
             stale={pricing?.stale ?? false}
+            isReference={pricing?.isReference ?? false}
             onSet={onSetActualCost}
           />
           {canAddPrice && (!pricing?.hasPrice || pricing?.stale) && (
@@ -565,11 +573,14 @@ function ItemPrice({
   estimatedCents,
   actualCents,
   stale,
+  isReference,
   onSet,
 }: {
   estimatedCents: number | null;
   actualCents: number | null;
   stale: boolean;
+  /** The estimate comes from typical US prices, not this household's store. */
+  isReference: boolean;
   onSet: (cents: number | null) => void;
 }) {
   const effective = actualCents ?? estimatedCents;
@@ -636,6 +647,9 @@ function ItemPrice({
       className="mt-0.5 flex items-center gap-1.5 text-sm font-medium"
       aria-label={`Edit price paid for this item (currently ${formatCurrency(effective)})`}
     >
+      {/* EST: a typical US price, not this household's (ADR 0021). A plain
+          figure is its own store price; "paid" is what it actually paid. */}
+      {actualCents == null && isReference && <EstMark className="mr-0 text-muted-foreground" />}
       <span
         className={cn(
           'underline decoration-dotted underline-offset-2',
@@ -644,9 +658,9 @@ function ItemPrice({
       >
         {formatCurrency(effective)}
       </span>
-      <span className="text-muted-foreground text-[10px] font-normal">
-        {actualCents != null ? 'paid' : 'est'}
-      </span>
+      {actualCents != null && (
+        <span className="text-muted-foreground text-[10px] font-normal">paid</span>
+      )}
       {stale && actualCents == null && (
         <Badge variant="outline" className="text-amber-600">
           stale
