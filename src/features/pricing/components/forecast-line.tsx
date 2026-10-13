@@ -17,6 +17,7 @@ export function ForecastLine({
     forecast.toBuyCents > 0 && `${formatCurrency(forecast.toBuyCents)} still on lists`,
     forecast.plannedCents > 0 &&
       `${formatCurrency(forecast.plannedCents)} for meals not on a list yet`,
+    forecast.diningCents > 0 && `${formatCurrency(forecast.diningCents)} eating out`,
   ].filter(Boolean);
 
   return (

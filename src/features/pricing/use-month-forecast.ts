@@ -6,6 +6,7 @@ import { useHousehold } from '@/features/household/use-household';
 import type { PlanEntry } from '@/features/planner/api';
 import {
   forecastMonth,
+  upcomingDiningCents,
   monthPhase,
   remainingFrom,
   unlistedMeals,
@@ -69,9 +70,15 @@ export function useMonthForecast(
       else toBuyCents += cents;
     }
     return {
-      ...forecastMonth(phase, spentCents, toBuyCents, mealCosts.totalCents),
+      ...forecastMonth(
+        phase,
+        spentCents,
+        toBuyCents,
+        mealCosts.totalCents,
+        upcomingDiningCents(monthEntries, today),
+      ),
       unpricedCount: phase === 'past' ? 0 : unpricedCount,
       isLoading: phase !== 'past' && (toBuyLoading || index.isLoading || mealCosts.isLoading),
     };
-  }, [phase, spentCents, data, index, mealCosts, toBuyLoading]);
+  }, [phase, spentCents, data, index, mealCosts, toBuyLoading, monthEntries, today]);
 }

@@ -191,6 +191,7 @@ export function useRecipeCosts(recipeIds: string[]): RecipeCosts {
           servingsOverride: null,
           cookedAt: null,
           position: 0,
+          costCents: null,
         }),
       ),
     [recipeIds],

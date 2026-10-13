@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RowMenu, type RowMenuAction } from '@/components/ui/row-menu';
 import type { PlanEntry } from '@/features/planner/api';
+import { useSetEntryCost } from '@/features/planner/use-planner';
 import { entryLabel } from '@/features/planner/view';
 import { centsToDollars, dollarsToCents } from '@/features/receipts/money';
 import { useSetRecipeManualCost } from '@/features/recipes/use-recipes';
@@ -41,6 +42,9 @@ export function EntryChip({
   const cooked = !!entry.cookedAt;
   const isRecipe = entry.kind === 'recipe' && !!entry.recipeId;
   const canCook = isRecipe && !!onToggleCooked;
+  const isDining = entry.kind === 'eating_out';
+  // A recipe's cost comes from the planner's costing; eating out carries its own.
+  const shownCents = isDining ? entry.costCents : costCents;
 
   const actions: RowMenuAction[] = [];
   if (canCook) {
@@ -48,6 +52,12 @@ export function EntryChip({
   }
   if (isRecipe) {
     actions.push({ label: 'Set meal price', onSelect: () => setPricing(true) });
+  }
+  if (isDining) {
+    actions.push({
+      label: entry.costCents != null ? 'Change cost' : 'Set cost',
+      onSelect: () => setPricing(true),
+    });
   }
   actions.push({ label: 'Move', onSelect: onStartMove });
   actions.push({ label: 'Remove', onSelect: onRemove, destructive: true });
@@ -74,9 +84,9 @@ export function EntryChip({
               {entry.servingsOverride}sv
             </span>
           )}
-          {costCents != null && (
+          {shownCents != null && (
             <span className="text-muted-foreground flex flex-col items-end leading-tight tabular-nums">
-              <span>{formatCurrency(costCents)}</span>
+              <span>{formatCurrency(shownCents)}</span>
               {perServingCents != null && (
                 <span className="text-[10px]">{formatCurrency(perServingCents)}/sv</span>
               )}
@@ -86,6 +96,14 @@ export function EntryChip({
           <RowMenu label={`Actions for ${entryLabel(entry)}`} actions={actions} />
         </div>
       </div>
+
+      {pricing && isDining && (
+        <DiningCostEditor
+          entryId={entry.id}
+          currentCents={entry.costCents}
+          onClose={() => setPricing(false)}
+        />
+      )}
 
       {pricing && entry.recipeId && (
         <MealPriceEditor
@@ -158,6 +176,63 @@ function MealPriceEditor({
       >
         Use ingredient cost
       </Button>
+    </div>
+  );
+}
+
+/** Inline editor for what an eating-out meal costs; it counts toward the month's budget. */
+function DiningCostEditor({
+  entryId,
+  currentCents,
+  onClose,
+}: {
+  entryId: string;
+  currentCents: number | null;
+  onClose: () => void;
+}) {
+  const setCost = useSetEntryCost();
+  const [value, setValue] = useState(currentCents != null ? centsToDollars(currentCents) : '');
+
+  function save() {
+    const cents = dollarsToCents(value);
+    if (cents == null || cents < 0) return;
+    setCost.mutate({ id: entryId, cents }, { onSuccess: onClose });
+  }
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1 border-t pt-1">
+      <span className="text-muted-foreground">$</span>
+      <Input
+        autoFocus
+        inputMode="decimal"
+        aria-label="Eating out cost"
+        placeholder="0.00"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            save();
+          }
+          if (e.key === 'Escape') onClose();
+        }}
+        className="h-7 w-20"
+      />
+      <Button type="button" size="sm" className="h-7" onClick={save} disabled={setCost.isPending}>
+        Save
+      </Button>
+      {currentCents != null && (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 px-1"
+          onClick={() => setCost.mutate({ id: entryId, cents: null }, { onSuccess: onClose })}
+          disabled={setCost.isPending}
+        >
+          Clear
+        </Button>
+      )}
     </div>
   );
 }

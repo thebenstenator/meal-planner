@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { summarizeMonth, UNITEMIZED } from '@/features/pricing/month-summary';
+import { EATING_OUT, summarizeMonth, UNITEMIZED } from '@/features/pricing/month-summary';
 
 describe('summarizeMonth', () => {
   it('splits a trip across its line categories, remainder not itemized', () => {
@@ -77,5 +77,20 @@ describe('summarizeMonth', () => {
       [],
     );
     expect(s.byCategory.map((r) => r.category)).toEqual(['snacks', UNITEMIZED]);
+  });
+});
+
+describe('summarizeMonth with eating out', () => {
+  it('gives eating out its own row, counted as recorded spend', () => {
+    const s = summarizeMonth(
+      [{ totalCents: 3000, isEstimated: false, lines: [{ category: 'produce', priceCents: 3000 }] }],
+      [
+        { category: EATING_OUT, cents: 4000, isRecorded: true },
+        { category: EATING_OUT, cents: 2500, isRecorded: true },
+      ],
+    );
+    expect(s.totalCents).toBe(9500);
+    expect(s.byCategory[0]).toEqual({ category: EATING_OUT, cents: 6500 });
+    expect(s.estimatedCents).toBe(0);
   });
 });

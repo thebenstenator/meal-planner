@@ -18,6 +18,8 @@ export interface PlanEntry {
   servingsOverride: number | null;
   cookedAt: string | null;
   position: number;
+  /** What an eating-out meal costs (cents); null otherwise or when not set. */
+  costCents: number | null;
 }
 
 export async function listPlanEntries(
@@ -27,7 +29,9 @@ export async function listPlanEntries(
 ): Promise<PlanEntry[]> {
   const { data, error } = await supabase
     .from('plan_entry')
-    .select('id, date, slot, kind, recipe_id, note, servings_override, cooked_at, position, created_at, recipe(title)')
+    .select(
+      'id, date, slot, kind, recipe_id, note, servings_override, cooked_at, position, cost_cents, created_at, recipe(title)',
+    )
     .eq('household_id', householdId)
     .gte('date', start)
     .lte('date', end)
@@ -48,6 +52,7 @@ export async function listPlanEntries(
     servingsOverride: r.servings_override,
     cookedAt: r.cooked_at,
     position: r.position,
+    costCents: r.cost_cents,
   }));
 }
 
@@ -65,6 +70,7 @@ export async function createPlanEntry(
       recipe_id: input.recipeId,
       note: input.note,
       servings_override: input.servingsOverride,
+      cost_cents: input.costCents ?? null,
     })
     .select('id')
     .single();
@@ -96,4 +102,37 @@ export async function setEntryCooked(id: string, cooked: boolean): Promise<void>
     .update({ cooked_at: cooked ? new Date().toISOString() : null })
     .eq('id', id);
   if (error) throw error;
+}
+
+/** Set (or clear, with null) what an eating-out meal costs. */
+export async function setEntryCost(id: string, cents: number | null): Promise<void> {
+  const { error } = await supabase.from('plan_entry').update({ cost_cents: cents }).eq('id', id);
+  if (error) throw error;
+}
+
+export interface DiningSpend {
+  date: string; // yyyy-MM-dd
+  cents: number;
+}
+
+/**
+ * Eating-out meals with a cost dated within [start, end] — the dining half of
+ * spend and forecast (ADR 0019). Callers split them by date: on or before
+ * today is spent, after it is forecast.
+ */
+export async function fetchDiningInRange(
+  householdId: string,
+  start: string,
+  end: string,
+): Promise<DiningSpend[]> {
+  const { data, error } = await supabase
+    .from('plan_entry')
+    .select('date, cost_cents')
+    .eq('household_id', householdId)
+    .eq('kind', 'eating_out')
+    .not('cost_cents', 'is', null)
+    .gte('date', start)
+    .lte('date', end);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({ date: r.date, cents: r.cost_cents as number }));
 }

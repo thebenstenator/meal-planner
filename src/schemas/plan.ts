@@ -24,6 +24,12 @@ export const planEntryInputSchema = z
     recipeId: z.string().uuid().nullable().default(null),
     note: z.string().trim().max(500).nullable().default(null),
     servingsOverride: z.number().int().positive().nullable().default(null),
+    /** What an eating-out meal costs, in cents. Only eating-out entries carry one. */
+    costCents: z.number().int().nonnegative().nullable().optional(),
+  })
+  .refine((v) => v.costCents == null || v.kind === 'eating_out', {
+    message: 'Only an eating-out entry can have a cost',
+    path: ['costCents'],
   })
   .refine((v) => (v.kind === 'recipe' ? v.recipeId != null : v.recipeId == null), {
     message: 'A recipe entry needs a recipe; other kinds must not have one',

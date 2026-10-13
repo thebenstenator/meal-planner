@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { PlanEntry } from '@/features/planner/api';
 import {
   forecastMonth,
+  upcomingDiningCents,
   monthPhase,
   remainingFrom,
   unlistedMeals,
@@ -20,6 +21,7 @@ function entry(date: string, overrides: Partial<PlanEntry> = {}): PlanEntry {
     servingsOverride: null,
     cookedAt: null,
     position: 0,
+    costCents: null,
     ...overrides,
   };
 }
@@ -79,5 +81,29 @@ describe('forecastMonth', () => {
   it('projects exactly the spend for a finished month', () => {
     const f = forecastMonth('past', 55000, 9200, 10000);
     expect(f).toMatchObject({ projectedCents: 55000, toBuyCents: 0, plannedCents: 0 });
+  });
+});
+
+describe('eating out in the forecast', () => {
+  it('counts only priced eating-out meals after today', () => {
+    const cents = upcomingDiningCents(
+      [
+        entry('2026-10-11', { kind: 'eating_out', recipeId: null, costCents: 3000 }), // past: spent
+        entry('2026-10-12', { kind: 'eating_out', recipeId: null, costCents: 2000 }), // today: spent
+        entry('2026-10-20', { kind: 'eating_out', recipeId: null, costCents: 4500 }),
+        entry('2026-10-21', { kind: 'eating_out', recipeId: null, costCents: null }),
+        entry('2026-10-22'), // a recipe
+      ],
+      '2026-10-12',
+    );
+    expect(cents).toBe(4500);
+  });
+
+  it('adds upcoming dining to the projection, not to a finished month', () => {
+    expect(forecastMonth('current', 10000, 2000, 3000, 4500).projectedCents).toBe(19500);
+    expect(forecastMonth('past', 10000, 2000, 3000, 4500)).toMatchObject({
+      projectedCents: 10000,
+      diningCents: 0,
+    });
   });
 });

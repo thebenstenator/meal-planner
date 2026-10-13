@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { useMemo } from 'react';
 
 import { useHousehold } from '@/features/household/use-household';
+import { useDiningInRange } from '@/features/planner/use-planner';
 import { pricingKeys } from '@/features/pricing/api';
 import { rollupSpend, type SpendRollup } from '@/features/pricing/spend';
 import { usePriceIndex } from '@/features/pricing/use-recipe-cost';
@@ -39,6 +41,14 @@ export function useSpendInRange(start: string, end: string): SpendRange {
   );
   const index = usePriceIndex(canonicalIds);
 
+  // Eating out counts once its day arrives; later ones are forecast (ADR 0019).
+  const { data: dining, isLoading: diningLoading } = useDiningInRange(start, end);
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const diningSpent = useMemo(
+    () => (dining ?? []).filter((d) => d.date <= today),
+    [dining, today],
+  );
+
   return useMemo(
     () => ({
       ...rollupSpend(
@@ -46,10 +56,11 @@ export function useSpendInRange(start: string, end: string): SpendRange {
         items ?? [],
         index.priceByCanonical,
         index.infoByCanonical,
+        diningSpent,
       ),
       storeId: index.storeId,
-      isLoading: tripsLoading || itemsLoading || index.isLoading,
+      isLoading: tripsLoading || itemsLoading || diningLoading || index.isLoading,
     }),
-    [trips, items, index, tripsLoading, itemsLoading],
+    [trips, items, index, diningSpent, tripsLoading, itemsLoading, diningLoading],
   );
 }

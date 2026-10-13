@@ -128,3 +128,41 @@ test('checks a list against what is left of the budget before the trip', async (
   await expect(check).toContainText('~$8.00 still to buy', { timeout: 15000 });
   await expect(check).toContainText('$2.00 more than the $6.00 left');
 });
+
+// Eating out shares the grocery budget (ADR 0019): a priced meal out counts as
+// spent once its day arrives, shows on the planner card, and gets its own row in
+// the month's summary — and changing its cost flows through to all of them.
+test('counts a meal out in the same budget, as its own category', async ({ page }) => {
+  test.slow();
+  await signUp(page, uniqueEmail('dining'));
+  const iso = todayISO();
+
+  await page.goto('/stores');
+  await page.getByLabel('New store name').fill('Test Store');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await page.getByRole('button', { name: 'Set default' }).click();
+
+  await page.goto('/planner');
+  const panel = await openAddEntry(page, `Add to dinner on ${iso}`);
+  await panel.getByRole('button', { name: 'Eating out', exact: true }).click();
+  await panel.getByLabel('Eating out cost').fill('42');
+  await panel.getByRole('button', { name: 'Add eating out' }).click();
+
+  await expect(page.getByText('$42.00 spent').first()).toBeVisible({ timeout: 15000 });
+
+  await page.goto('/spending');
+  const summary = page.getByTestId('month-summary');
+  await expect(summary).toContainText('Eating out', { timeout: 15000 });
+  await expect(summary).toContainText('$42.00');
+
+  // Change it from the planner card.
+  await page.goto('/planner');
+  await page.getByRole('button', { name: 'Actions for Eating out' }).first().click();
+  await page.getByRole('menuitem', { name: 'Change cost' }).click();
+  await page.getByLabel('Eating out cost').fill('30');
+  await page.getByLabel('Eating out cost').press('Enter');
+  await expect(page.getByText('$30.00 spent').first()).toBeVisible({ timeout: 15000 });
+
+  await page.goto('/spending');
+  await expect(page.getByTestId('month-summary')).toContainText('$30.00', { timeout: 15000 });
+});

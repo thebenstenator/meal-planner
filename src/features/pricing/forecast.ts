@@ -39,30 +39,51 @@ export function unlistedMeals(
 
 export interface MonthForecast {
   phase: MonthPhase;
-  /** Where the month is headed: spent + still to buy + unlisted meals. */
+  /** Where the month is headed: spent + still to buy + unlisted meals + eating out. */
   projectedCents: number;
   spentCents: number;
   /** Unchecked items on lists shopping for the rest of the month. */
   toBuyCents: number;
   /** Recipe cost of upcoming meals no list covers yet. */
   plannedCents: number;
+  /** Eating-out meals still ahead (after today) — past ones are already spent. */
+  diningCents: number;
 }
 
-/** Combine the three parts. A finished month projects exactly what was spent. */
+/**
+ * Sum the costs of eating-out meals dated after `today` — the forecast half of
+ * dining; on or before today they're spend (ADR 0019).
+ */
+export function upcomingDiningCents(entries: PlanEntry[], today: string): number {
+  return entries
+    .filter((e) => e.kind === 'eating_out' && e.costCents != null && e.date > today)
+    .reduce((sum, e) => sum + (e.costCents as number), 0);
+}
+
+/** Combine the parts. A finished month projects exactly what was spent. */
 export function forecastMonth(
   phase: MonthPhase,
   spentCents: number,
   toBuyCents: number,
   plannedCents: number,
+  diningCents = 0,
 ): MonthForecast {
   if (phase === 'past') {
-    return { phase, projectedCents: spentCents, spentCents, toBuyCents: 0, plannedCents: 0 };
+    return {
+      phase,
+      projectedCents: spentCents,
+      spentCents,
+      toBuyCents: 0,
+      plannedCents: 0,
+      diningCents: 0,
+    };
   }
   return {
     phase,
-    projectedCents: spentCents + toBuyCents + plannedCents,
+    projectedCents: spentCents + toBuyCents + plannedCents + diningCents,
     spentCents,
     toBuyCents,
     plannedCents,
+    diningCents,
   };
 }

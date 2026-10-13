@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 
+import type { DiningSpend } from '@/features/planner/api';
 import {
   estimateItemCost,
   type ConversionInfo,
@@ -58,13 +59,16 @@ export interface SpendRollup {
  * Actual spend by calendar month (ADR 0016): every logged trip by its purchase
  * date, plus checked items not yet covered by a trip, by the local day they were
  * checked off. Trips and open items never overlap — logging or clearing a trip
- * links/archives the items it covers — so this sum never double-counts.
+ * links/archives the items it covers — so this sum never double-counts. Plus
+ * eating-out meals that have happened (ADR 0019): the caller passes only those
+ * dated on or before today; later ones are forecast, not spend.
  */
 export function rollupSpend(
   trips: SpendTrip[],
   openItems: OpenCheckedItem[],
   priceByCanonical: Map<string, PriceInfo>,
   infoByCanonical: Map<string, ConversionInfo>,
+  dining: DiningSpend[] = [],
 ): SpendRollup {
   const byMonth = new Map<string, number>();
   const add = (month: string, cents: number) =>
@@ -72,6 +76,7 @@ export function rollupSpend(
   let unpricedCount = 0;
 
   for (const t of trips) add(t.purchasedOn.slice(0, 7), t.totalCents);
+  for (const d of dining) add(d.date.slice(0, 7), d.cents);
 
   for (const item of openItems) {
     const cents = itemSpendCents(item, priceByCanonical, infoByCanonical);

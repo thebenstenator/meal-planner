@@ -6,6 +6,7 @@ import { RecipeCostTag } from '@/features/pricing/components/recipe-cost-tag';
 import { useRecipeCosts } from '@/features/pricing/use-planner-cost';
 import { useRecipeList } from '@/features/recipes/use-recipes';
 import { useCreatePlanEntry } from '@/features/planner/use-planner';
+import { dollarsToCents } from '@/features/receipts/money';
 import { cn } from '@/lib/utils/cn';
 import { PLAN_KINDS, PLAN_KIND_LABELS, type PlanKind, type Slot } from '@/schemas/plan';
 
@@ -22,6 +23,7 @@ export function AddEntryPanel({ date, slot, onClose }: Props) {
   const [recipeSearch, setRecipeSearch] = useState('');
   const [servings, setServings] = useState('');
   const [note, setNote] = useState('');
+  const [cost, setCost] = useState('');
   const { data: recipes } = useRecipeList(recipeSearch, '');
   const shown = useMemo(() => (recipes ?? []).slice(0, 8), [recipes]);
   const shownIds = useMemo(() => shown.map((r) => r.id), [shown]);
@@ -47,6 +49,7 @@ export function AddEntryPanel({ date, slot, onClose }: Props) {
       kind,
       recipeId: null,
       note: kind === 'note' ? note.trim() || null : null,
+      costCents: kind === 'eating_out' ? validCost(cost) : null,
       servingsOverride: null,
     });
     onClose();
@@ -123,6 +126,21 @@ export function AddEntryPanel({ date, slot, onClose }: Props) {
         />
       )}
 
+
+      {kind === 'eating_out' && (
+        <div className="flex items-center gap-1">
+          <span className="text-muted-foreground text-sm">$</span>
+          <Input
+            aria-label="Eating out cost"
+            inputMode="decimal"
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
+            placeholder="cost (optional)"
+            title="Counts toward this month’s budget, alongside groceries"
+            className="h-9 w-36"
+          />
+        </div>
+      )}
       {kind !== 'recipe' && (
         <div className="flex gap-2">
           <Button size="sm" onClick={addNonRecipe} disabled={create.isPending}>
@@ -141,4 +159,10 @@ export function AddEntryPanel({ date, slot, onClose }: Props) {
       )}
     </div>
   );
+}
+
+/** A typed dollar amount as cents, or null when blank or not a valid amount. */
+function validCost(s: string): number | null {
+  const cents = dollarsToCents(s);
+  return cents != null && cents >= 0 ? cents : null;
 }

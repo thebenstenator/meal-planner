@@ -1,9 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { useMemo } from 'react';
 
 import { useHousehold } from '@/features/household/use-household';
+import { useDiningInRange } from '@/features/planner/use-planner';
 import { pricingKeys } from '@/features/pricing/api';
-import { summarizeMonth, type MonthSummary } from '@/features/pricing/month-summary';
+import {
+  EATING_OUT,
+  summarizeMonth,
+  type MonthSummary,
+} from '@/features/pricing/month-summary';
 import { itemSpendCents } from '@/features/pricing/spend';
 import { usePriceIndex } from '@/features/pricing/use-recipe-cost';
 import { fetchTripsWithLines, receiptKeys } from '@/features/receipts/api';
@@ -55,6 +61,9 @@ export function useMonthSummary(monthStart: string, monthEnd: string): MonthSumm
     [items],
   );
   const index = usePriceIndex(itemCanonicalIds);
+  // Same query as the spend rollup; only meals already eaten count as spend.
+  const { data: dining, isLoading: diningLoading } = useDiningInRange(monthStart, monthEnd);
+  const today = format(new Date(), 'yyyy-MM-dd');
 
   return useMemo(() => {
     const summary = summarizeMonth(
@@ -69,19 +78,37 @@ export function useMonthSummary(monthStart: string, monthEnd: string): MonthSumm
           priceCents: l.priceCents,
         })),
       })),
-      (items ?? []).map((i) => ({
-        category: i.category ?? FALLBACK_CATEGORY,
-        cents: itemSpendCents(i, index.priceByCanonical, index.infoByCanonical),
-        isRecorded: i.actualCostCents != null,
-      })),
+      [
+        ...(items ?? []).map((i) => ({
+          category: i.category ?? FALLBACK_CATEGORY,
+          cents: itemSpendCents(i, index.priceByCanonical, index.infoByCanonical),
+          isRecorded: i.actualCostCents != null,
+        })),
+        ...(dining ?? [])
+          .filter((d) => d.date <= today)
+          .map((d) => ({ category: EATING_OUT, cents: d.cents, isRecorded: true })),
+      ],
     );
     return {
       ...summary,
       isLoading:
         tripsLoading ||
         itemsLoading ||
+        diningLoading ||
         (lineCanonicalIds.length > 0 && overridesLoading) ||
         index.isLoading,
     };
-  }, [trips, items, overrides, index, tripsLoading, itemsLoading, overridesLoading, lineCanonicalIds]);
+  }, [
+    trips,
+    items,
+    dining,
+    today,
+    overrides,
+    index,
+    tripsLoading,
+    itemsLoading,
+    diningLoading,
+    overridesLoading,
+    lineCanonicalIds,
+  ]);
 }

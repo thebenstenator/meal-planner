@@ -16,6 +16,9 @@ export interface SummaryItem {
 /** Spend that can't be pinned to a category: trip totals beyond their priced lines. */
 export const UNITEMIZED = '__unitemized__';
 
+/** Eating-out meals (ADR 0019) — the same budget as groceries, its own row. */
+export const EATING_OUT = '__eating_out__';
+
 export interface MonthSummary {
   totalCents: number;
   /** Category slug → cents, largest first. `UNITEMIZED` always sorts last. */

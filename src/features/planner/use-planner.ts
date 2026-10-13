@@ -5,9 +5,11 @@ import { useHousehold } from '@/features/household/use-household';
 import {
   createPlanEntry,
   deletePlanEntry,
+  fetchDiningInRange,
   listPlanEntries,
   movePlanEntry,
   planKeys,
+  setEntryCost,
 } from '@/features/planner/api';
 import { supabase } from '@/lib/supabase/client';
 import type { PlanEntryInput, Slot } from '@/schemas/plan';
@@ -21,6 +23,20 @@ export function usePlanEntries(start: string, end: string) {
   });
 }
 
+
+/**
+ * Eating-out costs dated within [start, end] (ADR 0019). Keyed under the plan,
+ * so adding, moving, pricing or removing an entry — here or on a partner's
+ * phone via realtime — refreshes spend and forecast with it.
+ */
+export function useDiningInRange(start: string, end: string) {
+  const { householdId } = useHousehold();
+  return useQuery({
+    queryKey: [...planKeys.all(householdId ?? 'none'), 'dining', start, end],
+    queryFn: () => fetchDiningInRange(householdId as string, start, end),
+    enabled: !!householdId,
+  });
+}
 function useInvalidatePlan() {
   const qc = useQueryClient();
   const { householdId } = useHousehold();
@@ -83,4 +99,13 @@ export function usePlanRealtime() {
       void supabase.removeChannel(channel);
     };
   }, [householdId, qc]);
+}
+
+/** Set or clear (null) what an eating-out meal costs. */
+export function useSetEntryCost() {
+  const invalidate = useInvalidatePlan();
+  return useMutation<void, Error, { id: string; cents: number | null }>({
+    mutationFn: ({ id, cents }) => setEntryCost(id, cents),
+    onSuccess: () => invalidate(),
+  });
 }

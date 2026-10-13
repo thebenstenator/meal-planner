@@ -562,6 +562,7 @@ export type Database = {
       plan_entry: {
         Row: {
           cooked_at: string | null
+          cost_cents: number | null
           created_at: string
           date: string
           household_id: string
@@ -577,6 +578,7 @@ export type Database = {
         }
         Insert: {
           cooked_at?: string | null
+          cost_cents?: number | null
           created_at?: string
           date: string
           household_id: string
@@ -592,6 +594,7 @@ export type Database = {
         }
         Update: {
           cooked_at?: string | null
+          cost_cents?: number | null
           created_at?: string
           date?: string
           household_id?: string

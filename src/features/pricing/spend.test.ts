@@ -81,3 +81,20 @@ describe('rollupSpend', () => {
     expect(r.byMonth.get('2026-10')).toBe(1250);
   });
 });
+
+describe('rollupSpend with eating out', () => {
+  it('adds dining to its month alongside groceries', () => {
+    const r = rollupSpend(
+      [{ purchasedOn: '2026-10-02', totalCents: 1000 }],
+      [],
+      prices,
+      new Map(),
+      [
+        { date: '2026-10-05', cents: 4200 },
+        { date: '2026-09-30', cents: 1800 },
+      ],
+    );
+    expect(r.byMonth.get('2026-10')).toBe(5200);
+    expect(r.byMonth.get('2026-09')).toBe(1800);
+  });
+});

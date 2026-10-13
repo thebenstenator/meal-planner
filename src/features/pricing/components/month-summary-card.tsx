@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Loading } from '@/components/ui/loading';
 import { usePlanEntries } from '@/features/planner/use-planner';
 import { ForecastLine } from '@/features/pricing/components/forecast-line';
-import { UNITEMIZED } from '@/features/pricing/month-summary';
+import { EATING_OUT, UNITEMIZED } from '@/features/pricing/month-summary';
 import { useMonthForecast } from '@/features/pricing/use-month-forecast';
 import { useMonthSummary } from '@/features/pricing/use-month-summary';
 import { usePlannerCosts } from '@/features/pricing/use-planner-cost';
@@ -112,7 +112,9 @@ export function MonthSummaryCard({ month, budgetCents, previous }: Props) {
               const unitemized = row.category === UNITEMIZED;
               const name = unitemized
                 ? 'Not itemized'
-                : (nameBySlug.get(row.category) ?? humanizeCategory(row.category));
+                : row.category === EATING_OUT
+                  ? 'Eating out'
+                  : (nameBySlug.get(row.category) ?? humanizeCategory(row.category));
               const pct = total > 0 ? Math.round((row.cents / total) * 100) : 0;
               return (
                 <li
