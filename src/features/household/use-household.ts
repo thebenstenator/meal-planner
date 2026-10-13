@@ -15,6 +15,12 @@ export interface UseHouseholdResult {
   /** The user's role in the active household. */
   role: 'owner' | 'member' | null;
   isLoading: boolean;
+  /**
+   * Signed in, but the household isn't known yet (first load, before the cache
+   * has it). Pages must not render then: a write fired now would go out with
+   * household_id = null. False while offline-paused, so the app still opens.
+   */
+  isResolving: boolean;
   isError: boolean;
   setActiveHouseholdId: (id: string) => void;
 }
@@ -45,6 +51,8 @@ export function useHousehold(): UseHouseholdResult {
     householdId: household?.id ?? null,
     role: household?.role ?? null,
     isLoading: query.isLoading,
+    isResolving:
+      !!user && !household && query.isPending && query.fetchStatus !== 'paused',
     isError: query.isError,
     setActiveHouseholdId,
   };
