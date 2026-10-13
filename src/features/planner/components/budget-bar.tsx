@@ -12,7 +12,11 @@ interface Props {
   actualCents: number;
   budgetCents: number | null;
   unpricedMeals: number;
-  hasStore: boolean;
+  /**
+   * Whether there's anything to track: a priced store, or spend recorded without
+   * one (paid prices, logged trips, eating out). False shows the set-up nudge.
+   */
+  canTrack: boolean;
   isLoading: boolean;
   /** Where the month is headed; replaces the planned line for current/future months. */
   forecast: MonthForecastResult;
@@ -29,7 +33,7 @@ export function BudgetBar({
   actualCents,
   budgetCents,
   unpricedMeals,
-  hasStore,
+  canTrack,
   isLoading,
   forecast,
 }: Props) {
@@ -50,7 +54,7 @@ export function BudgetBar({
     );
 
   // No prices to work from at all — nudge toward setup rather than showing $0.
-  if (!hasStore) {
+  if (!canTrack) {
     return (
       <div className="bg-muted/40 rounded-lg border p-3 text-sm">
         <span className="text-muted-foreground">Set a default store and prices to track spend. </span>

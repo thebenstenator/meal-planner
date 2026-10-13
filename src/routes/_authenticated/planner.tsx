@@ -146,7 +146,7 @@ function PlannerPage() {
         actualCents={actual.actualCents}
         budgetCents={household?.monthlyBudgetCents ?? null}
         unpricedMeals={monthCosts.unpricedMeals}
-        hasStore={!!monthCosts.storeId || !!actual.storeId}
+        canTrack={!!monthCosts.storeId || !!actual.storeId || actual.actualCents > 0}
         isLoading={monthCosts.isLoading || actual.isLoading}
         forecast={forecast}
       />
