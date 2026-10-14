@@ -53,3 +53,24 @@ describe('convert — vague', () => {
     expect(canConvert('to_taste', 'tsp')).toBe(false);
   });
 });
+
+// Units arrive straight from stored data — a store price someone typed as
+// "lbs" or "bag" — so convert must never throw on a unit it doesn't know.
+describe('convert — units from stored data', () => {
+  it('resolves typed aliases to the real unit', () => {
+    const r = convert(1, 'lbs' as never, 'oz');
+    expect(r.ok && r.quantity).toBeCloseTo(16);
+    const v = convert(2, 'fl oz' as never, 'tbsp');
+    expect(v.ok && v.quantity).toBeCloseTo(4);
+  });
+
+  it('reports an unknown unit as unconvertible instead of throwing', () => {
+    expect(() => convert(1, 'bag' as never, 'g')).not.toThrow();
+    expect(convert(1, 'bag' as never, 'g').ok).toBe(false);
+    expect(convert(1, 'g', 'jar' as never).ok).toBe(false);
+  });
+
+  it('still matches an unknown unit to itself', () => {
+    expect(convert(3, 'bag' as never, 'bag' as never)).toEqual({ ok: true, quantity: 3 });
+  });
+});

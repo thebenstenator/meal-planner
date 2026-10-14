@@ -53,3 +53,14 @@ describe('computeCalibration', () => {
     });
   });
 });
+
+describe('computeCalibration with stored units', () => {
+  it('skips a store price in a unit it doesn’t know, rather than crashing', () => {
+    const typed: CalibrationPair = {
+      store: { priceCents: 399, packageQuantity: 1, packageUnit: 'bag' },
+      reference: { priceCents: 100, packageQuantity: 1, packageUnit: 'lb' },
+      info: {},
+    };
+    expect(() => computeCalibration([typed, pair(1.2)])).not.toThrow();
+  });
+});

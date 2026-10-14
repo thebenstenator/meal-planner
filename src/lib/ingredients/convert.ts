@@ -1,4 +1,5 @@
 import type { CanonicalInfo } from '@/lib/ingredients/types';
+import { resolveUnit } from '@/lib/ingredients/normalize';
 import { UNIT_META, dimensionOf, type Unit } from '@/lib/ingredients/units';
 
 export type ConvertResult =
@@ -25,6 +26,14 @@ export function convert(
   info: ConvertInfo = {},
 ): ConvertResult {
   if (from === to) return { ok: true, quantity };
+
+  // Units can come straight from stored data — a store price typed as "lbs" or
+  // "bag" — despite the Unit type. Resolve aliases, and report anything still
+  // unknown as unconvertible rather than throwing on it.
+  const f = asUnit(from);
+  const t = asUnit(to);
+  if (!f || !t) return { ok: false, reason: `unknown unit ${f ? to : from}` };
+  if (f !== from || t !== to) return convert(quantity, f, t, info);
 
   const fromDim = dimensionOf(from);
   const toDim = dimensionOf(to);
@@ -98,4 +107,9 @@ function fromGrams(grams: number, to: Unit, info: ConvertInfo): ConvertResult {
 /** True when `convert` would succeed for this unit pair given `info`. */
 export function canConvert(from: Unit, to: Unit, info: ConvertInfo = {}): boolean {
   return convert(1, from, to, info).ok;
+}
+
+/** A known Unit for a stored unit string — itself, an alias of one, or null. */
+function asUnit(unit: string): Unit | null {
+  return unit in UNIT_META ? (unit as Unit) : resolveUnit(unit);
 }

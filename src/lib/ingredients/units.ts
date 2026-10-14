@@ -79,7 +79,8 @@ export const UNIT_META: Record<Unit, UnitMeta> = {
 };
 
 export function dimensionOf(unit: Unit): Dimension {
-  return UNIT_META[unit].dimension;
+  // Unknown (stored, untyped) units are unconvertible, never a crash.
+  return UNIT_META[unit]?.dimension ?? 'vague';
 }
 
 /**

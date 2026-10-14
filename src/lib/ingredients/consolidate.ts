@@ -175,7 +175,7 @@ function largestUnit(members: Member[]): Unit {
   let bestUnit: Unit = (members[0] as Member).unit;
   let bestVal = -Infinity;
   for (const m of members) {
-    const val = m.quantity * (UNIT_META[m.unit].toBase ?? 1);
+    const val = m.quantity * (UNIT_META[m.unit]?.toBase ?? 1);
     if (val > bestVal) {
       bestVal = val;
       bestUnit = m.unit;
