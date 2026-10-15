@@ -220,3 +220,29 @@ test('estimates a missing price with AI and costs the recipe from it', async ({ 
   await expect(page.getByTestId('recipe-cost')).toContainText('$3.00', { timeout: 15000 });
   expect(requested).toHaveLength(1);
 });
+
+// The cost view switch: per serving or the whole dish, everywhere, remembered.
+test('switches recipe costs between per serving and the whole dish', async ({ page }) => {
+  await signUp(page, uniqueEmail('costview'));
+
+  await page.goto('/recipes/new');
+  await page.getByLabel('Title').fill('Bagel Spread');
+  await page.getByLabel('Paste ingredients').fill('8 oz cream cheese');
+  await page.getByRole('button', { name: 'Add rows' }).click();
+  await expect(page.getByText('Ingredients (1)')).toBeVisible();
+  await submitRecipe(page);
+  await expect(page.getByRole('heading', { name: 'Bagel Spread' })).toBeVisible();
+
+  // $2.49 for the dish (8 oz at the reference), 4 servings → $0.62 each.
+  const cost = page.getByTestId('recipe-cost');
+  await expect(cost).toContainText('$0.62 / serving', { timeout: 15000 });
+  await page.getByRole('radio', { name: 'Whole dish' }).click();
+  await expect(cost).toContainText('$2.49 whole dish');
+
+  // Remembered, and applied in the library too.
+  await page.goto('/recipes');
+  await expect(page.getByRole('radio', { name: 'Whole dish' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('recipe-cost-tag').first()).toContainText('$2.49 total');
+  await page.getByRole('radio', { name: 'Per serving' }).click();
+  await expect(page.getByTestId('recipe-cost-tag').first()).toContainText('$0.62/serving');
+});

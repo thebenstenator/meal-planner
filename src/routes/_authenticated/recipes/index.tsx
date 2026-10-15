@@ -1,13 +1,15 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 
+import { costForView } from '@/app/cost-view';
+import { useUiStore } from '@/app/store/ui-store';
 import { AddMenu } from '@/components/add-menu';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/ui/loading';
-import { RecipeCostTag } from '@/features/pricing/components/recipe-cost-tag';
+import { CostViewToggle, RecipeCostTag } from '@/features/pricing/components/recipe-cost-tag';
 import { sortByCost } from '@/features/pricing/cost-sort';
 import { useRecipeCosts } from '@/features/pricing/use-planner-cost';
 import { matchesScope, scopeCounts, scopeKey, type RecipeScope } from '@/features/recipes/scope';
@@ -48,7 +50,14 @@ function RecipeLibrary() {
   const counts = scopeCounts(recipes, myCookbooks.map((c) => c.id));
 
   const inScope = recipes.filter((r) => matchesScope(r, active));
-  const visible = sort === 'cost' ? sortByCost(inScope, (id) => detailById.get(id)) : inScope;
+  const costView = useUiStore((s) => s.costView);
+  const visible =
+    sort === 'cost'
+      ? sortByCost(inScope, (id) => {
+          const c = detailById.get(id);
+          return c && { cents: costForView(c, costView), unpriced: c.unpriced };
+        })
+      : inScope;
   // What the "all" tab would add — the escape hatch when you're searching inside
   // one place and the thing you want lives somewhere else.
   const elsewhere = recipes.length - visible.length;
@@ -151,11 +160,14 @@ function RecipeLibrary() {
               {m}
             </FilterChip>
           ))}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CostViewToggle />
           <select
             aria-label="Sort recipes"
             value={sort}
             onChange={(e) => setSort(e.target.value as 'title' | 'cost')}
-            className="bg-background ml-auto rounded-full border px-3 py-1 text-sm"
+            className="bg-background rounded-full border px-3 py-1 text-sm"
           >
             <option value="title">A–Z</option>
             <option value="cost">Cheapest first</option>

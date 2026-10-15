@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { getStoredCostView, storeCostView, type CostView } from '@/app/cost-view';
 import { applyTheme, getStoredTheme, storeTheme, type Theme } from '@/app/theme';
 
 /**
@@ -15,6 +16,9 @@ interface UiState {
   activeHouseholdId: string | null;
   setTheme: (theme: Theme) => void;
   setActiveHouseholdId: (id: string | null) => void;
+  /** Recipe costs per serving or for the whole dish — remembered per device. */
+  costView: CostView;
+  setCostView: (view: CostView) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -28,4 +32,9 @@ export const useUiStore = create<UiState>((set) => ({
     set({ theme });
   },
   setActiveHouseholdId: (activeHouseholdId) => set({ activeHouseholdId }),
+  costView: getStoredCostView(),
+  setCostView: (costView) => {
+    storeCostView(costView);
+    set({ costView });
+  },
 }));

@@ -1,3 +1,4 @@
+import { useUiStore } from '@/app/store/ui-store';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/ui/loading';
 import { useHousehold } from '@/features/household/use-household';
 import { AiEstimateButton } from '@/features/pricing/components/ai-estimate-button';
-import { EstMark } from '@/features/pricing/components/recipe-cost-tag';
+import { CostViewToggle, EstMark } from '@/features/pricing/components/recipe-cost-tag';
 import { useRecipeCost } from '@/features/pricing/use-recipe-cost';
 import {
   canDeleteRecipe,
@@ -334,6 +335,7 @@ function RecipeCostCard({
   canEdit: boolean;
 }) {
   const cost = useRecipeCost(ingredients, servings, manualCostCents);
+  const costView = useUiStore((s) => s.costView);
   const setCost = useSetRecipeManualCost(recipeId);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('');
@@ -419,22 +421,40 @@ function RecipeCostCard({
 
   return (
     <div className="rounded-lg border p-4">
-      <div className="flex items-baseline justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium">
           {cost.isManual ? 'Meal price' : 'Estimated cost'}
         </span>
-        <span className="text-xl font-semibold" data-testid="recipe-cost">
-          {!cost.isManual && cost.referenceCount > 0 && <EstMark className="text-xs" />}
-          {formatCurrency(cost.totalCents)}
-        </span>
+        <CostViewToggle />
       </div>
-      <div className="text-muted-foreground mt-1 flex items-baseline justify-between text-sm">
-        <span>{formatCurrency(cost.perServingCents)} / serving</span>
-        {!cost.isManual && cost.unpricedCount > 0 && (
+      {/* The chosen view leads; the other figure sits beneath it. */}
+      <div data-testid="recipe-cost">
+        <div className="text-xl font-semibold">
+          {!cost.isManual && cost.referenceCount > 0 && <EstMark className="text-xs" />}
+          {costView === 'meal' ? (
+            <>
+              {formatCurrency(cost.totalCents)}
+              <span className="text-muted-foreground text-sm font-normal"> whole dish</span>
+            </>
+          ) : (
+            <>
+              {formatCurrency(cost.perServingCents)}
+              <span className="text-muted-foreground text-sm font-normal"> / serving</span>
+            </>
+          )}
+        </div>
+        <div className="text-muted-foreground mt-1 flex items-baseline justify-between text-sm">
           <span>
-            {cost.unpricedCount} of {cost.pricedCount + cost.unpricedCount} not priced
+            {costView === 'meal'
+              ? `${formatCurrency(cost.perServingCents)} / serving`
+              : `${formatCurrency(cost.totalCents)} whole dish · serves ${servings}`}
           </span>
-        )}
+          {!cost.isManual && cost.unpricedCount > 0 && (
+            <span>
+              {cost.unpricedCount} of {cost.pricedCount + cost.unpricedCount} not priced
+            </span>
+          )}
+        </div>
       </div>
       <div className="text-muted-foreground mt-2 flex items-center justify-between text-xs">
         <span>

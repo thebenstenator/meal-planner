@@ -12,17 +12,17 @@ const recipes = [
 ];
 
 const costs: Record<string, SortableCost> = {
-  a: { perServingCents: 450, unpriced: false },
-  b: { perServingCents: null, unpriced: true },
-  c: { perServingCents: 120, unpriced: true }, // partly priced: a floor
-  d: { perServingCents: 300, unpriced: false },
-  e: { perServingCents: 300, unpriced: false },
+  a: { cents: 450, unpriced: false },
+  b: { cents: null, unpriced: true },
+  c: { cents: 120, unpriced: true }, // partly priced: a floor
+  d: { cents: 300, unpriced: false },
+  e: { cents: 300, unpriced: false },
 };
 
 describe('sortByCost', () => {
   const titles = sortByCost(recipes, (id) => costs[id]).map((r) => r.title);
 
-  it('puts fully priced recipes first, cheapest per serving first', () => {
+  it('puts fully priced recipes first, cheapest first', () => {
     expect(titles.slice(0, 3)).toEqual(['Delta', 'Echo', 'Alpha']);
   });
 
